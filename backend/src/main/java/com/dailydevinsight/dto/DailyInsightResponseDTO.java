@@ -7,19 +7,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DailyInsightDTO {
-
-    private Long id;
-    private String title;
-    private String url;
-    private String source;
-    private String summary;
+public class DailyInsightResponseDTO {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
-    private LocalDate publishedAt;
+    private LocalDate date;
+
+    private DailyInsightDTO todayKnowledge;
+    private List<DailyInsightDTO> newsList;
 }

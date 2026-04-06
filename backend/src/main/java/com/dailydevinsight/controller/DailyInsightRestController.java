@@ -4,37 +4,28 @@ import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.service.DailyInsightService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
-@Controller
+@RestController
+@RequestMapping("/api")
 @RequiredArgsConstructor
-public class HelloController {
+public class DailyInsightRestController {
 
     private final DailyInsightService dailyInsightService;
 
-    @GetMapping({"/", "/index"})
-    public String index(
+    @GetMapping(value = "/insights", produces = MediaType.APPLICATION_JSON_VALUE)
+    public DailyInsightResponseDTO getInsights(
             @RequestParam(value = "date", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate date,
-            Model model
+            LocalDate date
     ) {
         LocalDate targetDate = date != null ? date : LocalDate.now();
-        DailyInsightResponseDTO response = dailyInsightService.getInsightsByDate(targetDate);
-
-        model.addAttribute("response", response);
-        model.addAttribute("selectedDate", targetDate);
-        return "index";
-    }
-
-    @GetMapping("/hello")
-    public String hello(Model model) {
-        model.addAttribute("message", "Hello Daily Dev Insight!");
-        return "hello";
+        return dailyInsightService.getInsightsByDate(targetDate);
     }
 }

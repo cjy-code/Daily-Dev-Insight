@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Dev Insight</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            background: linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
+            color: #1f2937;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        h1 { margin: 0 0 8px; font-size: 30px; }
+        .subtitle { margin: 0; color: #64748b; }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+        .toolbar input[type="date"] {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+        .toolbar button {
+            border: none;
+            border-radius: 8px;
+            background: #0f766e;
+            color: #fff;
+            padding: 9px 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .toolbar a {
+            color: #0f766e;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        h2 { margin: 0 0 12px; font-size: 20px; }
+        .item-title {
+            margin: 0 0 6px;
+            font-size: 18px;
+        }
+        .item-title a { color: #0f172a; text-decoration: none; }
+        .item-title a:hover { text-decoration: underline; }
+        .meta { color: #64748b; font-size: 13px; margin-bottom: 8px; }
+        .summary { margin: 0; line-height: 1.5; }
+        .news-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 10px;
+        }
+        .news-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px;
+            background: #f8fafc;
+        }
+        .empty { color: #64748b; margin: 0; }
+        @media (max-width: 640px) {
+            body { padding: 14px; }
+            h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <section class="card">
+        <h1>Daily Dev Insight</h1>
+        <p class="subtitle">MVP 화면: 오늘의 지식 1개와 뉴스 리스트 조회</p>
+
+        <form class="toolbar" method="get" action="/index">
+            <label for="date">조회 날짜</label>
+            <input id="date" name="date" type="date" th:value="${selectedDate}" required>
+            <button type="submit">조회</button>
+            <a th:href="@{/api/insights(date=${selectedDate})}" target="_blank" rel="noopener">API 확인</a>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>오늘의 지식 1개</h2>
+        <div th:if="${response.todayKnowledge != null}">
+            <h3 class="item-title">
+                <a th:href="${response.todayKnowledge.url}" target="_blank" rel="noopener"
+                   th:text="${response.todayKnowledge.title}">지식 제목</a>
+            </h3>
+            <div class="meta"
+                 th:text="${response.todayKnowledge.source + ' | ' + response.todayKnowledge.publishedAt}">출처 | 날짜</div>
+            <p class="summary" th:text="${response.todayKnowledge.summary}">요약</p>
+        </div>
+        <p class="empty" th:if="${response.todayKnowledge == null}">선택한 날짜의 대표 지식이 없습니다.</p>
+    </section>
+
+    <section class="card">
+        <h2>오늘의 뉴스 리스트</h2>
+        <ul class="news-list" th:if="${!#lists.isEmpty(response.newsList)}">
+            <li class="news-item" th:each="item : ${response.newsList}">
+                <h3 class="item-title">
+                    <a th:href="${item.url}" target="_blank" rel="noopener" th:text="${item.title}">뉴스 제목</a>
+                </h3>
+                <div class="meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
+                <p class="summary" th:text="${item.summary}">요약</p>
+            </li>
+        </ul>
+        <p class="empty" th:if="${#lists.isEmpty(response.newsList)}">선택한 날짜의 뉴스가 없습니다.</p>
+    </section>
+</div>
+</body>
+</html>

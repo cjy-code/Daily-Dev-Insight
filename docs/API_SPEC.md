@@ -1,4 +1,4 @@
-﻿# Daily Dev Insight API 명세서 (MVP)
+# Daily Dev Insight API 명세서 (MVP)
 
 ## 1. 범위
 
