@@ -1,5 +1,6 @@
 package com.dailydevinsight.controller;
 
+import com.dailydevinsight.config.SecurityConfig;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.service.DailyInsightService;
@@ -7,6 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
@@ -20,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @WebMvcTest(HelloController.class)
+@Import(SecurityConfig.class)
+@WithMockUser
 public class HelloControllerTest {
 
     @Autowired
@@ -27,6 +33,9 @@ public class HelloControllerTest {
 
     @MockBean
     private DailyInsightService dailyInsightService;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     @Test
     void index_ShouldRenderIndexView() throws Exception {
