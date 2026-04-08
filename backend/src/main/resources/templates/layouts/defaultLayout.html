@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko"
+      th:fragment="layout(pageTitle, content, pageScript, showHeaderNav)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:replace="${pageTitle}">Daily Dev Insight</title>
+    <style>
+        :root {
+            --color-base-100: #f2dfd7;
+            --color-base-050: #fef9ff;
+            --color-primary-200: #d4c1ec;
+            --color-primary-400: #9f9fed;
+            --color-primary-600: #736ced;
+            --color-text-main: #2f2a40;
+            --color-text-muted: #726a88;
+            --color-border: #e7dcf6;
+            --color-danger: #d1436a;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --shadow-md: 0 12px 28px rgba(115, 108, 237, 0.16);
+            --shadow-sm: 0 6px 14px rgba(115, 108, 237, 0.10);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+            color: var(--color-text-main);
+            background:
+                    radial-gradient(circle at 5% 10%, rgba(212, 193, 236, 0.55), transparent 28%),
+                    radial-gradient(circle at 92% 12%, rgba(159, 159, 237, 0.45), transparent 24%),
+                    linear-gradient(180deg, var(--color-base-050) 0%, var(--color-base-100) 100%);
+        }
+
+        .layout-container {
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            padding: 24px 20px;
+            gap: 18px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(3px);
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: var(--radius-md);
+            padding: 11px 16px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-400));
+            box-shadow: 0 6px 14px rgba(115, 108, 237, 0.28);
+            cursor: pointer;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .input-field {
+            width: 100%;
+            border: 1px solid #d7caef;
+            border-radius: var(--radius-md);
+            background: #ffffff;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: var(--color-text-main);
+            outline: none;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--color-primary-600);
+            box-shadow: 0 0 0 3px rgba(115, 108, 237, 0.18);
+        }
+
+        .site-header,
+        .site-footer {
+            padding: 16px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.1px;
+            color: var(--color-primary-600);
+        }
+
+        .brand-subtitle {
+            margin: 2px 0 0;
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-link {
+            text-decoration: none;
+            border: 1px solid var(--color-border);
+            border-radius: 999px;
+            color: var(--color-primary-600);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 12px;
+            background: rgba(255, 255, 255, 0.86);
+        }
+
+        .content-wrap {
+            display: grid;
+            place-items: center;
+            padding: 12px 0;
+        }
+
+        .auth-panel {
+            width: 100%;
+            max-width: 460px;
+            padding: 28px;
+        }
+
+        .auth-title {
+            margin: 0;
+            font-size: 29px;
+            line-height: 1.24;
+            color: var(--color-primary-600);
+        }
+
+        .auth-subtitle {
+            margin: 8px 0 22px;
+            font-size: 14px;
+            color: var(--color-text-muted);
+        }
+
+        .form-field {
+            margin-bottom: 14px;
+        }
+
+        .field-label {
+            display: inline-block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-text-main);
+        }
+
+        .email-combine {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .email-at {
+            font-weight: 700;
+            color: var(--color-text-muted);
+        }
+
+        .helper-error {
+            margin: 6px 0 0;
+            font-size: 12px;
+            min-height: 18px;
+            color: var(--color-danger);
+        }
+
+        .notice-box {
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            border: 1px solid transparent;
+        }
+
+        .notice-error {
+            color: #9f1239;
+            border-color: #f7c7d8;
+            background: #fff0f5;
+        }
+
+        .notice-success {
+            color: #0d7b5e;
+            border-color: #bdeed8;
+            background: #edfbf5;
+        }
+
+        .sns-wrap {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .sns-title {
+            margin: 0 0 10px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--color-text-muted);
+        }
+
+        .sns-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .sns-item {
+            text-decoration: none;
+            text-align: center;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-text-main);
+            background: #ffffff;
+        }
+
+        .site-footer {
+            color: var(--color-text-muted);
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .layout-container {
+                padding: 14px;
+                gap: 12px;
+            }
+
+            .site-header,
+            .site-footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .auth-panel {
+                padding: 20px;
+            }
+
+            .email-combine {
+                grid-template-columns: 1fr;
+            }
+
+            .email-at {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="layout-container">
+    <header th:replace="~{fragments/header :: header(${showHeaderNav})}"></header>
+
+    <main class="content-wrap">
+        <th:block th:replace="${content}">
+            <section>Content</section>
+        </th:block>
+    </main>
+
+    <footer th:replace="~{fragments/footer :: footer}"></footer>
+</div>
+<th:block th:replace="${pageScript}"></th:block>
+</body>
+</html>

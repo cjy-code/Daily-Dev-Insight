@@ -22,6 +22,6 @@ public class LoginController {
             redirectAttributes.addFlashAttribute("logoutSuccess", true);
             return "redirect:/login";
         }
-        return "login";
+        return "views/login";
     }
 }

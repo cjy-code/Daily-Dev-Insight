@@ -29,7 +29,7 @@ class LoginControllerTest {
     void login_ShouldRenderLoginView() throws Exception {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("login"));
+                .andExpect(view().name("views/login"));
     }
 
     @Test
