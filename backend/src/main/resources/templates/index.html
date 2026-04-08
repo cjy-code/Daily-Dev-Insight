@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Dev Insight</title>
     <style>
@@ -83,7 +84,7 @@
 <div class="container">
     <section class="card">
         <h1>Daily Dev Insight</h1>
-        <p class="subtitle">MVP 화면: 오늘의 지식 1개와 뉴스 리스트 조회</p>
+        <p class="subtitle">오늘의 지식 1건과 기술 뉴스를 날짜별로 조회합니다.</p>
 
         <form class="toolbar" method="get" action="/index">
             <label for="date">조회 날짜</label>
@@ -94,17 +95,20 @@
     </section>
 
     <section class="card">
-        <h2>오늘의 지식 1개</h2>
+        <h2>오늘의 지식 1건</h2>
         <div th:if="${response.todayKnowledge != null}">
             <h3 class="item-title">
-                <a th:href="${response.todayKnowledge.url}" target="_blank" rel="noopener"
+                <a th:if="${response.todayKnowledge.url != null and !#strings.isEmpty(response.todayKnowledge.url)}"
+                   th:href="${response.todayKnowledge.url}" target="_blank" rel="noopener"
                    th:text="${response.todayKnowledge.title}">지식 제목</a>
+                <span th:if="${response.todayKnowledge.url == null or #strings.isEmpty(response.todayKnowledge.url)}"
+                      th:text="${response.todayKnowledge.title}">지식 제목</span>
             </h3>
             <div class="meta"
-                 th:text="${response.todayKnowledge.source + ' | ' + response.todayKnowledge.publishedAt}">출처 | 날짜</div>
+                 th:text="${response.todayKnowledge.source + ' | ' + response.todayKnowledge.publishedAt}">분류 | 날짜</div>
             <p class="summary" th:text="${response.todayKnowledge.summary}">요약</p>
         </div>
-        <p class="empty" th:if="${response.todayKnowledge == null}">선택한 날짜의 대표 지식이 없습니다.</p>
+        <p class="empty" th:if="${response.todayKnowledge == null}">선택한 날짜의 지식 데이터가 없습니다.</p>
     </section>
 
     <section class="card">
@@ -118,7 +122,7 @@
                 <p class="summary" th:text="${item.summary}">요약</p>
             </li>
         </ul>
-        <p class="empty" th:if="${#lists.isEmpty(response.newsList)}">선택한 날짜의 뉴스가 없습니다.</p>
+        <p class="empty" th:if="${#lists.isEmpty(response.newsList)}">선택한 날짜의 뉴스 데이터가 없습니다.</p>
     </section>
 </div>
 </body>

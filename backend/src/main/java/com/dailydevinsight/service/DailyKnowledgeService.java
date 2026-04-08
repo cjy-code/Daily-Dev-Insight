@@ -1,0 +1,22 @@
+package com.dailydevinsight.service;
+
+import com.dailydevinsight.entity.DailyKnowledge;
+import com.dailydevinsight.repository.DailyKnowledgeRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class DailyKnowledgeService {
+
+    private final DailyKnowledgeRepository dailyKnowledgeRepository;
+
+    public Optional<DailyKnowledge> findTodayKnowledge(LocalDate targetDate) {
+        return dailyKnowledgeRepository.findTopByKnowledgeDateOrderByIdDesc(targetDate);
+    }
+}
