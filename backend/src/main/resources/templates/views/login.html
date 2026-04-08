@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko"
+      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::section}, ~{::script}, false)}">
+<head>
+    <title>로그인 | Daily Dev Insight</title>
+</head>
+<body>
+<section class="auth-panel card">
+    <h2 class="auth-title">로그인</h2>
+    <p class="auth-subtitle">이메일과 비밀번호를 입력해 서비스를 시작하세요.</p>
+
+    <div class="notice-box notice-error" th:if="${loginError}">
+        사용자 ID 또는 비밀번호가 올바르지 않습니다.
+    </div>
+    <div class="notice-box notice-success" th:if="${logoutSuccess}">
+        로그아웃되었습니다.
+    </div>
+
+    <form id="loginForm" method="post" th:action="@{/login}" novalidate>
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="hidden" id="username" name="username">
+
+        <div class="form-field">
+            <label class="field-label" for="emailId">이메일</label>
+            <div class="email-combine">
+                <input class="input-field" id="emailId" type="text" autocomplete="username"
+                       placeholder="아이디" required>
+                <span class="email-at">@</span>
+                <select class="input-field" id="emailDomain" required>
+                    <option value="">도메인 선택</option>
+                    <option value="daily.com">daily.com</option>
+                    <option value="gmail.com">gmail.com</option>
+                    <option value="naver.com">naver.com</option>
+                    <option value="daum.net">daum.net</option>
+                    <option value="kakao.com">kakao.com</option>
+                    <option value="custom">직접입력</option>
+                </select>
+            </div>
+            <input class="input-field" id="customDomain" type="text"
+                   placeholder="도메인 직접입력 (예: company.com)"
+                   style="display:none; margin-top:8px;">
+            <p class="helper-error" id="emailError"></p>
+        </div>
+
+        <div class="form-field">
+            <label class="field-label" for="password">비밀번호</label>
+            <input class="input-field" id="password" name="password"
+                   type="password" autocomplete="current-password" required>
+            <p class="helper-error" id="passwordError"></p>
+        </div>
+
+        <button id="loginButton" class="btn-primary" type="submit" disabled>로그인</button>
+    </form>
+
+    <section class="sns-wrap">
+        <p class="sns-title">SNS 로그인 (UI)</p>
+        <div class="sns-list">
+            <a class="sns-item" href="javascript:void(0)">Google 로그인</a>
+            <a class="sns-item" href="javascript:void(0)">Kakao 로그인</a>
+            <a class="sns-item" href="javascript:void(0)">Naver 로그인</a>
+        </div>
+    </section>
+</section>
+
+<script>
+    (function () {
+        const form = document.getElementById("loginForm");
+        const emailIdInput = document.getElementById("emailId");
+        const domainSelect = document.getElementById("emailDomain");
+        const customDomainInput = document.getElementById("customDomain");
+        const usernameHidden = document.getElementById("username");
+        const passwordInput = document.getElementById("password");
+        const loginButton = document.getElementById("loginButton");
+        const emailError = document.getElementById("emailError");
+        const passwordError = document.getElementById("passwordError");
+
+        function getDomain() {
+            if (domainSelect.value === "custom") {
+                return customDomainInput.value.trim();
+            }
+            return domainSelect.value.trim();
+        }
+
+        function buildEmail() {
+            const emailId = emailIdInput.value.trim();
+            const domain = getDomain();
+            if (!emailId || !domain) {
+                return "";
+            }
+            return emailId + "@" + domain;
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function toggleCustomDomain() {
+            const isCustom = domainSelect.value === "custom";
+            customDomainInput.style.display = isCustom ? "block" : "none";
+            customDomainInput.required = isCustom;
+            if (!isCustom) {
+                customDomainInput.value = "";
+            }
+        }
+
+        function validate() {
+            const emailId = emailIdInput.value.trim();
+            const domain = getDomain();
+            const password = passwordInput.value;
+            const email = buildEmail();
+            let valid = true;
+
+            emailError.textContent = "";
+            passwordError.textContent = "";
+
+            if (!emailId) {
+                emailError.textContent = "이메일 아이디를 입력해 주세요.";
+                valid = false;
+            } else if (!domain) {
+                emailError.textContent = "도메인을 선택하거나 직접 입력해 주세요.";
+                valid = false;
+            } else if (!isValidEmail(email)) {
+                emailError.textContent = "올바른 이메일 형식을 입력해 주세요.";
+                valid = false;
+            }
+
+            if (!password) {
+                passwordError.textContent = "비밀번호를 입력해 주세요.";
+                valid = false;
+            }
+
+            usernameHidden.value = email;
+            loginButton.disabled = !valid;
+            return valid;
+        }
+
+        domainSelect.addEventListener("change", function () {
+            toggleCustomDomain();
+            validate();
+        });
+        emailIdInput.addEventListener("input", validate);
+        customDomainInput.addEventListener("input", validate);
+        passwordInput.addEventListener("input", validate);
+
+        form.addEventListener("submit", function (event) {
+            if (!validate()) {
+                event.preventDefault();
+            }
+        });
+
+        toggleCustomDomain();
+        validate();
+    })();
+</script>
+</body>
+</html>

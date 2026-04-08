@@ -1,0 +1,90 @@
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    padding: 24px;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: linear-gradient(180deg, #f4f7fb 0%, #eef3f9 100%);
+    color: #1f2937;
+}
+.container { max-width: 900px; margin: 0 auto; }
+.card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    padding: 20px;
+    margin-bottom: 16px;
+}
+h1 { margin: 0 0 8px; font-size: 30px; }
+.subtitle { margin: 0; color: #64748b; }
+.toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+.toolbar-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.toolbar input[type="date"] {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+}
+.toolbar button {
+    border: none;
+    border-radius: 8px;
+    background: #0f766e;
+    color: #fff;
+    padding: 9px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.toolbar a {
+    color: #0f766e;
+    font-weight: 600;
+    text-decoration: none;
+}
+.toolbar .link-button {
+    display: inline-block;
+    border: 1px solid #0f766e;
+    border-radius: 8px;
+    padding: 8px 12px;
+    line-height: 1;
+}
+.toolbar .logout-button {
+    border: 1px solid #b91c1c;
+    background: #fff;
+    color: #b91c1c;
+}
+h2 { margin: 0 0 12px; font-size: 20px; }
+.item-title {
+    margin: 0 0 6px;
+    font-size: 18px;
+}
+.item-title a { color: #0f172a; text-decoration: none; }
+.item-title a:hover { text-decoration: underline; }
+.meta { color: #64748b; font-size: 13px; margin-bottom: 8px; }
+.summary { margin: 0; line-height: 1.5; }
+.news-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+.news-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px;
+    background: #f8fafc;
+}
+.empty { color: #64748b; margin: 0; }
+@media (max-width: 640px) {
+    body { padding: 14px; }
+    h1 { font-size: 24px; }
+}
