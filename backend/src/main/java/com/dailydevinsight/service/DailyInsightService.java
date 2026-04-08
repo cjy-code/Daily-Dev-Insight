@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,11 +33,76 @@ public class DailyInsightService {
                 .map(this::toNewsDto)
                 .toList();
 
+        List<DailyInsightDTO> dailyKnowledgeList = todayKnowledge != null
+                ? List.of(todayKnowledge)
+                : Collections.emptyList();
+        List<DailyInsightDTO> techNewsList = newsList;
+        // Reserved for future Redis-based weekly ranking.
+        List<DailyInsightDTO> weeklyHotList = Collections.emptyList();
+
         return DailyInsightResponseDTO.builder()
                 .date(targetDate)
+                .dailyKnowledgeList(dailyKnowledgeList)
+                .techNewsList(techNewsList)
+                .weeklyHotList(weeklyHotList)
                 .todayKnowledge(todayKnowledge)
                 .newsList(newsList)
                 .build();
+    }
+
+    public DailyInsightResponseDTO getInsightsByRange(LocalDate startDate, LocalDate endDate, String keyword, String searchType) {
+        LocalDate normalizedStart = startDate;
+        LocalDate normalizedEnd = endDate;
+        if (normalizedStart.isAfter(normalizedEnd)) {
+            normalizedStart = endDate;
+            normalizedEnd = startDate;
+        }
+
+        List<DailyInsightDTO> knowledgeDtos = dailyKnowledgeService.findKnowledgeByDateRange(normalizedStart, normalizedEnd).stream()
+                .map(this::toKnowledgeDto)
+                .toList();
+
+        List<DailyInsightDTO> filteredKnowledge = applyKnowledgeFilter(knowledgeDtos, keyword, searchType);
+
+        // 뉴스/주간 핫 소식은 기존 동작 유지: 종료일 기준 조회 + 주간핫 비활성.
+        List<DailyInsightDTO> techNewsList = techNewsService.findNewsByDate(normalizedEnd).stream()
+                .map(this::toNewsDto)
+                .toList();
+        List<DailyInsightDTO> weeklyHotList = Collections.emptyList();
+
+        DailyInsightDTO todayKnowledge = filteredKnowledge.isEmpty() ? null : filteredKnowledge.get(0);
+
+        return DailyInsightResponseDTO.builder()
+                .date(normalizedEnd)
+                .dailyKnowledgeList(filteredKnowledge)
+                .techNewsList(techNewsList)
+                .weeklyHotList(weeklyHotList)
+                .todayKnowledge(todayKnowledge)
+                .newsList(techNewsList)
+                .build();
+    }
+
+    private List<DailyInsightDTO> applyKnowledgeFilter(List<DailyInsightDTO> knowledgeList, String keyword, String searchType) {
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
+        if (normalizedKeyword.isEmpty()) {
+            return knowledgeList;
+        }
+
+        String normalizedSearchType = (searchType == null || searchType.isBlank()) ? "title_content" : searchType;
+        return knowledgeList.stream()
+                .filter(item -> matchesByType(item, normalizedKeyword, normalizedSearchType))
+                .toList();
+    }
+
+    private boolean matchesByType(DailyInsightDTO item, String keyword, String searchType) {
+        String title = item.getTitle() == null ? "" : item.getTitle().toLowerCase();
+        String summary = item.getSummary() == null ? "" : item.getSummary().toLowerCase();
+
+        return switch (searchType) {
+            case "title" -> title.contains(keyword);
+            case "content" -> summary.contains(keyword);
+            default -> title.contains(keyword) || summary.contains(keyword);
+        };
     }
 
     private DailyInsightDTO toKnowledgeDto(DailyKnowledge knowledge) {
@@ -44,6 +110,7 @@ public class DailyInsightService {
                 .id(knowledge.getId())
                 .title(knowledge.getTitle())
                 .url(null)
+                .thumbnailUrl(null)
                 .source(knowledge.getCategory())
                 .summary(knowledge.getSummary())
                 .publishedAt(knowledge.getKnowledgeDate())
@@ -55,6 +122,7 @@ public class DailyInsightService {
                 .id(news.getId())
                 .title(news.getTitle())
                 .url(news.getUrl())
+                .thumbnailUrl(null)
                 .source(news.getSource())
                 .summary(news.getSummary())
                 .publishedAt(news.getNewsDate())

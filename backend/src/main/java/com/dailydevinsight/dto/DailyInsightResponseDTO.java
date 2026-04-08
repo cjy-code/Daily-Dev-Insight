@@ -18,6 +18,11 @@ public class DailyInsightResponseDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate date;
 
+    private List<DailyInsightDTO> dailyKnowledgeList;
+    private List<DailyInsightDTO> techNewsList;
+    private List<DailyInsightDTO> weeklyHotList;
+
+    // Backward compatibility fields for existing API/template consumers.
     private DailyInsightDTO todayKnowledge;
     private List<DailyInsightDTO> newsList;
 }

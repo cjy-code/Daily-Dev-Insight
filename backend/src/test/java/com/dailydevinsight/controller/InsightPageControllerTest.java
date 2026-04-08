@@ -1,4 +1,4 @@
-package com.dailydevinsight.controller;
+﻿package com.dailydevinsight.controller;
 
 import com.dailydevinsight.config.SecurityConfig;
 import com.dailydevinsight.dto.DailyInsightDTO;
@@ -23,10 +23,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@WebMvcTest(HelloController.class)
+@WebMvcTest(InsightPageController.class)
 @Import(SecurityConfig.class)
 @WithMockUser
-public class HelloControllerTest {
+public class InsightPageControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -69,3 +69,4 @@ public class HelloControllerTest {
                 .andExpect(model().attribute("message", "Hello Daily Dev Insight!"));
     }
 }
+
