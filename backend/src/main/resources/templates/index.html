@@ -50,46 +50,78 @@
 
     <section class="content-section">
         <div class="section-head">
-            <h2>주간 핫 소식</h2>
-            <p>자동 캐러셀</p>
+            <h2>Daily <span class="hot-word">HOT</span></h2>
+            <p>개발 인사이트 + 주간 핫 소식</p>
         </div>
 
-        <div class="hot-carousel" data-hot-carousel th:classappend="${#lists.isEmpty(weeklyHotList)} ? ' is-empty' : ''">
-            <button type="button" class="nav-button prev" data-hot-prev aria-label="이전 슬라이드">&#10094;</button>
+        <div class="highlight-grid">
+            <article class="today-insight-card" th:if="${response.todayKnowledge != null}">
+                <h3 class="highlight-title">오늘의 개발 인사이트</h3>
+                <a class="card-link"
+                   th:href="${(response.todayKnowledge.url != null and !#strings.isEmpty(response.todayKnowledge.url)) ? response.todayKnowledge.url : '#'}"
+                   th:attr="aria-disabled=${response.todayKnowledge.url == null or #strings.isEmpty(response.todayKnowledge.url)}"
+                   target="_blank" rel="noopener">
+                    <div class="thumb-wrap">
+                        <img
+                            th:src="${response.todayKnowledge.thumbnailUrl != null and !#strings.isEmpty(response.todayKnowledge.thumbnailUrl)} ? ${response.todayKnowledge.thumbnailUrl} : @{/images/default-thumb.svg}"
+                            src="/images/default-thumb.svg"
+                            alt="오늘의 개발 인사이트 썸네일"
+                            loading="lazy"
+                            onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                    </div>
+                    <div class="card-body">
+                        <h4 class="card-title" th:text="${response.todayKnowledge.title}">오늘의 개발 인사이트 제목</h4>
+                        <p class="card-summary" th:text="${response.todayKnowledge.summary}">요약</p>
+                        <div class="card-meta" th:text="${response.todayKnowledge.source + ' | ' + response.todayKnowledge.publishedAt}">출처 | 날짜</div>
+                    </div>
+                </a>
+            </article>
+            <article class="today-insight-card" th:if="${response.todayKnowledge == null}">
+                <h3 class="highlight-title">오늘의 개발 인사이트</h3>
+                <p class="empty">당일 개발 인사이트 데이터가 없습니다.</p>
+            </article>
 
-            <div class="hot-viewport">
-                <div class="hot-track" data-hot-track>
-                    <article class="hot-card" th:each="item : ${weeklyHotList}">
-                        <a class="card-link"
-                           th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
-                           th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
-                           target="_blank" rel="noopener">
-                            <div class="thumb-wrap hot-thumb">
-                                <img
-                                    th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
-                                    src="/images/default-thumb.svg"
-                                    alt="주간 핫 소식 썸네일"
-                                    loading="lazy"
-                                    onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
-                            </div>
-                            <div class="card-body">
-                                <h3 class="card-title" th:text="${item.title}">핫 소식 제목</h3>
-                                <p class="card-summary" th:text="${item.summary}">핫 소식 요약</p>
-                                <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
-                            </div>
-                        </a>
-                    </article>
+            <section class="weekly-hot-panel">
+                <h3 class="highlight-title">주간 핫 소식</h3>
+                <div class="hot-carousel weekly-hot-carousel" data-hot-carousel data-visible="2"
+                     th:if="${!#lists.isEmpty(weeklyHotList)}">
+                    <button type="button" class="nav-button prev" data-hot-prev aria-label="이전 슬라이드">&#10094;</button>
+                    <div class="hot-viewport">
+                        <div class="hot-track" data-hot-track>
+                            <article class="hot-card" th:each="item : ${weeklyHotList}">
+                                <div class="content-card">
+                                    <a class="card-link"
+                                       th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
+                                       th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
+                                       target="_blank" rel="noopener">
+                                        <div class="thumb-wrap hot-thumb">
+                                            <img
+                                                th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
+                                                src="/images/default-thumb.svg"
+                                                alt="주간 핫 소식 썸네일"
+                                                loading="lazy"
+                                                onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                        </div>
+                                        <div class="card-body">
+                                            <h4 class="card-title" th:text="${item.title}">핫 소식 제목</h4>
+                                            <p class="card-summary" th:text="${item.summary}">핫 소식 요약</p>
+                                            <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
+                                        </div>
+                                    </a>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                    <button type="button" class="nav-button next" data-hot-next aria-label="다음 슬라이드">&#10095;</button>
                 </div>
-            </div>
-
-            <button type="button" class="nav-button next" data-hot-next aria-label="다음 슬라이드">&#10095;</button>
+                <p class="empty" th:if="${#lists.isEmpty(weeklyHotList)}">주간 핫 소식 데이터가 없습니다.</p>
+            </section>
         </div>
-        <p class="empty" th:if="${#lists.isEmpty(weeklyHotList)}">주간 핫 소식은 집계 기능 적용 후 제공됩니다.</p>
     </section>
 
     <section class="content-section">
         <div class="section-head">
-            <h2>오늘의 지식</h2>
+            <h2>개발 <span class="insight-word">Insight</span></h2>
             <p>고정 6개 카드 수동 슬라이드</p>
         </div>
 
@@ -108,13 +140,13 @@
                                     <img
                                         th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
                                         src="/images/default-thumb.svg"
-                                        alt="오늘의 지식 썸네일"
+                                        alt="개발 인사이트 썸네일"
                                         loading="lazy"
                                         onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
                                 </div>
                                 <div class="card-body">
-                                    <h3 class="card-title" th:text="${item.title}">지식 제목</h3>
-                                    <p class="card-summary" th:text="${item.summary}">지식 요약</p>
+                                    <h3 class="card-title" th:text="${item.title}">개발 인사이트 제목</h3>
+                                    <p class="card-summary" th:text="${item.summary}">개발 인사이트 요약</p>
                                     <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
                                 </div>
                             </a>
@@ -131,7 +163,7 @@
             <span>/</span>
             <span th:text="${#lists.size(dailyKnowledgeChunks)}">1</span>
         </div>
-        <p class="empty" th:if="${#lists.isEmpty(dailyKnowledgeChunks)}">오늘의 지식 데이터가 없습니다.</p>
+        <p class="empty" th:if="${#lists.isEmpty(dailyKnowledgeChunks)}">개발 인사이트 데이터가 없습니다.</p>
     </section>
 
     <section class="content-section">

@@ -24,4 +24,8 @@ public class DailyKnowledgeService {
     public List<DailyKnowledge> findKnowledgeByDateRange(LocalDate startDate, LocalDate endDate) {
         return dailyKnowledgeRepository.findByKnowledgeDateBetweenOrderByKnowledgeDateDescIdDesc(startDate, endDate);
     }
+
+    public List<DailyKnowledge> findWeeklyHotKnowledgeTop6() {
+        return dailyKnowledgeRepository.findTop6ByOrderByViewCountDescIdDesc();
+    }
 }

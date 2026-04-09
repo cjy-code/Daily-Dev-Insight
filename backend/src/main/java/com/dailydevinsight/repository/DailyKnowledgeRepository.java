@@ -12,4 +12,6 @@ public interface DailyKnowledgeRepository extends JpaRepository<DailyKnowledge, 
     Optional<DailyKnowledge> findTopByKnowledgeDateOrderByIdDesc(LocalDate knowledgeDate);
 
     List<DailyKnowledge> findByKnowledgeDateBetweenOrderByKnowledgeDateDescIdDesc(LocalDate startDate, LocalDate endDate);
+
+    List<DailyKnowledge> findTop6ByOrderByViewCountDescIdDesc();
 }

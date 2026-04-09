@@ -63,14 +63,17 @@ public class DailyInsightService {
                 .toList();
 
         List<DailyInsightDTO> filteredKnowledge = applyKnowledgeFilter(knowledgeDtos, keyword, searchType);
+        DailyInsightDTO todayKnowledge = dailyKnowledgeService.findTodayKnowledge(LocalDate.now())
+                .map(this::toKnowledgeDto)
+                .orElse(null);
+        List<DailyInsightDTO> weeklyHotList = dailyKnowledgeService.findWeeklyHotKnowledgeTop6().stream()
+                .map(this::toKnowledgeDto)
+                .toList();
 
-        // 뉴스/주간 핫 소식은 기존 동작 유지: 종료일 기준 조회 + 주간핫 비활성.
+        // 뉴스는 기존 동작 유지: 종료일 기준 조회.
         List<DailyInsightDTO> techNewsList = techNewsService.findNewsByDate(normalizedEnd).stream()
                 .map(this::toNewsDto)
                 .toList();
-        List<DailyInsightDTO> weeklyHotList = Collections.emptyList();
-
-        DailyInsightDTO todayKnowledge = filteredKnowledge.isEmpty() ? null : filteredKnowledge.get(0);
 
         return DailyInsightResponseDTO.builder()
                 .date(normalizedEnd)

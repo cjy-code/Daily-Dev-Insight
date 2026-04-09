@@ -210,7 +210,8 @@
             return;
         }
 
-        const visibleCount = Math.min(3, originalCount);
+        const preferredVisible = Number(root.dataset.visible || '3');
+        const visibleCount = Math.min(Math.max(preferredVisible, 1), originalCount);
         root.style.setProperty('--hot-visible', String(visibleCount));
 
         if (originalCount <= visibleCount) {

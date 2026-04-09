@@ -1,4 +1,4 @@
-﻿package com.dailydevinsight.controller;
+package com.dailydevinsight.controller;
 
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.dto.DailyInsightDTO;

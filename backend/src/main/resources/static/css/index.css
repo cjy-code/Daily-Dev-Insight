@@ -215,6 +215,53 @@ h1 {
     font-size: 13px;
 }
 
+.hot-word {
+    color: #dc2626;
+}
+
+.insight-word {
+    color: #1d4ed8;
+    font-weight: 700;
+}
+
+.highlight-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.today-insight-card,
+.weekly-hot-panel {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #f8fafc;
+    padding: 12px;
+}
+
+.highlight-title {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: var(--ink-strong);
+}
+
+.weekly-hot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.weekly-hot-panel .weekly-hot-carousel {
+    grid-template-columns: 36px minmax(0, 1fr) 36px;
+    gap: 8px;
+}
+
+.weekly-hot-panel .nav-button {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+}
+
 .hot-carousel,
 .manual-slider {
     display: grid;

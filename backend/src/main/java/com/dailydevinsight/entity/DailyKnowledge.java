@@ -42,6 +42,9 @@ public class DailyKnowledge {
     @Column(name = "detail", nullable = false)
     private String detail;
 
+    @Column(name = "view_count", nullable = false)
+    private Long viewCount;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }
