@@ -167,8 +167,8 @@
         viewport.addEventListener('pointerleave', finishDrag);
 
         viewport.addEventListener('wheel', function (event) {
-            const horizontalIntent = Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.shiftKey;
-            if (!horizontalIntent) {
+            // Keep vertical wheel scrolling for the page; only use Shift+Wheel for slider navigation.
+            if (!event.shiftKey) {
                 return;
             }
             event.preventDefault();

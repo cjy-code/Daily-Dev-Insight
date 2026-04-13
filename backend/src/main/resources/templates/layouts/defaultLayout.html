@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko"
-      th:fragment="layout(pageTitle, pageHead, content, pageScript, showHeaderNav)">
+      th:fragment="layout(pageTitle, pageHead, content, pageScript, showHeaderNav, showSidebar, sidebarContent)">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,16 +9,23 @@
     <th:block th:replace="${pageHead}"></th:block>
 </head>
 <body>
-<div class="layout-container">
-    <header th:replace="~{fragments/header :: header(${showHeaderNav})}"></header>
+<div class="layout-shell" th:classappend="${showSidebar} ? ' layout-shell-with-sidebar' : ''">
+    <div class="layout-container">
+        <header th:replace="~{fragments/header :: header(${showHeaderNav})}"></header>
 
-    <main class="content-wrap">
-        <th:block th:replace="${content}">
-            <section>Content</section>
+        <main class="content-wrap">
+            <th:block th:replace="${content}">
+                <section>Content</section>
+            </th:block>
+        </main>
+
+        <footer th:replace="~{fragments/footer :: footer}"></footer>
+    </div>
+    <aside class="layout-sidebar-external" th:if="${showSidebar}">
+        <th:block th:replace="${sidebarContent}">
+            <section>Sidebar</section>
         </th:block>
-    </main>
-
-    <footer th:replace="~{fragments/footer :: footer}"></footer>
+    </aside>
 </div>
 <th:block th:replace="${pageScript}"></th:block>
 </body>

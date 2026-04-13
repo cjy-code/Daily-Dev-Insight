@@ -1,0 +1,19 @@
+<section xmlns:th="http://www.thymeleaf.org" class="top5-sidebar-card" th:fragment="sidebarTop5">
+    <div class="top5-sidebar-head">
+        <h2>주간 TOP5</h2>
+        <p>사이드바</p>
+    </div>
+    <ol class="top5-list" th:if="${!#lists.isEmpty(top5List)}">
+        <li class="top5-item" th:each="item, stat : ${top5List}">
+            <a class="top5-link"
+               th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
+               th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
+               target="_blank" rel="noopener">
+                <span class="top5-rank" th:text="${stat.count}">1</span>
+                <span class="top5-title" th:text="${item.title}">TOP5 제목</span>
+                <span class="top5-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</span>
+            </a>
+        </li>
+    </ol>
+    <p class="top5-empty" th:if="${#lists.isEmpty(top5List)}">주간 TOP5 데이터가 없습니다.</p>
+</section>

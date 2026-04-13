@@ -1,6 +1,6 @@
 ﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko"
-      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{::script}, true)}">
+      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{::script}, true, true, ~{fragments/sidebarTop5 :: sidebarTop5})}">
 <head>
     <title>Daily Dev Insight</title>
     <link rel="stylesheet" th:href="@{/css/index.css}" href="/css/index.css">
@@ -9,7 +9,7 @@
 <section class="index-page">
     <section class="top-panel">
         <h1>Daily Dev Insight</h1>
-        <p class="subtitle">주간 핫 소식, 오늘의 지식, 오늘의 뉴스를 한 화면에서 확인하세요.</p>
+        <p class="subtitle">TOP 10, 오늘의 지식, 오늘의 뉴스를 한 화면에서 확인하세요.</p>
 
         <div class="toolbar">
             <form class="toolbar-form" method="get" action="/index">
@@ -48,170 +48,170 @@
         </div>
     </section>
 
-    <section class="content-section">
-        <div class="section-head">
-            <h2>Daily <span class="hot-word">HOT</span></h2>
-            <p>개발 인사이트 + 주간 핫 소식</p>
-        </div>
+            <section class="content-section">
+                <div class="section-head">
+                    <h2>Daily <span class="hot-word">HOT</span></h2>
+                    <p>개발 인사이트 + TOP 10</p>
+                </div>
 
-        <div class="highlight-grid">
-            <article class="today-insight-card" th:if="${response.todayKnowledge != null}">
-                <h3 class="highlight-title">오늘의 개발 인사이트</h3>
-                <a class="card-link"
-                   th:href="${(response.todayKnowledge.url != null and !#strings.isEmpty(response.todayKnowledge.url)) ? response.todayKnowledge.url : '#'}"
-                   th:attr="aria-disabled=${response.todayKnowledge.url == null or #strings.isEmpty(response.todayKnowledge.url)}"
-                   target="_blank" rel="noopener">
-                    <div class="thumb-wrap">
-                        <img
-                            th:src="${response.todayKnowledge.thumbnailUrl != null and !#strings.isEmpty(response.todayKnowledge.thumbnailUrl)} ? ${response.todayKnowledge.thumbnailUrl} : @{/images/default-thumb.svg}"
-                            src="/images/default-thumb.svg"
-                            alt="오늘의 개발 인사이트 썸네일"
-                            loading="lazy"
-                            onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
-                    </div>
-                    <div class="card-body">
-                        <h4 class="card-title" th:text="${response.todayKnowledge.title}">오늘의 개발 인사이트 제목</h4>
-                        <p class="card-summary" th:text="${response.todayKnowledge.summary}">요약</p>
-                        <div class="card-meta" th:text="${response.todayKnowledge.source + ' | ' + response.todayKnowledge.publishedAt}">출처 | 날짜</div>
-                    </div>
-                </a>
-            </article>
-            <article class="today-insight-card" th:if="${response.todayKnowledge == null}">
-                <h3 class="highlight-title">오늘의 개발 인사이트</h3>
-                <p class="empty">당일 개발 인사이트 데이터가 없습니다.</p>
-            </article>
+                <div class="highlight-grid">
+                        <article class="today-insight-card" th:if="${response.todayKnowledge != null}">
+                            <h3 class="highlight-title">오늘의 개발 인사이트</h3>
+                            <a class="card-link"
+                               th:href="${(response.todayKnowledge.url != null and !#strings.isEmpty(response.todayKnowledge.url)) ? response.todayKnowledge.url : '#'}"
+                           th:attr="aria-disabled=${response.todayKnowledge.url == null or #strings.isEmpty(response.todayKnowledge.url)}"
+                           target="_blank" rel="noopener">
+                            <div class="thumb-wrap">
+                                <img
+                                    th:src="${response.todayKnowledge.thumbnailUrl != null and !#strings.isEmpty(response.todayKnowledge.thumbnailUrl)} ? ${response.todayKnowledge.thumbnailUrl} : @{/images/default-thumb.svg}"
+                                    src="/images/default-thumb.svg"
+                                    alt="오늘의 개발 인사이트 썸네일"
+                                    loading="lazy"
+                                    onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                            </div>
+                            <div class="card-body">
+                                <h4 class="card-title" th:text="${response.todayKnowledge.title}">오늘의 개발 인사이트 제목</h4>
+                                <p class="card-summary" th:text="${response.todayKnowledge.summary}">요약</p>
+                                <div class="card-meta" th:text="${response.todayKnowledge.source + ' | ' + response.todayKnowledge.publishedAt}">출처 | 날짜</div>
+                            </div>
+                        </a>
+                    </article>
+                    <article class="today-insight-card" th:if="${response.todayKnowledge == null}">
+                        <h3 class="highlight-title">오늘의 개발 인사이트</h3>
+                        <p class="empty">당일 개발 인사이트 데이터가 없습니다.</p>
+                    </article>
 
-            <section class="weekly-hot-panel">
-                <h3 class="highlight-title">주간 핫 소식</h3>
-                <div class="hot-carousel weekly-hot-carousel" data-hot-carousel data-visible="2"
-                     th:if="${!#lists.isEmpty(weeklyHotList)}">
-                    <button type="button" class="nav-button prev" data-hot-prev aria-label="이전 슬라이드">&#10094;</button>
-                    <div class="hot-viewport">
-                        <div class="hot-track" data-hot-track>
-                            <article class="hot-card" th:each="item : ${weeklyHotList}">
-                                <div class="content-card">
+                    <section class="weekly-hot-panel">
+                        <h3 class="highlight-title">TOP 10</h3>
+                        <div class="hot-carousel weekly-hot-carousel" data-hot-carousel data-visible="2"
+                             th:if="${!#lists.isEmpty(top10List)}">
+                            <button type="button" class="nav-button prev" data-hot-prev aria-label="이전 슬라이드">&#10094;</button>
+                            <div class="hot-viewport">
+                                <div class="hot-track" data-hot-track>
+                                    <article class="hot-card" th:each="item : ${top10List}">
+                                        <div class="content-card">
+                                            <a class="card-link"
+                                               th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
+                                               th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
+                                               target="_blank" rel="noopener">
+                                                <div class="thumb-wrap hot-thumb">
+                                                    <img
+                                                        th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
+                                                        src="/images/default-thumb.svg"
+                                                        alt="TOP 10 썸네일"
+                                                        loading="lazy"
+                                                        onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                                </div>
+                                                <div class="card-body">
+                                                    <h4 class="card-title" th:text="${item.title}">TOP 10 제목</h4>
+                                                    <p class="card-summary" th:text="${item.summary}">TOP 10 요약</p>
+                                                    <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    </article>
+                                </div>
+                            </div>
+                            <button type="button" class="nav-button next" data-hot-next aria-label="다음 슬라이드">&#10095;</button>
+                        </div>
+                        <p class="empty" th:if="${#lists.isEmpty(top10List)}">TOP 10 데이터가 없습니다.</p>
+                    </section>
+                </div>
+            </section>
+
+            <section class="content-section">
+                <div class="section-head">
+                    <h2>개발 <span class="insight-word">Insight</span></h2>
+                    <p>고정 6개 카드 수동 슬라이드</p>
+                </div>
+
+                <div class="manual-slider" data-manual-slider th:attr="data-total-pages=${#lists.size(dailyKnowledgeChunks)}" th:classappend="${#lists.isEmpty(dailyKnowledgeChunks)} ? ' is-empty' : ''">
+                    <button type="button" class="nav-button prev" data-prev aria-label="이전 페이지">&#10094;</button>
+
+                    <div class="manual-viewport">
+                        <div class="manual-track" data-track>
+                            <div class="manual-page" th:each="chunk : ${dailyKnowledgeChunks}">
+                                <article class="content-card" th:each="item : ${chunk}">
                                     <a class="card-link"
                                        th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
                                        th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
                                        target="_blank" rel="noopener">
-                                        <div class="thumb-wrap hot-thumb">
+                                        <div class="thumb-wrap">
                                             <img
                                                 th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
                                                 src="/images/default-thumb.svg"
-                                                alt="주간 핫 소식 썸네일"
+                                                alt="개발 인사이트 썸네일"
                                                 loading="lazy"
                                                 onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
                                         </div>
                                         <div class="card-body">
-                                            <h4 class="card-title" th:text="${item.title}">핫 소식 제목</h4>
-                                            <p class="card-summary" th:text="${item.summary}">핫 소식 요약</p>
+                                            <h3 class="card-title" th:text="${item.title}">개발 인사이트 제목</h3>
+                                            <p class="card-summary" th:text="${item.summary}">개발 인사이트 요약</p>
                                             <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
                                         </div>
                                     </a>
-                                </div>
-                            </article>
+                                </article>
+                            </div>
                         </div>
                     </div>
-                    <button type="button" class="nav-button next" data-hot-next aria-label="다음 슬라이드">&#10095;</button>
+
+                    <button type="button" class="nav-button next" data-next aria-label="다음 페이지">&#10095;</button>
                 </div>
-                <p class="empty" th:if="${#lists.isEmpty(weeklyHotList)}">주간 핫 소식 데이터가 없습니다.</p>
+
+                <div class="pager-meta" th:if="${!#lists.isEmpty(dailyKnowledgeChunks)}">
+                    <span data-current-page>1</span>
+                    <span>/</span>
+                    <span th:text="${#lists.size(dailyKnowledgeChunks)}">1</span>
+                </div>
+                <p class="empty" th:if="${#lists.isEmpty(dailyKnowledgeChunks)}">개발 인사이트 데이터가 없습니다.</p>
             </section>
-        </div>
-    </section>
 
-    <section class="content-section">
-        <div class="section-head">
-            <h2>개발 <span class="insight-word">Insight</span></h2>
-            <p>고정 6개 카드 수동 슬라이드</p>
-        </div>
-
-        <div class="manual-slider" data-manual-slider th:attr="data-total-pages=${#lists.size(dailyKnowledgeChunks)}" th:classappend="${#lists.isEmpty(dailyKnowledgeChunks)} ? ' is-empty' : ''">
-            <button type="button" class="nav-button prev" data-prev aria-label="이전 페이지">&#10094;</button>
-
-            <div class="manual-viewport">
-                <div class="manual-track" data-track>
-                    <div class="manual-page" th:each="chunk : ${dailyKnowledgeChunks}">
-                        <article class="content-card" th:each="item : ${chunk}">
-                            <a class="card-link"
-                               th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
-                               th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
-                               target="_blank" rel="noopener">
-                                <div class="thumb-wrap">
-                                    <img
-                                        th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
-                                        src="/images/default-thumb.svg"
-                                        alt="개발 인사이트 썸네일"
-                                        loading="lazy"
-                                        onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
-                                </div>
-                                <div class="card-body">
-                                    <h3 class="card-title" th:text="${item.title}">개발 인사이트 제목</h3>
-                                    <p class="card-summary" th:text="${item.summary}">개발 인사이트 요약</p>
-                                    <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
-                                </div>
-                            </a>
-                        </article>
-                    </div>
+            <section class="content-section">
+                <div class="section-head">
+                    <h2>오늘의 뉴스</h2>
+                    <p>고정 6개 카드 수동 슬라이드</p>
                 </div>
-            </div>
 
-            <button type="button" class="nav-button next" data-next aria-label="다음 페이지">&#10095;</button>
-        </div>
+                <div class="manual-slider" data-manual-slider th:attr="data-total-pages=${#lists.size(techNewsChunks)}" th:classappend="${#lists.isEmpty(techNewsChunks)} ? ' is-empty' : ''">
+                    <button type="button" class="nav-button prev" data-prev aria-label="이전 페이지">&#10094;</button>
 
-        <div class="pager-meta" th:if="${!#lists.isEmpty(dailyKnowledgeChunks)}">
-            <span data-current-page>1</span>
-            <span>/</span>
-            <span th:text="${#lists.size(dailyKnowledgeChunks)}">1</span>
-        </div>
-        <p class="empty" th:if="${#lists.isEmpty(dailyKnowledgeChunks)}">개발 인사이트 데이터가 없습니다.</p>
-    </section>
-
-    <section class="content-section">
-        <div class="section-head">
-            <h2>오늘의 뉴스</h2>
-            <p>고정 6개 카드 수동 슬라이드</p>
-        </div>
-
-        <div class="manual-slider" data-manual-slider th:attr="data-total-pages=${#lists.size(techNewsChunks)}" th:classappend="${#lists.isEmpty(techNewsChunks)} ? ' is-empty' : ''">
-            <button type="button" class="nav-button prev" data-prev aria-label="이전 페이지">&#10094;</button>
-
-            <div class="manual-viewport">
-                <div class="manual-track" data-track>
-                    <div class="manual-page" th:each="chunk : ${techNewsChunks}">
-                        <article class="content-card" th:each="item : ${chunk}">
-                            <a class="card-link"
-                               th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
-                               th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
-                               target="_blank" rel="noopener">
-                                <div class="thumb-wrap">
-                                    <img
-                                        th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
-                                        src="/images/default-thumb.svg"
-                                        alt="오늘의 뉴스 썸네일"
-                                        loading="lazy"
-                                        onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
-                                </div>
-                                <div class="card-body">
-                                    <h3 class="card-title" th:text="${item.title}">뉴스 제목</h3>
-                                    <p class="card-summary" th:text="${item.summary}">뉴스 요약</p>
-                                    <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
-                                </div>
-                            </a>
-                        </article>
+                    <div class="manual-viewport">
+                        <div class="manual-track" data-track>
+                            <div class="manual-page" th:each="chunk : ${techNewsChunks}">
+                                <article class="content-card" th:each="item : ${chunk}">
+                                    <a class="card-link"
+                                       th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
+                                       th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
+                                       target="_blank" rel="noopener">
+                                        <div class="thumb-wrap">
+                                            <img
+                                                th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
+                                                src="/images/default-thumb.svg"
+                                                alt="오늘의 뉴스 썸네일"
+                                                loading="lazy"
+                                                onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                        </div>
+                                        <div class="card-body">
+                                            <h3 class="card-title" th:text="${item.title}">뉴스 제목</h3>
+                                            <p class="card-summary" th:text="${item.summary}">뉴스 요약</p>
+                                            <div class="card-meta" th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</div>
+                                        </div>
+                                    </a>
+                                </article>
+                            </div>
+                        </div>
                     </div>
+
+                    <button type="button" class="nav-button next" data-next aria-label="다음 페이지">&#10095;</button>
                 </div>
-            </div>
 
-            <button type="button" class="nav-button next" data-next aria-label="다음 페이지">&#10095;</button>
-        </div>
-
-        <div class="pager-meta" th:if="${!#lists.isEmpty(techNewsChunks)}">
-            <span data-current-page>1</span>
-            <span>/</span>
-            <span th:text="${#lists.size(techNewsChunks)}">1</span>
-        </div>
-        <p class="empty" th:if="${#lists.isEmpty(techNewsChunks)}">오늘의 뉴스 데이터가 없습니다.</p>
-    </section>
+                <div class="pager-meta" th:if="${!#lists.isEmpty(techNewsChunks)}">
+                    <span data-current-page>1</span>
+                    <span>/</span>
+                    <span th:text="${#lists.size(techNewsChunks)}">1</span>
+                </div>
+                <p class="empty" th:if="${#lists.isEmpty(techNewsChunks)}">오늘의 뉴스 데이터가 없습니다.</p>
+            </section>
 </section>
 
 <script th:src="@{/js/index.js}" src="/js/index.js"></script>

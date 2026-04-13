@@ -21,6 +21,10 @@ public class DailyInsightService {
     private final DailyKnowledgeService dailyKnowledgeService;
     private final TechNewsService techNewsService;
 
+    /**
+     * @date 2026-04-13
+     * @desc 단일 기준일의 인사이트/뉴스/TOP10 정보를 조회합니다.
+     */
     public DailyInsightResponseDTO getInsightsByDate(LocalDate targetDate) {
         Optional<DailyKnowledge> todayKnowledgeEntity = dailyKnowledgeService.findTodayKnowledge(targetDate);
         List<TechNews> newsEntities = techNewsService.findNewsByDate(targetDate);
@@ -37,19 +41,29 @@ public class DailyInsightService {
                 ? List.of(todayKnowledge)
                 : Collections.emptyList();
         List<DailyInsightDTO> techNewsList = newsList;
-        // Reserved for future Redis-based weekly ranking.
-        List<DailyInsightDTO> weeklyHotList = Collections.emptyList();
+        List<DailyInsightDTO> top10List = dailyKnowledgeService.findWeeklyHotKnowledgeTop10(targetDate).stream()
+                .map(this::toKnowledgeDto)
+                .toList();
+        List<DailyInsightDTO> top5List = dailyKnowledgeService.findWeeklyHotKnowledgeTop5(targetDate).stream()
+                .map(this::toKnowledgeDto)
+                .toList();
 
         return DailyInsightResponseDTO.builder()
                 .date(targetDate)
                 .dailyKnowledgeList(dailyKnowledgeList)
                 .techNewsList(techNewsList)
-                .weeklyHotList(weeklyHotList)
+                .top10List(top10List)
+                .top5List(top5List)
+                .weeklyHotList(top10List)
                 .todayKnowledge(todayKnowledge)
                 .newsList(newsList)
                 .build();
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc 기간 조회 결과와 기준 주차 TOP10을 함께 반환합니다.
+     */
     public DailyInsightResponseDTO getInsightsByRange(LocalDate startDate, LocalDate endDate, String keyword, String searchType) {
         LocalDate normalizedStart = startDate;
         LocalDate normalizedEnd = endDate;
@@ -66,7 +80,10 @@ public class DailyInsightService {
         DailyInsightDTO todayKnowledge = dailyKnowledgeService.findTodayKnowledge(LocalDate.now())
                 .map(this::toKnowledgeDto)
                 .orElse(null);
-        List<DailyInsightDTO> weeklyHotList = dailyKnowledgeService.findWeeklyHotKnowledgeTop6().stream()
+        List<DailyInsightDTO> top10List = dailyKnowledgeService.findWeeklyHotKnowledgeTop10(normalizedEnd).stream()
+                .map(this::toKnowledgeDto)
+                .toList();
+        List<DailyInsightDTO> top5List = dailyKnowledgeService.findWeeklyHotKnowledgeTop5(normalizedEnd).stream()
                 .map(this::toKnowledgeDto)
                 .toList();
 
@@ -79,12 +96,18 @@ public class DailyInsightService {
                 .date(normalizedEnd)
                 .dailyKnowledgeList(filteredKnowledge)
                 .techNewsList(techNewsList)
-                .weeklyHotList(weeklyHotList)
+                .top10List(top10List)
+                .top5List(top5List)
+                .weeklyHotList(top10List)
                 .todayKnowledge(todayKnowledge)
                 .newsList(techNewsList)
                 .build();
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc 검색 조건에 맞는 개발 인사이트 목록을 필터링합니다.
+     */
     private List<DailyInsightDTO> applyKnowledgeFilter(List<DailyInsightDTO> knowledgeList, String keyword, String searchType) {
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase();
         if (normalizedKeyword.isEmpty()) {
@@ -97,6 +120,10 @@ public class DailyInsightService {
                 .toList();
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc 검색 타입별 제목/요약 매칭 여부를 판별합니다.
+     */
     private boolean matchesByType(DailyInsightDTO item, String keyword, String searchType) {
         String title = item.getTitle() == null ? "" : item.getTitle().toLowerCase();
         String summary = item.getSummary() == null ? "" : item.getSummary().toLowerCase();
@@ -108,6 +135,10 @@ public class DailyInsightService {
         };
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc DailyKnowledge 엔티티를 응답 DTO로 변환합니다.
+     */
     private DailyInsightDTO toKnowledgeDto(DailyKnowledge knowledge) {
         return DailyInsightDTO.builder()
                 .id(knowledge.getId())
@@ -120,6 +151,10 @@ public class DailyInsightService {
                 .build();
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc TechNews 엔티티를 응답 DTO로 변환합니다.
+     */
     private DailyInsightDTO toNewsDto(TechNews news) {
         return DailyInsightDTO.builder()
                 .id(news.getId())

@@ -20,6 +20,8 @@ public class DailyInsightResponseDTO {
 
     private List<DailyInsightDTO> dailyKnowledgeList;
     private List<DailyInsightDTO> techNewsList;
+    private List<DailyInsightDTO> top10List;
+    private List<DailyInsightDTO> top5List;
     private List<DailyInsightDTO> weeklyHotList;
 
     // Backward compatibility fields for existing API/template consumers.

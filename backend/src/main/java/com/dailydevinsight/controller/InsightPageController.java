@@ -21,6 +21,10 @@ public class InsightPageController {
 
     private final DailyInsightService dailyInsightService;
 
+    /**
+     * @date 2026-04-13
+     * @desc 메인 화면 조회 조건을 해석해 인사이트 데이터를 렌더링합니다.
+     */
     @GetMapping({"/", "/index"})
     public String index(
             @RequestParam(value = "date", required = false)
@@ -58,6 +62,8 @@ public class InsightPageController {
         model.addAttribute("response", response);
         model.addAttribute("dailyKnowledgeList", safeList(response.getDailyKnowledgeList()));
         model.addAttribute("techNewsList", safeList(response.getTechNewsList()));
+        model.addAttribute("top10List", safeList(response.getTop10List()));
+        model.addAttribute("top5List", safeList(response.getTop5List()));
         model.addAttribute("weeklyHotList", safeList(response.getWeeklyHotList()));
         model.addAttribute("dailyKnowledgeChunks", chunkBySix(response.getDailyKnowledgeList()));
         model.addAttribute("techNewsChunks", chunkBySix(response.getTechNewsList()));
@@ -69,16 +75,28 @@ public class InsightPageController {
         return "index";
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc 테스트용 Hello 페이지를 렌더링합니다.
+     */
     @GetMapping("/hello")
     public String hello(Model model) {
         model.addAttribute("message", "Hello Daily Dev Insight!");
         return "hello";
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc null 리스트를 안전한 빈 리스트로 변환합니다.
+     */
     private List<DailyInsightDTO> safeList(List<DailyInsightDTO> source) {
         return source == null ? Collections.emptyList() : source;
     }
 
+    /**
+     * @date 2026-04-13
+     * @desc 카드 렌더링을 위해 리스트를 6개 단위로 분할합니다.
+     */
     private List<List<DailyInsightDTO>> chunkBySix(List<DailyInsightDTO> items) {
         List<DailyInsightDTO> safeItems = safeList(items);
         if (safeItems.isEmpty()) {
