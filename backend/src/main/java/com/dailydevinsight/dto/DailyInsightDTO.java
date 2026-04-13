@@ -17,6 +17,7 @@ public class DailyInsightDTO {
     private Long id;
     private String title;
     private String url;
+    private String thumbnailUrl;
     private String source;
     private String summary;
 
