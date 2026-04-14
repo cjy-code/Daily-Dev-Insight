@@ -96,11 +96,7 @@
         }
 
         let currentPage = 0;
-        let isDragging = false;
-        let startX = 0;
-        let deltaX = 0;
         let wheelLocked = false;
-        const dragThresholdRatio = 0.65;
 
         const update = function () {
             track.style.transform = 'translateX(-' + (currentPage * 100) + '%)';
@@ -127,44 +123,6 @@
                 goToPage(currentPage + 1);
             }
         });
-
-        viewport.addEventListener('pointerdown', function (event) {
-            isDragging = true;
-            startX = event.clientX;
-            deltaX = 0;
-            viewport.classList.add('dragging');
-            if (viewport.setPointerCapture) {
-                viewport.setPointerCapture(event.pointerId);
-            }
-        });
-
-        viewport.addEventListener('pointermove', function (event) {
-            if (!isDragging) {
-                return;
-            }
-            deltaX = event.clientX - startX;
-        });
-
-        const finishDrag = function () {
-            if (!isDragging) {
-                return;
-            }
-
-            const dragThreshold = viewport.clientWidth * dragThresholdRatio;
-            if (Math.abs(deltaX) >= dragThreshold) {
-                goToPage(currentPage + (deltaX < 0 ? 1 : -1));
-            } else {
-                update();
-            }
-
-            isDragging = false;
-            deltaX = 0;
-            viewport.classList.remove('dragging');
-        };
-
-        viewport.addEventListener('pointerup', finishDrag);
-        viewport.addEventListener('pointercancel', finishDrag);
-        viewport.addEventListener('pointerleave', finishDrag);
 
         viewport.addEventListener('wheel', function (event) {
             // Keep vertical wheel scrolling for the page; only use Shift+Wheel for slider navigation.

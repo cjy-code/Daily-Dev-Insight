@@ -278,12 +278,7 @@ h1 {
 .hot-viewport,
 .manual-viewport {
     overflow: hidden;
-    cursor: grab;
     user-select: none;
-}
-
-.manual-viewport.dragging {
-    cursor: grabbing;
 }
 
 .hot-track,
