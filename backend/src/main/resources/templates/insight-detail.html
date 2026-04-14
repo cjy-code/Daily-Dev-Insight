@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko"
+      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{::script}, true, false, ~{})}">
+<head>
+    <title>인사이트 상세</title>
+    <link rel="stylesheet" th:href="@{/css/insight-detail.css}" href="/css/insight-detail.css">
+</head>
+<body>
+<section class="detail-page"
+         th:attr="data-type=${detail.type},data-id=${detail.id},data-api-path=${'/api/insights/' + detail.type + '/' + detail.id}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+
+    <header class="detail-header">
+        <a class="back-link" th:href="@{/index}">목록으로</a>
+        <h1 th:text="${detail.title}">상세 제목</h1>
+        <p class="summary" th:text="${detail.summary}">요약</p>
+        <div class="meta-row">
+            <span th:text="${detail.source}">출처</span>
+            <span class="divider">|</span>
+            <span th:text="${detail.publishedAt}">2026-04-13</span>
+        </div>
+    </header>
+
+    <section class="reaction-panel">
+        <div class="stats">
+            <span>조회수 <strong data-view-count th:text="${detail.viewCount}">0</strong></span>
+            <span>좋아요 <strong data-like-count th:text="${detail.likeCount}">0</strong></span>
+            <span>북마크 <strong data-bookmark-count th:text="${detail.bookmarkCount}">0</strong></span>
+            <span>댓글 <strong data-comment-count th:text="${#lists.size(detail.comments)}">0</strong></span>
+        </div>
+        <div class="actions">
+            <button type="button" class="action-button"
+                    data-like-button
+                    th:classappend="${detail.liked} ? ' active' : ''">좋아요</button>
+            <button type="button" class="action-button"
+                    data-bookmark-button
+                    th:classappend="${detail.bookmarked} ? ' active' : ''">북마크</button>
+            <a class="external-link"
+               th:if="${detail.url != null and !#strings.isEmpty(detail.url)}"
+               th:href="${detail.url}"
+               target="_blank" rel="noopener">원문 보기</a>
+        </div>
+    </section>
+
+    <article class="detail-content">
+        <h2>본문</h2>
+        <p class="detail-text" th:text="${detail.detail}">본문 내용</p>
+    </article>
+
+    <section class="comment-section">
+        <h2>댓글</h2>
+        <form class="comment-form" data-comment-form>
+            <textarea data-comment-input maxlength="500" placeholder="댓글을 입력하세요 (최대 500자)"></textarea>
+            <button type="submit">댓글 등록</button>
+        </form>
+
+        <ul class="comment-list" data-comment-list>
+            <li class="comment-item" th:each="comment : ${detail.comments}" th:attr="data-comment-id=${comment.id}">
+                <div class="comment-meta">
+                    <strong th:text="${comment.authorName}">작성자</strong>
+                    <span th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-13 10:00</span>
+                </div>
+                <p th:text="${comment.content}">댓글 내용</p>
+                <button type="button" class="delete-button" data-comment-delete
+                        th:if="${comment.mine}">삭제</button>
+            </li>
+        </ul>
+    </section>
+</section>
+
+<script th:src="@{/js/insight-detail.js}" src="/js/insight-detail.js"></script>
+</body>
+</html>

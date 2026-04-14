@@ -2,12 +2,17 @@ package com.dailydevinsight.controller;
 
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.dto.DailyInsightDTO;
+import com.dailydevinsight.dto.InsightDetailResponseDTO;
 import com.dailydevinsight.service.DailyInsightService;
+import com.dailydevinsight.service.InsightDetailService;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDate;
@@ -20,6 +25,7 @@ import java.util.List;
 public class InsightPageController {
 
     private final DailyInsightService dailyInsightService;
+    private final InsightDetailService insightDetailService;
 
     /**
      * @date 2026-04-13
@@ -83,6 +89,53 @@ public class InsightPageController {
     public String hello(Model model) {
         model.addAttribute("message", "Hello Daily Dev Insight!");
         return "hello";
+    }
+
+    /**
+     * @date 2026-04-13
+     * @desc 인사이트 상세 페이지를 렌더링하고 상호작용 집계를 모델에 바인딩합니다.
+     */
+    @GetMapping("/insights/{type}/{id}")
+    public String insightDetail(
+            @PathVariable("type") String type,
+            @PathVariable("id") Long id,
+            Authentication authentication,
+            HttpSession session,
+            Model model
+    ) {
+        String sessionViewKey = buildSessionViewKey(type, id);
+        boolean shouldIncreaseViewCount = session.getAttribute(sessionViewKey) == null;
+        if (shouldIncreaseViewCount) {
+            session.setAttribute(sessionViewKey, Boolean.TRUE);
+        }
+
+        InsightDetailResponseDTO detail = insightDetailService.getInsightDetail(
+                type,
+                id,
+                resolveUserEmail(authentication),
+                shouldIncreaseViewCount
+        );
+        model.addAttribute("detail", detail);
+        return "insight-detail";
+    }
+
+    /**
+     * @date 2026-04-14
+     * @desc 세션별 조회수 중복 증가 방지를 위한 키를 생성합니다.
+     */
+    private String buildSessionViewKey(String type, Long id) {
+        return "insight:viewed:" + type + ":" + id;
+    }
+
+    /**
+     * @date 2026-04-14
+     * @desc 인증 객체에서 로그인 사용자 이메일을 추출합니다.
+     */
+    private String resolveUserEmail(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return "";
+        }
+        return authentication.getName();
     }
 
     /**
