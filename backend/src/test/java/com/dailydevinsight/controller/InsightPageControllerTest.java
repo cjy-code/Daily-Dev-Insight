@@ -1,9 +1,11 @@
-﻿package com.dailydevinsight.controller;
+package com.dailydevinsight.controller;
 
 import com.dailydevinsight.config.SecurityConfig;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
+import com.dailydevinsight.dto.InsightDetailResponseDTO;
 import com.dailydevinsight.service.DailyInsightService;
+import com.dailydevinsight.service.InsightDetailService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -14,9 +16,13 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -35,6 +41,9 @@ public class InsightPageControllerTest {
     private DailyInsightService dailyInsightService;
 
     @MockBean
+    private InsightDetailService insightDetailService;
+
+    @MockBean
     private UserDetailsService userDetailsService;
 
     @Test
@@ -49,10 +58,14 @@ public class InsightPageControllerTest {
                         .summary("Summary")
                         .publishedAt(LocalDate.of(2026, 4, 6))
                         .build())
+                .dailyKnowledgeList(Collections.emptyList())
+                .techNewsList(Collections.emptyList())
+                .top10List(Collections.emptyList())
+                .top5List(Collections.emptyList())
                 .newsList(List.of())
                 .build();
 
-        given(dailyInsightService.getInsightsByDate(any(LocalDate.class))).willReturn(response);
+        given(dailyInsightService.getInsightsByRange(any(LocalDate.class), any(LocalDate.class), any(), any())).willReturn(response);
 
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
@@ -68,5 +81,28 @@ public class InsightPageControllerTest {
                 .andExpect(view().name("hello"))
                 .andExpect(model().attribute("message", "Hello Daily Dev Insight!"));
     }
-}
 
+    @Test
+    void insightDetail_ShouldRenderInsightDetailView() throws Exception {
+        InsightDetailResponseDTO detail = InsightDetailResponseDTO.builder()
+                .type("knowledge")
+                .id(1L)
+                .title("상세 제목")
+                .summary("요약")
+                .detail("본문")
+                .source("카테고리")
+                .publishedAt(LocalDate.of(2026, 4, 13))
+                .viewCount(100L)
+                .likeCount(10L)
+                .bookmarkCount(3L)
+                .comments(Collections.emptyList())
+                .build();
+
+        given(insightDetailService.getInsightDetail(anyString(), anyLong(), anyString(), anyBoolean())).willReturn(detail);
+
+        mockMvc.perform(get("/insights/knowledge/1"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("insight-detail"))
+                .andExpect(model().attributeExists("detail"));
+    }
+}

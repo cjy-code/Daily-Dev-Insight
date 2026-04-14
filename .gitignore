@@ -27,5 +27,6 @@ replay_pid*
 .cursor/
 backend/.idea/
 backend/.gradle/
+backend/build/
 backend/out/
 .idea/material_theme_project_new.xml

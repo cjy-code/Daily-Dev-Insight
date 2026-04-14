@@ -58,9 +58,8 @@
                         <article class="today-insight-card" th:if="${response.todayKnowledge != null}">
                             <h3 class="highlight-title">오늘의 개발 인사이트</h3>
                             <a class="card-link"
-                               th:href="${(response.todayKnowledge.url != null and !#strings.isEmpty(response.todayKnowledge.url)) ? response.todayKnowledge.url : '#'}"
-                           th:attr="aria-disabled=${response.todayKnowledge.url == null or #strings.isEmpty(response.todayKnowledge.url)}"
-                           target="_blank" rel="noopener">
+                               th:href="${response.todayKnowledge.id != null} ? @{/insights/knowledge/{id}(id=${response.todayKnowledge.id})} : '#'"
+                               th:attr="aria-disabled=${response.todayKnowledge.id == null}">
                             <div class="thumb-wrap">
                                 <img
                                     th:src="${response.todayKnowledge.thumbnailUrl != null and !#strings.isEmpty(response.todayKnowledge.thumbnailUrl)} ? ${response.todayKnowledge.thumbnailUrl} : @{/images/default-thumb.svg}"
@@ -91,9 +90,8 @@
                                     <article class="hot-card" th:each="item : ${top10List}">
                                         <div class="content-card">
                                             <a class="card-link"
-                                               th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
-                                               th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
-                                               target="_blank" rel="noopener">
+                                               th:href="${item.id != null} ? @{/insights/knowledge/{id}(id=${item.id})} : '#'"
+                                               th:attr="aria-disabled=${item.id == null}">
                                                 <div class="thumb-wrap hot-thumb">
                                                     <img
                                                         th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
@@ -133,9 +131,8 @@
                             <div class="manual-page" th:each="chunk : ${dailyKnowledgeChunks}">
                                 <article class="content-card" th:each="item : ${chunk}">
                                     <a class="card-link"
-                                       th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
-                                       th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
-                                       target="_blank" rel="noopener">
+                                       th:href="${item.id != null} ? @{/insights/knowledge/{id}(id=${item.id})} : '#'"
+                                       th:attr="aria-disabled=${item.id == null}">
                                         <div class="thumb-wrap">
                                             <img
                                                 th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
@@ -180,9 +177,8 @@
                             <div class="manual-page" th:each="chunk : ${techNewsChunks}">
                                 <article class="content-card" th:each="item : ${chunk}">
                                     <a class="card-link"
-                                       th:href="${(item.url != null and !#strings.isEmpty(item.url)) ? item.url : '#'}"
-                                       th:attr="aria-disabled=${item.url == null or #strings.isEmpty(item.url)}"
-                                       target="_blank" rel="noopener">
+                                       th:href="${item.id != null} ? @{/insights/news/{id}(id=${item.id})} : '#'"
+                                       th:attr="aria-disabled=${item.id == null}">
                                         <div class="thumb-wrap">
                                             <img
                                                 th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"

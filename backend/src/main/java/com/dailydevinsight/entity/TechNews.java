@@ -41,6 +41,9 @@ public class TechNews {
     @Column(name = "summary", nullable = false)
     private String summary;
 
+    @Column(name = "view_count", nullable = false)
+    private Long viewCount;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 }
