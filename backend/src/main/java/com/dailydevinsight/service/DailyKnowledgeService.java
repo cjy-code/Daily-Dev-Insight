@@ -1,8 +1,10 @@
 package com.dailydevinsight.service;
 
+import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,7 @@ public class DailyKnowledgeService {
      * @date 2026-04-13
      * @desc 기준일이 속한 주(월~일)에서 조회수 기준 TOP10을 조회합니다.
      */
+    @Cacheable(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, key = "#referenceDate.toString()")
     public List<DailyKnowledge> findWeeklyHotKnowledgeTop10(LocalDate referenceDate) {
         LocalDate weekStart = referenceDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate weekEnd = weekStart.plusDays(6);
@@ -49,6 +52,7 @@ public class DailyKnowledgeService {
      * @date 2026-04-13
      * @desc 기준일이 속한 주(월~일)에서 조회수 기준 TOP5를 조회합니다.
      */
+    @Cacheable(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, key = "#referenceDate.toString()")
     public List<DailyKnowledge> findWeeklyHotKnowledgeTop5(LocalDate referenceDate) {
         LocalDate weekStart = referenceDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate weekEnd = weekStart.plusDays(6);

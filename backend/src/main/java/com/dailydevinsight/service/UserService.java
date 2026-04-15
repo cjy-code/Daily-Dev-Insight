@@ -15,7 +15,11 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+    /**
+     * @date 2026-04-15
+     * @desc user_id 기준으로 사용자 정보를 조회합니다.
+     */
+    public Optional<User> findByUserId(String userId) {
+        return userRepository.findByUserId(userId);
     }
 }

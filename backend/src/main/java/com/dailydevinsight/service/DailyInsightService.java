@@ -1,10 +1,12 @@
 package com.dailydevinsight.service;
 
+import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.entity.TechNews;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class DailyInsightService {
      * @date 2026-04-13
      * @desc 단일 기준일의 인사이트/뉴스/TOP10 정보를 조회합니다.
      */
+    @Cacheable(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, key = "#targetDate.toString()")
     public DailyInsightResponseDTO getInsightsByDate(LocalDate targetDate) {
         Optional<DailyKnowledge> todayKnowledgeEntity = dailyKnowledgeService.findTodayKnowledge(targetDate);
         List<TechNews> newsEntities = techNewsService.findNewsByDate(targetDate);
@@ -64,6 +67,16 @@ public class DailyInsightService {
      * @date 2026-04-13
      * @desc 기간 조회 결과와 기준 주차 TOP10을 함께 반환합니다.
      */
+    @Cacheable(
+            cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE,
+            key = "(#startDate == null ? '' : #startDate.toString())"
+                    + " + ':' + "
+                    + "(#endDate == null ? '' : #endDate.toString())"
+                    + " + ':' + "
+                    + "(#keyword == null ? '' : #keyword.trim().toLowerCase())"
+                    + " + ':' + "
+                    + "(#searchType == null ? '' : #searchType.trim().toLowerCase())"
+    )
     public DailyInsightResponseDTO getInsightsByRange(LocalDate startDate, LocalDate endDate, String keyword, String searchType) {
         LocalDate normalizedStart = startDate;
         LocalDate normalizedEnd = endDate;

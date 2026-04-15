@@ -1,8 +1,9 @@
-package com.dailydevinsight.entity;
+package com.dailydevinsight.admin.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,38 +13,33 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "prompt_template")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class PromptTemplate {
 
     @Id
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "user_id", nullable = false, length = 100)
-    private String userId;
-
-    @Column(name = "email", nullable = false, length = 255)
-    private String email;
-
-    @Column(name = "password", nullable = false, length = 255)
-    private String password;
-
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "role", nullable = false, length = 20)
-    private String role;
+    @Column(name = "description", length = 500)
+    private String description;
 
-    @Column(name = "status", length = 20)
-    private String status;
+    @Lob
+    @Column(name = "template_content", nullable = false)
+    private String templateContent;
 
-    @Column(name = "created_at")
+    @Column(name = "is_active", nullable = false)
+    private Boolean active;
+
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 }

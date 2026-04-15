@@ -32,7 +32,7 @@ public class InsightDetailRestController {
             @PathVariable("id") Long id,
             Authentication authentication
     ) {
-        return insightDetailService.getEngagementOnly(type, id, resolveUserEmail(authentication));
+        return insightDetailService.getEngagementOnly(type, id, resolveUserId(authentication));
     }
 
     /**
@@ -45,7 +45,7 @@ public class InsightDetailRestController {
             @PathVariable("id") Long id,
             Authentication authentication
     ) {
-        return insightDetailService.toggleLike(type, id, resolveUserEmail(authentication));
+        return insightDetailService.toggleLike(type, id, resolveUserId(authentication));
     }
 
     /**
@@ -58,7 +58,7 @@ public class InsightDetailRestController {
             @PathVariable("id") Long id,
             Authentication authentication
     ) {
-        return insightDetailService.toggleBookmark(type, id, resolveUserEmail(authentication));
+        return insightDetailService.toggleBookmark(type, id, resolveUserId(authentication));
     }
 
     /**
@@ -72,7 +72,7 @@ public class InsightDetailRestController {
             @RequestBody InsightCommentRequestDTO request,
             Authentication authentication
     ) {
-        return insightDetailService.addComment(type, id, resolveUserEmail(authentication), request.getContent());
+        return insightDetailService.addComment(type, id, resolveUserId(authentication), request.getContent());
     }
 
     /**
@@ -86,14 +86,14 @@ public class InsightDetailRestController {
             @PathVariable("commentId") Long commentId,
             Authentication authentication
     ) {
-        return insightDetailService.deleteComment(type, id, commentId, resolveUserEmail(authentication));
+        return insightDetailService.deleteComment(type, id, commentId, resolveUserId(authentication));
     }
 
     /**
      * @date 2026-04-14
      * @desc 인증 객체에서 로그인 사용자 이메일을 추출합니다.
      */
-    private String resolveUserEmail(Authentication authentication) {
+    private String resolveUserId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return "";
         }

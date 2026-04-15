@@ -1,0 +1,162 @@
+﻿.admin-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-header h2 {
+    margin: 0;
+}
+
+.admin-header p {
+    margin: 6px 0 0;
+    color: #4b5563;
+}
+
+.admin-menu {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-menu a {
+    text-decoration: none;
+    background: #e2e8f0;
+    color: #1e293b;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-weight: 600;
+}
+
+.admin-card {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.admin-card h3 {
+    margin: 0 0 12px;
+}
+
+.admin-card h4 {
+    margin: 16px 0 8px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.stat-item {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px;
+    display: grid;
+    gap: 6px;
+}
+
+.stat-item span {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.stat-item strong {
+    font-size: 20px;
+}
+
+.admin-form {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.admin-form input,
+.admin-form textarea,
+.admin-form select,
+.inline-form input,
+.inline-form select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+.admin-form button,
+.admin-table button {
+    padding: 8px 12px;
+    border: 1px solid #0f766e;
+    background: #0f766e;
+    color: #ffffff;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.admin-form button.secondary,
+.admin-table button.secondary {
+    border-color: #64748b;
+    background: #64748b;
+}
+
+.admin-table button.danger {
+    border-color: #b91c1c;
+    background: #b91c1c;
+}
+
+.btn-row {
+    display: flex;
+    gap: 8px;
+}
+
+.checkbox-label {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.table-actions form,
+.inline-form {
+    margin: 0;
+}
+
+.alert {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.alert.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.alert.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+@media (max-width: 900px) {
+    .table-actions {
+        flex-direction: column;
+    }
+}

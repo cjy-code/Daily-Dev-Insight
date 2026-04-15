@@ -47,4 +47,19 @@ class LoginControllerTest {
                 .andExpect(redirectedUrl("/login"))
                 .andExpect(flash().attribute("logoutSuccess", true));
     }
+
+    @Test
+    void adminLogin_ShouldRenderAdminLoginView() throws Exception {
+        mockMvc.perform(get("/admin/login"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("views/admin-login"));
+    }
+
+    @Test
+    void adminLogin_WithErrorParam_ShouldRedirectToCleanAdminLoginUrl() throws Exception {
+        mockMvc.perform(get("/admin/login").param("error", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/login"))
+                .andExpect(flash().attribute("adminLoginError", true));
+    }
 }

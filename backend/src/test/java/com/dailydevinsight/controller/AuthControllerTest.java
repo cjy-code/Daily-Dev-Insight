@@ -40,4 +40,14 @@ class AuthControllerTest {
 
         verify(authService).logout(any(), any(), any());
     }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void logout_Admin_ShouldRedirectToAdminLoginWithLogoutFlag() throws Exception {
+        mockMvc.perform(post("/auth/logout").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/login?logout"));
+
+        verify(authService).logout(any(), any(), any());
+    }
 }
