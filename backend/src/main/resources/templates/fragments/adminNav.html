@@ -1,0 +1,17 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<body>
+<aside class="admin-side" th:fragment="adminNav(currentMenu)">
+    <div class="admin-side-brand">
+        <span class="admin-side-eyebrow">Control Room</span>
+        <h3>Admin Console</h3>
+    </div>
+    <nav class="admin-side-nav" aria-label="관리자 메뉴">
+        <a th:href="@{/admin/dashboard}" th:classappend="${currentMenu == 'dashboard'} ? ' active' : ''">대시보드</a>
+        <a th:href="@{/admin/posts}" th:classappend="${currentMenu == 'posts'} ? ' active' : ''">게시물 관리</a>
+        <a th:href="@{/admin/members}" th:classappend="${currentMenu == 'members'} ? ' active' : ''">회원 관리</a>
+        <a th:href="@{/admin/generation}" th:classappend="${currentMenu == 'generation'} ? ' active' : ''">생성 관리</a>
+    </nav>
+</aside>
+</body>
+</html>

@@ -26,6 +26,11 @@ import java.time.LocalDate;
 @RequiredArgsConstructor
 public class AdminPageController {
 
+    private static final String MENU_DASHBOARD = "dashboard";
+    private static final String MENU_POSTS = "posts";
+    private static final String MENU_MEMBERS = "members";
+    private static final String MENU_GENERATION = "generation";
+
     private final PromptTemplateService promptTemplateService;
     private final GenerationScheduleService generationScheduleService;
     private final DailyKnowledgeGenerationService dailyKnowledgeGenerationService;
@@ -34,24 +39,62 @@ public class AdminPageController {
 
     /**
      * @date 2026-04-15
-     * @desc 관리자 페이지를 렌더링하고 메뉴별 데이터(통계/게시물/회원/생성관리)를 모델에 바인딩합니다.
+     * @desc 관리자 기본 진입 경로를 대시보드 화면으로 리다이렉트합니다.
      */
     @GetMapping
-    public String adminPage(Model model) {
+    public String adminRoot() {
+        return "redirect:/admin/dashboard";
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc 관리자 대시보드 페이지를 렌더링합니다.
+     */
+    @GetMapping("/dashboard")
+    public String dashboardPage(Model model) {
+        model.addAttribute("currentMenu", MENU_DASHBOARD);
+        model.addAttribute("stats", adminManagementService.getAdminStats());
+        return "admin/dashboard";
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc 관리자 게시물 관리 페이지를 렌더링합니다.
+     */
+    @GetMapping("/posts")
+    public String postsPage(Model model) {
+        model.addAttribute("currentMenu", MENU_POSTS);
+        model.addAttribute("knowledgePostList", adminManagementService.findRecentKnowledgePosts());
+        return "admin/posts";
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc 관리자 회원 관리 페이지를 렌더링합니다.
+     */
+    @GetMapping("/members")
+    public String membersPage(Model model) {
+        model.addAttribute("currentMenu", MENU_MEMBERS);
+        model.addAttribute("memberList", adminManagementService.findRecentUsers());
+        return "admin/members";
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc 관리자 생성 관리 페이지를 렌더링합니다.
+     */
+    @GetMapping("/generation")
+    public String generationPage(Model model) {
         promptTemplateService.ensureDefaultTemplateExists();
 
-        model.addAttribute("stats", adminManagementService.getAdminStats());
-        model.addAttribute("knowledgePostList", adminManagementService.findRecentKnowledgePosts());
-        model.addAttribute("memberList", adminManagementService.findRecentUsers());
-
+        model.addAttribute("currentMenu", MENU_GENERATION);
         model.addAttribute("templateList", promptTemplateService.findAllTemplates());
         model.addAttribute("activeTemplate", promptTemplateService.getActiveTemplate());
         model.addAttribute("promptTemplateForm", new PromptTemplateForm());
         model.addAttribute("generationRequestForm", createDefaultGenerationRequestForm());
         model.addAttribute("scheduleForm", toScheduleForm(generationScheduleService.getOrCreateSchedule()));
         model.addAttribute("historyList", generationHistoryService.findRecentHistory());
-
-        return "admin";
+        return "admin/generation";
     }
 
     /**
@@ -71,7 +114,7 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin";
+        return "redirect:/admin/posts";
     }
 
     /**
@@ -89,7 +132,7 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin";
+        return "redirect:/admin/posts";
     }
 
     /**
@@ -109,7 +152,7 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin";
+        return "redirect:/admin/members";
     }
 
     /**
@@ -124,7 +167,7 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin";
+        return "redirect:/admin/generation";
     }
 
     /**
@@ -139,7 +182,7 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin";
+        return "redirect:/admin/generation";
     }
 
     /**
@@ -161,7 +204,7 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin";
+        return "redirect:/admin/generation";
     }
 
     /**
@@ -176,12 +219,12 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin";
+        return "redirect:/admin/generation";
     }
 
     /**
      * @date 2026-04-15
-     * @desc 관리자가 날짜를 지정해 빠르게 수동 생성 값을 초기화합니다.
+     * @desc 관리자가 수동 생성에서 사용할 기본 입력값을 생성합니다.
      */
     private GenerationRequestForm createDefaultGenerationRequestForm() {
         GenerationRequestForm form = new GenerationRequestForm();

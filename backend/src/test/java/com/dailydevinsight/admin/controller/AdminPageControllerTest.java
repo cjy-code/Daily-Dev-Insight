@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AdminPageController.class)
 @Import(SecurityConfig.class)
-public class AdminPageControllerTest {
+class AdminPageControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -59,12 +59,30 @@ public class AdminPageControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void adminPage_ShouldRenderForAdminRole() throws Exception {
+    void adminRoot_ShouldRedirectToDashboard() throws Exception {
+        mockMvc.perform(get("/admin"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/dashboard"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void dashboard_ShouldRenderView() throws Exception {
+        given(adminManagementService.getAdminStats()).willReturn(AdminStatsData.builder().build());
+
+        mockMvc.perform(get("/admin/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/dashboard"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void generationPage_ShouldRenderView() throws Exception {
         PromptTemplate activeTemplate = PromptTemplate.builder()
                 .id(1L)
-                .name("기본")
-                .description("설명")
-                .templateContent("본문")
+                .name("default")
+                .description("desc")
+                .templateContent("content")
                 .active(true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -73,37 +91,34 @@ public class AdminPageControllerTest {
         willDoNothing().given(promptTemplateService).ensureDefaultTemplateExists();
         given(promptTemplateService.findAllTemplates()).willReturn(Collections.singletonList(activeTemplate));
         given(promptTemplateService.getActiveTemplate()).willReturn(activeTemplate);
-        given(adminManagementService.getAdminStats()).willReturn(AdminStatsData.builder().build());
-        given(adminManagementService.findRecentKnowledgePosts()).willReturn(Collections.emptyList());
-        given(adminManagementService.findRecentUsers()).willReturn(Collections.emptyList());
         given(generationScheduleService.getOrCreateSchedule()).willReturn(
                 GenerationSchedule.builder()
                         .id(1L)
                         .enabled(false)
                         .cronExpression("0 0 9 * * *")
                         .category("Backend")
-                        .tone("실무형")
-                        .difficulty("중급")
+                        .tone("Practical")
+                        .difficulty("Intermediate")
                         .updatedAt(LocalDateTime.now())
                         .build()
         );
         given(generationHistoryService.findRecentHistory()).willReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/admin"))
+        mockMvc.perform(get("/admin/generation"))
                 .andExpect(status().isOk())
-                .andExpect(view().name("admin"));
+                .andExpect(view().name("admin/generation"));
     }
 
     @Test
     @WithMockUser(roles = "USER")
-    void adminPage_ShouldReturnForbiddenForUserRole() throws Exception {
-        mockMvc.perform(get("/admin"))
+    void dashboard_ShouldReturnForbiddenForUserRole() throws Exception {
+        mockMvc.perform(get("/admin/dashboard"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void runManualGeneration_ShouldRedirectAfterPost() throws Exception {
+    void runManualGeneration_ShouldRedirectToGenerationPage() throws Exception {
         given(dailyKnowledgeGenerationService.executeManualGeneration(any())).willReturn(
                 GenerationExecutionResult.builder()
                         .success(true)
@@ -116,9 +131,9 @@ public class AdminPageControllerTest {
                         .with(csrf())
                         .param("targetDate", "2026-04-15")
                         .param("category", "Backend")
-                        .param("tone", "실무형")
-                        .param("difficulty", "중급"))
+                        .param("tone", "Practical")
+                        .param("difficulty", "Intermediate"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin"));
+                .andExpect(redirectedUrl("/admin/generation"));
     }
 }
