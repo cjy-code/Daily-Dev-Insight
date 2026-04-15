@@ -1,0 +1,222 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko"
+      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{::script}, true, false, ~{::aside})}">
+<head>
+    <title>관리자 | Daily Dev Insight</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}" href="/css/admin.css">
+</head>
+<body>
+<section class="admin-page">
+    <div class="admin-header">
+        <h2>관리자 페이지</h2>
+        <p>대시보드, 게시물, 회원, 생성 관리 메뉴를 제공합니다.</p>
+    </div>
+
+    <div class="admin-menu">
+        <a href="#dashboard">대시보드</a>
+        <a href="#posts">게시물 관리</a>
+        <a href="#members">회원 관리</a>
+        <a href="#generation">생성 관리</a>
+    </div>
+
+    <div class="alert success" th:if="${adminMessage}" th:text="${adminMessage}"></div>
+    <div class="alert error" th:if="${adminError}" th:text="${adminError}"></div>
+
+    <section class="admin-card" id="dashboard">
+        <h3>운영 통계</h3>
+        <div class="stats-grid">
+            <article class="stat-item"><span>총 회원</span><strong th:text="${stats.totalUsers}">0</strong></article>
+            <article class="stat-item"><span>활성 회원</span><strong th:text="${stats.activeUsers}">0</strong></article>
+            <article class="stat-item"><span>총 게시물</span><strong th:text="${stats.totalPosts}">0</strong></article>
+            <article class="stat-item"><span>오늘 게시물</span><strong th:text="${stats.todayPosts}">0</strong></article>
+            <article class="stat-item"><span>생성 성공</span><strong th:text="${stats.generationSuccessCount}">0</strong></article>
+            <article class="stat-item"><span>생성 실패</span><strong th:text="${stats.generationFailedCount}">0</strong></article>
+        </div>
+    </section>
+
+    <section class="admin-card" id="posts">
+        <h3>게시물 관리</h3>
+        <table class="admin-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>날짜</th>
+                <th>카테고리</th>
+                <th>제목</th>
+                <th>조회수</th>
+                <th>작업</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="post : ${knowledgePostList}">
+                <td th:text="${post.id}">1</td>
+                <td th:text="${post.knowledgeDate}">2026-04-15</td>
+                <td>
+                    <form method="post" th:action="@{/admin/posts/{id}/update(id=${post.id})}" class="inline-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="text" name="category" th:value="${post.category}" required>
+                </td>
+                <td>
+                        <input type="text" name="title" th:value="${post.title}" required>
+                </td>
+                <td th:text="${post.viewCount}">0</td>
+                <td class="table-actions">
+                        <button type="submit">수정</button>
+                    </form>
+                    <form method="post" th:action="@{/admin/posts/{id}/delete(id=${post.id})}">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="danger">삭제</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(knowledgePostList)}">
+                <td colspan="6">게시물이 없습니다.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="admin-card" id="members">
+        <h3>회원 관리</h3>
+        <table class="admin-table">
+            <thead>
+            <tr>
+                <th>PK</th>
+                <th>사용자ID</th>
+                <th>이메일</th>
+                <th>이름</th>
+                <th>권한</th>
+                <th>상태</th>
+                <th>작업</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="member : ${memberList}">
+                <td th:text="${member.id}">1</td>
+                <td th:text="${member.userId}">user01</td>
+                <td th:text="${member.email}">user01@daily.com</td>
+                <td th:text="${member.name}">홍길동</td>
+                <td>
+                    <form method="post" th:action="@{/admin/members/{id}/update(id=${member.id})}" class="inline-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <select name="role">
+                            <option value="USER" th:selected="${member.role == 'USER'}">USER</option>
+                            <option value="ADMIN" th:selected="${member.role == 'ADMIN'}">ADMIN</option>
+                        </select>
+                </td>
+                <td>
+                        <select name="status">
+                            <option value="ACTIVE" th:selected="${member.status == 'ACTIVE'}">ACTIVE</option>
+                            <option value="INACTIVE" th:selected="${member.status == 'INACTIVE'}">INACTIVE</option>
+                        </select>
+                </td>
+                <td><button type="submit">저장</button></td>
+                    </form>
+            </tr>
+            <tr th:if="${#lists.isEmpty(memberList)}">
+                <td colspan="7">회원 데이터가 없습니다.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="admin-card" id="generation">
+        <h3>생성 관리</h3>
+
+        <h4>프롬프트 템플릿 관리</h4>
+        <form method="post" th:action="@{/admin/prompts}" class="admin-form" id="promptTemplateForm">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <input type="hidden" name="id" id="promptId">
+
+            <label for="promptName">템플릿 이름</label>
+            <input type="text" id="promptName" name="name" required>
+
+            <label for="promptDescription">설명</label>
+            <input type="text" id="promptDescription" name="description">
+
+            <label for="templateContent">프롬프트 본문</label>
+            <textarea id="templateContent" name="templateContent" rows="8" required></textarea>
+
+            <div class="btn-row">
+                <button type="submit">저장</button>
+                <button type="button" class="secondary" id="resetPromptForm">초기화</button>
+            </div>
+        </form>
+
+        <table class="admin-table">
+            <thead>
+            <tr><th>ID</th><th>이름</th><th>활성</th><th>수정일시</th><th>작업</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="template : ${templateList}">
+                <td th:text="${template.id}">1</td>
+                <td th:text="${template.name}">기본 템플릿</td>
+                <td th:text="${template.active} ? 'Y' : 'N'">Y</td>
+                <td th:text="${#temporals.format(template.updatedAt, 'yyyy-MM-dd HH:mm:ss')}">2026-04-15 10:00:00</td>
+                <td class="table-actions">
+                    <button type="button" class="secondary load-template-btn"
+                            th:attr="data-id=${template.id},data-name=${template.name},data-description=${template.description},data-content=${template.templateContent}">편집</button>
+                    <form method="post" th:action="@{/admin/prompts/{id}/activate(id=${template.id})}">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" th:disabled="${template.active}">활성화</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h4>수동 생성 실행</h4>
+        <form method="post" th:action="@{/admin/generate}" class="admin-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <label for="targetDate">대상 날짜</label>
+            <input type="date" id="targetDate" name="targetDate" th:value="${generationRequestForm.targetDate}" required>
+            <label for="category">카테고리</label>
+            <input type="text" id="category" name="category" th:value="${generationRequestForm.category}" required>
+            <label for="tone">톤</label>
+            <input type="text" id="tone" name="tone" th:value="${generationRequestForm.tone}" required>
+            <label for="difficulty">난이도</label>
+            <input type="text" id="difficulty" name="difficulty" th:value="${generationRequestForm.difficulty}" required>
+            <button type="submit">지금 생성</button>
+        </form>
+
+        <h4>예약 생성 설정</h4>
+        <form method="post" th:action="@{/admin/schedule}" class="admin-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <label class="checkbox-label"><input type="checkbox" name="enabled" value="true" th:checked="${scheduleForm.enabled}">예약 실행 활성화</label>
+            <label for="cronExpression">Cron 표현식 (초 분 시 일 월 요일)</label>
+            <input type="text" id="cronExpression" name="cronExpression" th:value="${scheduleForm.cronExpression}" required>
+            <label for="scheduleCategory">카테고리</label>
+            <input type="text" id="scheduleCategory" name="category" th:value="${scheduleForm.category}" required>
+            <label for="scheduleTone">톤</label>
+            <input type="text" id="scheduleTone" name="tone" th:value="${scheduleForm.tone}" required>
+            <label for="scheduleDifficulty">난이도</label>
+            <input type="text" id="scheduleDifficulty" name="difficulty" th:value="${scheduleForm.difficulty}" required>
+            <button type="submit">예약 저장</button>
+        </form>
+
+        <h4>최근 생성 이력</h4>
+        <table class="admin-table">
+            <thead>
+            <tr><th>일시</th><th>트리거</th><th>대상일</th><th>상태</th><th>생성 ID</th><th>오류</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="history : ${historyList}">
+                <td th:text="${#temporals.format(history.createdAt, 'yyyy-MM-dd HH:mm:ss')}">2026-04-15 10:00:00</td>
+                <td th:text="${history.triggerType}">MANUAL</td>
+                <td th:text="${history.targetDate}">2026-04-15</td>
+                <td th:text="${history.status}">SUCCESS</td>
+                <td th:text="${history.createdKnowledgeId}">12</td>
+                <td th:text="${history.errorMessage}">-</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(historyList)}">
+                <td colspan="6">생성 이력이 없습니다.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</section>
+
+<aside></aside>
+<script th:src="@{/js/admin.js}" src="/js/admin.js"></script>
+</body>
+</html>

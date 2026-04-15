@@ -8,6 +8,13 @@ spring:
     username: ${DB_USERNAME:daily}
     password: ${DB_PASSWORD:1234}
     driver-class-name: ${DB_DRIVER:oracle.jdbc.OracleDriver}
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      timeout: ${REDIS_TIMEOUT:3s}
+  cache:
+    type: redis
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:none}

@@ -12,6 +12,8 @@ import java.util.Optional;
 
 public interface DailyKnowledgeRepository extends JpaRepository<DailyKnowledge, Long> {
 
+    Optional<DailyKnowledge> findTopByOrderByIdDesc();
+
     Optional<DailyKnowledge> findTopByKnowledgeDateOrderByIdDesc(LocalDate knowledgeDate);
 
     List<DailyKnowledge> findByKnowledgeDateBetweenOrderByKnowledgeDateDescIdDesc(LocalDate startDate, LocalDate endDate);
@@ -19,6 +21,10 @@ public interface DailyKnowledgeRepository extends JpaRepository<DailyKnowledge, 
     List<DailyKnowledge> findTop10ByKnowledgeDateBetweenOrderByViewCountDescIdDesc(LocalDate startDate, LocalDate endDate);
 
     List<DailyKnowledge> findTop5ByKnowledgeDateBetweenOrderByViewCountDescIdDesc(LocalDate startDate, LocalDate endDate);
+
+    List<DailyKnowledge> findTop30ByOrderByKnowledgeDateDescIdDesc();
+
+    long countByKnowledgeDate(LocalDate knowledgeDate);
 
     @Modifying
     @Query("update DailyKnowledge d set d.viewCount = coalesce(d.viewCount, 0) + 1 where d.id = :id")
