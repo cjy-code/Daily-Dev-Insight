@@ -1,5 +1,6 @@
 package com.dailydevinsight.service;
 
+import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.dto.InsightCommentDTO;
 import com.dailydevinsight.dto.InsightContentType;
 import com.dailydevinsight.dto.InsightDetailResponseDTO;
@@ -17,6 +18,8 @@ import com.dailydevinsight.repository.InsightLikeRepository;
 import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -48,11 +51,11 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 상세 페이지 진입 시 조회수 증가 여부를 반영하여 상세 데이터를 반환합니다.
+     * @desc ?곸꽭 ?섏씠吏 吏꾩엯 ??議고쉶??利앷? ?щ?瑜?諛섏쁺?섏뿬 ?곸꽭 ?곗씠?곕? 諛섑솚?⑸땲??
      */
-    public InsightDetailResponseDTO getInsightDetail(String type, Long contentId, String userEmail, boolean shouldIncreaseViewCount) {
+    public InsightDetailResponseDTO getInsightDetail(String type, Long contentId, String loginUserId, boolean shouldIncreaseViewCount) {
         InsightContentType contentType = resolveContentType(type);
-        Long userId = resolveUserId(userEmail);
+        Long userId = resolveUserId(loginUserId);
         if (shouldIncreaseViewCount) {
             incrementViewCount(contentType, contentId);
         }
@@ -62,22 +65,31 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 조회수 증가 없이 상호작용 집계 상태만 조회합니다.
+     * @desc 議고쉶??利앷? ?놁씠 ?곹샇?묒슜 吏묎퀎 ?곹깭留?議고쉶?⑸땲??
      */
-    public InsightDetailResponseDTO getEngagementOnly(String type, Long contentId, String userEmail) {
+    @Cacheable(
+            cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT,
+            key = "(#type == null ? '' : #type.trim().toLowerCase())"
+                    + " + ':' + "
+                    + "(#contentId == null ? '' : #contentId.toString())"
+                    + " + ':' + "
+                    + "(#loginUserId == null ? '' : #loginUserId.trim().toLowerCase())"
+    )
+    public InsightDetailResponseDTO getEngagementOnly(String type, Long contentId, String loginUserId) {
         InsightContentType contentType = resolveContentType(type);
-        Long userId = resolveUserId(userEmail);
+        Long userId = resolveUserId(loginUserId);
         InsightBaseData baseData = findBaseData(contentType, contentId);
         return buildDetailResponse(contentType, baseData, userId);
     }
 
     /**
      * @date 2026-04-14
-     * @desc 좋아요를 사용자 단위로 토글하고 최신 카운트를 반환합니다.
+     * @desc 醫뗭븘?붾? ?ъ슜???⑥쐞濡??좉??섍퀬 理쒖떊 移댁슫?몃? 諛섑솚?⑸땲??
      */
-    public InsightToggleResponseDTO toggleLike(String type, Long contentId, String userEmail) {
+    @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
+    public InsightToggleResponseDTO toggleLike(String type, Long contentId, String loginUserId) {
         InsightContentType contentType = resolveContentType(type);
-        Long userId = resolveUserId(userEmail);
+        Long userId = resolveUserId(loginUserId);
         ensureContentExists(contentType, contentId);
 
         String contentTypeKey = toContentTypeKey(contentType);
@@ -107,11 +119,12 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 북마크를 사용자 단위로 토글하고 최신 카운트를 반환합니다.
+     * @desc 遺곷쭏?щ? ?ъ슜???⑥쐞濡??좉??섍퀬 理쒖떊 移댁슫?몃? 諛섑솚?⑸땲??
      */
-    public InsightToggleResponseDTO toggleBookmark(String type, Long contentId, String userEmail) {
+    @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
+    public InsightToggleResponseDTO toggleBookmark(String type, Long contentId, String loginUserId) {
         InsightContentType contentType = resolveContentType(type);
-        Long userId = resolveUserId(userEmail);
+        Long userId = resolveUserId(loginUserId);
         ensureContentExists(contentType, contentId);
 
         String contentTypeKey = toContentTypeKey(contentType);
@@ -141,11 +154,12 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 댓글을 등록하고 최신 상세 상태를 반환합니다.
+     * @desc ?볤????깅줉?섍퀬 理쒖떊 ?곸꽭 ?곹깭瑜?諛섑솚?⑸땲??
      */
-    public InsightDetailResponseDTO addComment(String type, Long contentId, String userEmail, String content) {
+    @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
+    public InsightDetailResponseDTO addComment(String type, Long contentId, String loginUserId, String content) {
         InsightContentType contentType = resolveContentType(type);
-        Long userId = resolveUserId(userEmail);
+        Long userId = resolveUserId(loginUserId);
         ensureContentExists(contentType, contentId);
 
         String normalizedContent = normalizeCommentContent(content);
@@ -163,11 +177,12 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 본인 댓글만 소프트 삭제하고 최신 상세 상태를 반환합니다.
+     * @desc 蹂몄씤 ?볤?留??뚰봽????젣?섍퀬 理쒖떊 ?곸꽭 ?곹깭瑜?諛섑솚?⑸땲??
      */
-    public InsightDetailResponseDTO deleteComment(String type, Long contentId, Long commentId, String userEmail) {
+    @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
+    public InsightDetailResponseDTO deleteComment(String type, Long contentId, Long commentId, String loginUserId) {
         InsightContentType contentType = resolveContentType(type);
-        Long userId = resolveUserId(userEmail);
+        Long userId = resolveUserId(loginUserId);
         ensureContentExists(contentType, contentId);
 
         InsightComment targetComment = insightCommentRepository
@@ -185,7 +200,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 콘텐츠 타입 문자열을 enum으로 변환하며 유효성 오류를 공통 처리합니다.
+     * @desc 肄섑뀗痢????臾몄옄?댁쓣 enum?쇰줈 蹂?섑븯硫??좏슚???ㅻ쪟瑜?怨듯넻 泥섎━?⑸땲??
      */
     private InsightContentType resolveContentType(String type) {
         try {
@@ -197,21 +212,21 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 인증 이메일을 users.id로 매핑하고 미인증 상태를 차단합니다.
+     * @desc ?몄쬆 ?대찓?쇱쓣 users.id濡?留ㅽ븨?섍퀬 誘몄씤利??곹깭瑜?李⑤떒?⑸땲??
      */
-    private Long resolveUserId(String userEmail) {
-        if (userEmail == null || userEmail.isBlank()) {
-            throw new ResponseStatusException(UNAUTHORIZED, "로그인이 필요합니다.");
+    private Long resolveUserId(String loginUserId) {
+        if (loginUserId == null || loginUserId.isBlank()) {
+            throw new ResponseStatusException(UNAUTHORIZED, "濡쒓렇?몄씠 ?꾩슂?⑸땲??");
         }
 
-        return userRepository.findByEmail(userEmail)
+        return userRepository.findByUserId(loginUserId)
                 .map(User::getId)
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "사용자 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "?ъ슜???뺣낫瑜?李얠쓣 ???놁뒿?덈떎."));
     }
 
     /**
      * @date 2026-04-14
-     * @desc 콘텐츠 타입별 조회수 컬럼을 1 증가시킵니다.
+     * @desc 肄섑뀗痢???낅퀎 議고쉶??而щ읆??1 利앷??쒗궢?덈떎.
      */
     private void incrementViewCount(InsightContentType contentType, Long contentId) {
         int updatedCount = switch (contentType) {
@@ -220,28 +235,28 @@ public class InsightDetailService {
         };
 
         if (updatedCount == 0) {
-            throw new ResponseStatusException(NOT_FOUND, "상세 대상을 찾을 수 없습니다.");
+            throw new ResponseStatusException(NOT_FOUND, "?곸꽭 ??곸쓣 李얠쓣 ???놁뒿?덈떎.");
         }
     }
 
     /**
      * @date 2026-04-14
-     * @desc 콘텐츠 타입/ID로 상세 기본 데이터를 조회합니다.
+     * @desc 肄섑뀗痢????ID濡??곸꽭 湲곕낯 ?곗씠?곕? 議고쉶?⑸땲??
      */
     private InsightBaseData findBaseData(InsightContentType contentType, Long contentId) {
         return switch (contentType) {
             case KNOWLEDGE -> dailyKnowledgeRepository.findById(contentId)
                     .map(this::toKnowledgeBaseData)
-                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "인사이트를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "?몄궗?댄듃瑜?李얠쓣 ???놁뒿?덈떎."));
             case NEWS -> techNewsRepository.findById(contentId)
                     .map(this::toNewsBaseData)
-                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "뉴스를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "?댁뒪瑜?李얠쓣 ???놁뒿?덈떎."));
         };
     }
 
     /**
      * @date 2026-04-14
-     * @desc 토글/댓글 작업 전 콘텐츠 존재 여부를 검증합니다.
+     * @desc ?좉?/?볤? ?묒뾽 ??肄섑뀗痢?議댁옱 ?щ?瑜?寃利앺빀?덈떎.
      */
     private void ensureContentExists(InsightContentType contentType, Long contentId) {
         findBaseData(contentType, contentId);
@@ -249,22 +264,22 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 댓글 내용을 trim/길이 검증하여 저장 가능한 문자열로 정규화합니다.
+     * @desc ?볤? ?댁슜??trim/湲몄씠 寃利앺븯?????媛?ν븳 臾몄옄?대줈 ?뺢퇋?뷀빀?덈떎.
      */
     private String normalizeCommentContent(String content) {
         String normalizedContent = content == null ? "" : content.trim();
         if (normalizedContent.isEmpty()) {
-            throw new ResponseStatusException(BAD_REQUEST, "댓글 내용을 입력해 주세요.");
+            throw new ResponseStatusException(BAD_REQUEST, "?볤? ?댁슜???낅젰??二쇱꽭??");
         }
         if (normalizedContent.length() > MAX_COMMENT_LENGTH) {
-            throw new ResponseStatusException(BAD_REQUEST, "댓글은 500자 이하로 입력해 주세요.");
+            throw new ResponseStatusException(BAD_REQUEST, "?볤?? 500???댄븯濡??낅젰??二쇱꽭??");
         }
         return normalizedContent;
     }
 
     /**
      * @date 2026-04-14
-     * @desc enum 타입을 DB 저장용 문자열 키로 변환합니다.
+     * @desc enum ??낆쓣 DB ??μ슜 臾몄옄???ㅻ줈 蹂?섑빀?덈떎.
      */
     private String toContentTypeKey(InsightContentType contentType) {
         return contentType.name();
@@ -272,7 +287,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 상세 응답 DTO를 DB 집계 기준으로 구성합니다.
+     * @desc ?곸꽭 ?묐떟 DTO瑜?DB 吏묎퀎 湲곗??쇰줈 援ъ꽦?⑸땲??
      */
     private InsightDetailResponseDTO buildDetailResponse(InsightContentType contentType, InsightBaseData baseData, Long userId) {
         String contentTypeKey = toContentTypeKey(contentType);
@@ -302,7 +317,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 댓글 목록과 작성자명을 결합하여 응답 DTO 목록으로 변환합니다.
+     * @desc ?볤? 紐⑸줉怨??묒꽦?먮챸??寃고빀?섏뿬 ?묐떟 DTO 紐⑸줉?쇰줈 蹂?섑빀?덈떎.
      */
     private List<InsightCommentDTO> findCommentDtos(String contentTypeKey, Long contentId, Long loginUserId) {
         List<InsightComment> commentList = insightCommentRepository
@@ -314,7 +329,7 @@ public class InsightDetailService {
         return commentList.stream()
                 .map(comment -> InsightCommentDTO.builder()
                         .id(comment.getId())
-                        .authorName(userNameById.getOrDefault(comment.getUserId(), "알 수 없음"))
+                        .authorName(userNameById.getOrDefault(comment.getUserId(), "?????놁쓬"))
                         .content(comment.getContent())
                         .createdAt(comment.getCreatedAt())
                         .mine(loginUserId.equals(comment.getUserId()))
@@ -324,7 +339,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc DailyKnowledge 엔티티를 상세 기본 데이터로 변환합니다.
+     * @desc DailyKnowledge ?뷀떚?곕? ?곸꽭 湲곕낯 ?곗씠?곕줈 蹂?섑빀?덈떎.
      */
     private InsightBaseData toKnowledgeBaseData(DailyKnowledge knowledge) {
         long viewCount = knowledge.getViewCount() == null ? 0L : knowledge.getViewCount();
@@ -342,7 +357,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc TechNews 엔티티를 상세 기본 데이터로 변환합니다.
+     * @desc TechNews ?뷀떚?곕? ?곸꽭 湲곕낯 ?곗씠?곕줈 蹂?섑빀?덈떎.
      */
     private InsightBaseData toNewsBaseData(TechNews news) {
         long viewCount = news.getViewCount() == null ? 0L : news.getViewCount();
@@ -370,3 +385,4 @@ public class InsightDetailService {
     ) {
     }
 }
+

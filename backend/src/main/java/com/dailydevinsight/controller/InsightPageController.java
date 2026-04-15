@@ -112,7 +112,7 @@ public class InsightPageController {
         InsightDetailResponseDTO detail = insightDetailService.getInsightDetail(
                 type,
                 id,
-                resolveUserEmail(authentication),
+                resolveUserId(authentication),
                 shouldIncreaseViewCount
         );
         model.addAttribute("detail", detail);
@@ -131,7 +131,7 @@ public class InsightPageController {
      * @date 2026-04-14
      * @desc 인증 객체에서 로그인 사용자 이메일을 추출합니다.
      */
-    private String resolveUserEmail(Authentication authentication) {
+    private String resolveUserId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return "";
         }
