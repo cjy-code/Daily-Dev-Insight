@@ -21,6 +21,7 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -51,10 +52,10 @@ public class InsightDetailRestControllerTest {
         InsightDetailResponseDTO response = InsightDetailResponseDTO.builder()
                 .type("knowledge")
                 .id(1L)
-                .title("상세 제목")
-                .summary("요약")
-                .detail("본문")
-                .source("카테고리")
+                .title("?곸꽭 ?쒕ぉ")
+                .summary("?붿빟")
+                .detail("蹂몃Ц")
+                .source("移댄뀒怨좊━")
                 .publishedAt(LocalDate.of(2026, 4, 13))
                 .viewCount(11L)
                 .likeCount(2L)
@@ -94,12 +95,12 @@ public class InsightDetailRestControllerTest {
                 .comments(Collections.emptyList())
                 .build();
 
-        given(insightDetailService.addComment(anyString(), anyLong(), anyString(), anyString())).willReturn(response);
+        given(insightDetailService.addComment(anyString(), anyLong(), anyString(), anyString(), any())).willReturn(response);
 
         mockMvc.perform(post("/api/insights/knowledge/1/comments")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new InsightCommentRequestDTO("댓글"))))
+                        .content(objectMapper.writeValueAsString(new InsightCommentRequestDTO("댓글", null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
     }

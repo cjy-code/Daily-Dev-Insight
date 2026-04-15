@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class InsightCommentRequestDTO {
 
     private String content;
+    private Long parentCommentId;
 }

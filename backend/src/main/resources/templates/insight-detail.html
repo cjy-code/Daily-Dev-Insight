@@ -62,8 +62,11 @@
                     <span th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-13 10:00</span>
                 </div>
                 <p th:text="${comment.content}">댓글 내용</p>
-                <button type="button" class="delete-button" data-comment-delete
-                        th:if="${comment.mine}">삭제</button>
+                <div class="comment-actions">
+                    <button type="button" class="reply-button" data-comment-reply>답글</button>
+                    <button type="button" class="delete-button" data-comment-delete th:if="${comment.mine}">삭제</button>
+                </div>
+                <div class="reply-form-slot" data-reply-slot></div>
             </li>
         </ul>
     </section>
