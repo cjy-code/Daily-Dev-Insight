@@ -1,0 +1,280 @@
+package com.dailydevinsight.admin.service;
+
+import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
+
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@Component
+@ConditionalOnProperty(name = "llm.provider", havingValue = "openai")
+public class OpenAiLlmGenerationClient implements LlmGenerationClient {
+
+    private static final String OPENAI_CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final String apiKey;
+    private final String model;
+    private final String baseUrl;
+
+    /**
+     * @date 2026-04-16
+     * @desc OpenAI API 호출에 필요한 설정값과 의존 객체를 초기화합니다.
+     */
+    public OpenAiLlmGenerationClient(
+            ObjectMapper objectMapper,
+            @Value("${openai.api-key:}") String apiKey,
+            @Value("${openai.model:gpt-4.1-mini}") String model,
+            @Value("${openai.base-url:https://api.openai.com}") String baseUrl
+    ) {
+        this.restTemplate = new RestTemplate();
+        this.objectMapper = objectMapper;
+        this.apiKey = apiKey;
+        this.model = model;
+        this.baseUrl = baseUrl;
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 렌더링된 프롬프트를 OpenAI Chat Completions API로 전송해 생성 결과를 반환합니다.
+     */
+    @Override
+    public GeneratedKnowledgeResult generateKnowledge(
+            String prompt,
+            LocalDate targetDate,
+            String category,
+            String tone,
+            String difficulty
+    ) {
+        validateApiKey();
+        try {
+            HttpEntity<Map<String, Object>> httpEntity = createRequestEntity(prompt, targetDate, category, tone, difficulty);
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    baseUrl + OPENAI_CHAT_COMPLETIONS_PATH,
+                    HttpMethod.POST,
+                    httpEntity,
+                    String.class
+            );
+            return parseGeneratedResult(responseEntity.getBody());
+        } catch (HttpStatusCodeException exception) {
+            throw toLlmClientException(exception);
+        } catch (ResourceAccessException exception) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "network_error",
+                    0,
+                    "OpenAI 서버 연결에 실패했습니다. 네트워크 상태를 확인해주세요.",
+                    "OpenAI 네트워크 연결 실패: " + exception.getMessage()
+            );
+        }
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc OpenAI API Key 설정 여부를 검증합니다.
+     */
+    private void validateApiKey() {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "missing_api_key",
+                    0,
+                    "OpenAI API Key가 설정되지 않았습니다.",
+                    "OpenAI API Key가 비어 있습니다."
+            );
+        }
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc OpenAI 요청 헤더와 본문(JSON)을 구성합니다.
+     */
+    private HttpEntity<Map<String, Object>> createRequestEntity(
+            String prompt,
+            LocalDate targetDate,
+            String category,
+            String tone,
+            String difficulty
+    ) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey.trim());
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("temperature", 0.7);
+        body.put("messages", List.of(
+                Map.of("role", "system", "content", buildSystemInstruction()),
+                Map.of("role", "user", "content", buildUserPrompt(prompt, targetDate, category, tone, difficulty))
+        ));
+
+        return new HttpEntity<>(body, headers);
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 모델이 반드시 JSON 형식으로 응답하도록 시스템 지시문을 생성합니다.
+     */
+    private String buildSystemInstruction() {
+        return "당신은 일일 개발 지식 콘텐츠 생성기입니다. 반드시 JSON 객체로만 응답하세요. "
+                + "필수 키는 title, summary, detail 입니다.";
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 템플릿 기반 프롬프트와 생성 조건을 사용자 메시지로 구성합니다.
+     */
+    private String buildUserPrompt(
+            String prompt,
+            LocalDate targetDate,
+            String category,
+            String tone,
+            String difficulty
+    ) {
+        return "다음 조건으로 일일 개발 지식을 생성하세요.\n"
+                + "- 대상일: " + targetDate + "\n"
+                + "- 카테고리: " + category + "\n"
+                + "- 톤: " + tone + "\n"
+                + "- 난이도: " + difficulty + "\n\n"
+                + "프롬프트 본문:\n"
+                + prompt + "\n\n"
+                + "응답 JSON 형식 예시:\n"
+                + "{\"title\":\"...\",\"summary\":\"...\",\"detail\":\"...\"}";
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc OpenAI 응답에서 콘텐츠 문자열을 추출해 JSON으로 파싱합니다.
+     */
+    private GeneratedKnowledgeResult parseGeneratedResult(String responseBody) {
+        try {
+            JsonNode responseRoot = objectMapper.readTree(responseBody);
+            JsonNode contentNode = responseRoot.path("choices").path(0).path("message").path("content");
+            if (contentNode.isMissingNode() || contentNode.asText().isBlank()) {
+                throw new LlmClientException(
+                        "OPENAI",
+                        "empty_response",
+                        200,
+                        "OpenAI 응답이 비어 있습니다. 잠시 후 다시 시도해주세요.",
+                        "OpenAI choices.message.content 값이 비어 있습니다."
+                );
+            }
+
+            JsonNode generatedJson = objectMapper.readTree(contentNode.asText());
+            String title = readRequiredValue(generatedJson, "title");
+            String summary = readRequiredValue(generatedJson, "summary");
+            String detail = readRequiredValue(generatedJson, "detail");
+
+            return GeneratedKnowledgeResult.builder()
+                    .title(title)
+                    .summary(summary)
+                    .detail(detail)
+                    .build();
+        } catch (JsonProcessingException exception) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "invalid_response_format",
+                    200,
+                    "OpenAI 응답 형식 파싱에 실패했습니다.",
+                    "OpenAI 응답 파싱 실패: " + exception.getMessage()
+            );
+        }
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc JSON 응답에서 필수 문자열 값을 읽고 누락 여부를 검증합니다.
+     */
+    private String readRequiredValue(JsonNode generatedJson, String fieldName) {
+        String value = generatedJson.path(fieldName).asText("");
+        if (value.isBlank()) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "missing_required_field",
+                    200,
+                    "OpenAI 응답에 필수 항목이 누락되었습니다.",
+                    "OpenAI 응답 필수 필드 누락: " + fieldName
+            );
+        }
+        return value.trim();
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc OpenAI HTTP 오류 응답을 코드/메시지 형태로 변환합니다.
+     */
+    private LlmClientException toLlmClientException(HttpStatusCodeException exception) {
+        String body = exception.getResponseBodyAsString();
+        String errorCode = "http_" + exception.getStatusCode().value();
+        String errorMessage = "OpenAI 호출에 실패했습니다.";
+
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode errorNode = root.path("error");
+            if (!errorNode.isMissingNode()) {
+                String parsedCode = errorNode.path("code").asText("");
+                String parsedType = errorNode.path("type").asText("");
+                String parsedMessage = errorNode.path("message").asText("");
+                if (!parsedCode.isBlank()) {
+                    errorCode = parsedCode;
+                } else if (!parsedType.isBlank()) {
+                    errorCode = parsedType;
+                }
+                if (!parsedMessage.isBlank()) {
+                    errorMessage = parsedMessage;
+                }
+            }
+        } catch (Exception ignored) {
+            // JSON 파싱이 실패하면 기본 코드/메시지를 유지합니다.
+        }
+
+        return new LlmClientException(
+                "OPENAI",
+                errorCode,
+                exception.getStatusCode().value(),
+                mapOpenAiUserMessage(errorCode, errorMessage),
+                "OpenAI HTTP 오류(" + exception.getStatusCode().value() + "): " + errorMessage
+        );
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc OpenAI 오류 코드를 관리자 화면용 사용자 메시지로 매핑합니다.
+     */
+    private String mapOpenAiUserMessage(String errorCode, String fallbackMessage) {
+        if ("insufficient_quota".equals(errorCode)) {
+            return "OpenAI 사용량 한도(Quota)가 부족합니다. 결제/한도 설정을 확인해주세요.";
+        }
+        if ("invalid_api_key".equals(errorCode)) {
+            return "OpenAI API Key가 유효하지 않습니다. 키 값을 다시 확인해주세요.";
+        }
+        if ("rate_limit_exceeded".equals(errorCode)) {
+            return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
+        }
+        if ("model_not_found".equals(errorCode)) {
+            return "설정된 OpenAI 모델을 찾을 수 없습니다. 모델명을 확인해주세요.";
+        }
+        if ("context_length_exceeded".equals(errorCode)) {
+            return "입력 길이가 모델 한도를 초과했습니다. 프롬프트를 줄여주세요.";
+        }
+        return fallbackMessage == null || fallbackMessage.isBlank()
+                ? "OpenAI 호출 중 오류가 발생했습니다."
+                : fallbackMessage;
+    }
+}

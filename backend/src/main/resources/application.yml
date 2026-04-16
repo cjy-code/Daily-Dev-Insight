@@ -30,3 +30,11 @@ server:
       enabled: true
       force: true
   port: 9090
+
+llm:
+  provider: ${LLM_PROVIDER:openai}
+
+openai:
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+  model: ${OPENAI_MODEL:gpt-4.1-mini}
+  api-key: ${OPENAI_API_KEY:}

@@ -1,22 +1,32 @@
 package com.dailydevinsight.admin.controller;
 
 import com.dailydevinsight.admin.dto.GenerationRequestForm;
+import com.dailydevinsight.admin.dto.GenerationExecutionResult;
+import com.dailydevinsight.admin.dto.GenerationPreviewRequest;
+import com.dailydevinsight.admin.dto.GenerationPreviewResponse;
+import com.dailydevinsight.admin.dto.GenerationSaveRequest;
 import com.dailydevinsight.admin.dto.PromptTemplateForm;
 import com.dailydevinsight.admin.dto.ScheduleForm;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
+import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.service.AdminManagementService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
@@ -89,7 +99,7 @@ public class AdminPageController {
 
         model.addAttribute("currentMenu", MENU_GENERATION);
         model.addAttribute("templateList", promptTemplateService.findAllTemplates());
-        model.addAttribute("activeTemplate", promptTemplateService.getActiveTemplate());
+        model.addAttribute("activeTemplate", promptTemplateService.findActiveTemplate().orElse(null));
         model.addAttribute("promptTemplateForm", new PromptTemplateForm());
         model.addAttribute("generationRequestForm", createDefaultGenerationRequestForm());
         model.addAttribute("scheduleForm", toScheduleForm(generationScheduleService.getOrCreateSchedule()));
@@ -186,11 +196,51 @@ public class AdminPageController {
     }
 
     /**
+     * @date 2026-04-16
+     * @desc 선택한 프롬프트 템플릿의 활성 상태를 토글합니다.
+     */
+    @PostMapping("/prompts/{id}/toggle-active")
+    public String togglePromptTemplateActive(@PathVariable("id") Long templateId, RedirectAttributes redirectAttributes) {
+        try {
+            promptTemplateService.toggleTemplateActive(templateId);
+            redirectAttributes.addFlashAttribute("adminMessage", "프롬프트 활성 상태가 변경되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/generation";
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 선택한 프롬프트 템플릿을 삭제합니다.
+     */
+    @PostMapping("/prompts/{id}/delete")
+    public String deletePromptTemplate(@PathVariable("id") Long templateId, RedirectAttributes redirectAttributes) {
+        try {
+            promptTemplateService.deleteTemplate(templateId);
+            redirectAttributes.addFlashAttribute("adminMessage", "프롬프트 템플릿이 삭제되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/generation";
+    }
+
+    /**
      * @date 2026-04-15
      * @desc 관리자 수동 실행으로 일일 개발 지식을 생성합니다.
      */
     @PostMapping("/generate")
-    public String runManualGeneration(GenerationRequestForm generationRequestForm, RedirectAttributes redirectAttributes) {
+    public String runManualGeneration(
+            @Valid GenerationRequestForm generationRequestForm,
+            BindingResult bindingResult,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (bindingResult.hasErrors()) {
+            String validationMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
+            redirectAttributes.addFlashAttribute("adminError", validationMessage);
+            return "redirect:/admin/generation";
+        }
+
         try {
             var executionResult = dailyKnowledgeGenerationService.executeManualGeneration(generationRequestForm);
             if (executionResult.isSuccess()) {
@@ -199,12 +249,67 @@ public class AdminPageController {
                         "일일 개발 지식 생성 완료 (ID: " + executionResult.getCreatedKnowledgeId() + ")"
                 );
             } else {
+                if (executionResult.getErrorCode() != null && !executionResult.getErrorCode().isBlank()) {
+                    redirectAttributes.addFlashAttribute("adminErrorCode", executionResult.getErrorCode());
+                }
                 redirectAttributes.addFlashAttribute("adminError", executionResult.getMessage());
             }
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
         return "redirect:/admin/generation";
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 수동 생성 새창 페이지를 렌더링하고 현재 활성 템플릿을 프롬프트로 주입합니다.
+     */
+    @GetMapping("/generation/compose")
+    public String generationComposePage(
+            @RequestParam("targetDate") LocalDate targetDate,
+            @RequestParam("category") String category,
+            @RequestParam("tone") String tone,
+            @RequestParam("difficulty") String difficulty,
+            Model model
+    ) {
+        PromptTemplate activeTemplate = promptTemplateService.findActiveTemplate().orElse(null);
+        String renderedPrompt = "";
+        if (activeTemplate != null) {
+            renderedPrompt = dailyKnowledgeGenerationService.buildRenderedPromptForManual(
+                    targetDate,
+                    category,
+                    tone,
+                    difficulty
+            );
+        }
+
+        model.addAttribute("targetDate", targetDate);
+        model.addAttribute("category", category);
+        model.addAttribute("tone", tone);
+        model.addAttribute("difficulty", difficulty);
+        model.addAttribute("activeTemplate", activeTemplate);
+        model.addAttribute("renderedPrompt", renderedPrompt);
+        return "admin/generation-compose";
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 수동 생성 새창에서 LLM 미리보기 결과를 비동기로 생성합니다.
+     */
+    @PostMapping("/generate/preview")
+    @ResponseBody
+    public ResponseEntity<GenerationPreviewResponse> previewManualGeneration(@RequestBody GenerationPreviewRequest request) {
+        return ResponseEntity.ok(dailyKnowledgeGenerationService.previewManualGeneration(request));
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 수동 생성 새창에서 확인된 LLM 결과를 최종 저장합니다.
+     */
+    @PostMapping("/generate/save")
+    @ResponseBody
+    public ResponseEntity<GenerationExecutionResult> saveManualGeneration(@RequestBody GenerationSaveRequest request) {
+        return ResponseEntity.ok(dailyKnowledgeGenerationService.saveManualGenerationFromPreview(request));
     }
 
     /**

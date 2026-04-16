@@ -25,6 +25,8 @@ import java.util.Collections;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -84,13 +86,14 @@ class AdminPageControllerTest {
                 .description("desc")
                 .templateContent("content")
                 .active(true)
+                .deleted(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
         willDoNothing().given(promptTemplateService).ensureDefaultTemplateExists();
         given(promptTemplateService.findAllTemplates()).willReturn(Collections.singletonList(activeTemplate));
-        given(promptTemplateService.getActiveTemplate()).willReturn(activeTemplate);
+        given(promptTemplateService.findActiveTemplate()).willReturn(java.util.Optional.of(activeTemplate));
         given(generationScheduleService.getOrCreateSchedule()).willReturn(
                 GenerationSchedule.builder()
                         .id(1L)
@@ -135,5 +138,44 @@ class AdminPageControllerTest {
                         .param("difficulty", "Intermediate"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/generation"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void runManualGeneration_ShouldRejectWhenValidationFails() throws Exception {
+        mockMvc.perform(post("/admin/generate")
+                        .with(csrf())
+                        .param("targetDate", "2026-04-15")
+                        .param("category", "")
+                        .param("tone", "Practical")
+                        .param("difficulty", "Intermediate"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/generation"));
+
+        verifyNoInteractions(dailyKnowledgeGenerationService);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deletePromptTemplate_ShouldRedirectToGenerationPage() throws Exception {
+        willDoNothing().given(promptTemplateService).deleteTemplate(1L);
+
+        mockMvc.perform(post("/admin/prompts/1/delete").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/generation"));
+
+        verify(promptTemplateService).deleteTemplate(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void togglePromptTemplateActive_ShouldRedirectToGenerationPage() throws Exception {
+        willDoNothing().given(promptTemplateService).toggleTemplateActive(1L);
+
+        mockMvc.perform(post("/admin/prompts/1/toggle-active").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/generation"));
+
+        verify(promptTemplateService).toggleTemplateActive(1L);
     }
 }

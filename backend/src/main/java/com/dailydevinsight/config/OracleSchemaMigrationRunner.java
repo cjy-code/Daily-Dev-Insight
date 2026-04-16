@@ -22,7 +22,11 @@ public class OracleSchemaMigrationRunner {
     private static final String INDEX_PARENT_COMMENT = "IDX_INSIGHT_COMMENT_PARENT";
     private static final String TABLE_TECH_NEWS = "TECH_NEWS";
     private static final String TABLE_DAILY_KNOWLEDGE = "DAILY_KNOWLEDGE";
+    private static final String TABLE_PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
+    private static final String TABLE_GENERATION_HISTORY = "GENERATION_HISTORY";
     private static final String COLUMN_ATTACHMENT_IMAGE_PATH = "ATTACHMENT_IMAGE_PATH";
+    private static final String SEQUENCE_PROMPT_TEMPLATE = "SEQ_PROMPT_TEMPLATE";
+    private static final String SEQUENCE_GENERATION_HISTORY = "SEQ_GENERATION_HISTORY";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -41,6 +45,8 @@ public class OracleSchemaMigrationRunner {
         ensureParentCommentIndex();
         ensureDailyKnowledgeAttachmentImagePathColumn();
         ensureTechNewsAttachmentImagePathColumn();
+        ensureSequenceAlignedWithTableMaxId(SEQUENCE_PROMPT_TEMPLATE, TABLE_PROMPT_TEMPLATE);
+        ensureSequenceAlignedWithTableMaxId(SEQUENCE_GENERATION_HISTORY, TABLE_GENERATION_HISTORY);
     }
 
     /**
@@ -162,6 +168,51 @@ public class OracleSchemaMigrationRunner {
                 "SELECT COUNT(*) FROM user_indexes WHERE index_name = ?",
                 Integer.class,
                 indexName
+        );
+        return count != null && count > 0;
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 시퀀스 다음 값이 테이블 최대 ID보다 작거나 같으면 시작값을 자동 보정합니다.
+     */
+    private void ensureSequenceAlignedWithTableMaxId(String sequenceName, String tableName) {
+        if (!existsSequence(sequenceName)) {
+            return;
+        }
+
+        Long maxId = jdbcTemplate.queryForObject(
+                "SELECT NVL(MAX(id), 0) FROM " + tableName.toLowerCase(),
+                Long.class
+        );
+        Long maxIdValue = maxId == null ? 0L : maxId;
+
+        Long currentNextValue = jdbcTemplate.queryForObject(
+                "SELECT " + sequenceName.toLowerCase() + ".NEXTVAL FROM dual",
+                Long.class
+        );
+
+        if (currentNextValue == null || currentNextValue > maxIdValue) {
+            return;
+        }
+
+        long increment = (maxIdValue + 1L) - currentNextValue;
+        jdbcTemplate.execute("ALTER SEQUENCE " + sequenceName.toLowerCase() + " INCREMENT BY " + increment);
+        jdbcTemplate.queryForObject("SELECT " + sequenceName.toLowerCase() + ".NEXTVAL FROM dual", Long.class);
+        jdbcTemplate.execute("ALTER SEQUENCE " + sequenceName.toLowerCase() + " INCREMENT BY 1");
+
+        log.info("Aligned sequence {} to table {} max id {}", sequenceName, tableName, maxIdValue);
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc user_sequences 기준으로 지정 시퀀스 존재 여부를 조회합니다.
+     */
+    private boolean existsSequence(String sequenceName) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM user_sequences WHERE sequence_name = ?",
+                Integer.class,
+                sequenceName
         );
         return count != null && count > 0;
     }

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <title>수동 생성 확인 | Daily Dev Insight</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}" href="/css/admin.css">
+</head>
+<body class="admin-compose-body">
+<main class="admin-compose-shell"
+      th:attr="data-target-date=${targetDate},data-category=${category},data-tone=${tone},data-difficulty=${difficulty}">
+    <header class="admin-compose-header">
+        <h2>수동 생성 확인 창</h2>
+        <p>프롬프트 확인 후 LLM 결과를 생성하고 저장하세요.</p>
+    </header>
+
+    <div class="admin-compose-sections">
+        <section class="admin-compose-section">
+            <h3>1. 현재 선택 프롬프트 편집</h3>
+            <p class="admin-compose-subtext"
+               th:text="${activeTemplate != null ? '활성 템플릿: ' + activeTemplate.name : '활성 템플릿이 없어 생성할 수 없습니다.'}">
+                활성 템플릿: 기본 템플릿
+            </p>
+            <label for="composePromptContent">프롬프트 본문</label>
+            <textarea id="composePromptContent" rows="12" th:text="${renderedPrompt}" th:disabled="${activeTemplate == null}"></textarea>
+        </section>
+
+        <section class="admin-compose-section">
+            <div class="admin-compose-section-header">
+                <h3>2. LLM 결과 화면</h3>
+                <button type="button" id="composeGeneratePreviewButton" th:disabled="${activeTemplate == null}">LLM 생성</button>
+            </div>
+            <div class="admin-compose-form-grid">
+                <label for="composeGeneratedTitle">제목</label>
+                <input id="composeGeneratedTitle" type="text" readonly>
+
+                <label for="composeGeneratedSummary">요약</label>
+                <textarea id="composeGeneratedSummary" rows="4" readonly></textarea>
+
+                <label for="composeGeneratedDetail">본문</label>
+                <textarea id="composeGeneratedDetail" rows="12" readonly></textarea>
+            </div>
+            <p class="admin-compose-status" id="composePreviewStatus"></p>
+        </section>
+
+        <section class="admin-compose-section" id="composePreviousSection">
+            <h3>3. 이전 결과</h3>
+            <p class="admin-compose-subtext" id="composePreviousStatusText">이전 결과가 없으면 이 영역은 비활성화됩니다.</p>
+            <div class="admin-compose-form-grid">
+                <label for="composePreviousTitle">제목</label>
+                <input id="composePreviousTitle" type="text" readonly disabled>
+
+                <label for="composePreviousSummary">요약</label>
+                <textarea id="composePreviousSummary" rows="4" readonly disabled></textarea>
+
+                <label for="composePreviousDetail">본문</label>
+                <textarea id="composePreviousDetail" rows="10" readonly disabled></textarea>
+            </div>
+        </section>
+    </div>
+
+    <footer class="admin-compose-footer">
+        <button type="button" class="secondary" id="composeCancelButton">취소</button>
+        <button type="button" id="composeSaveButton" th:disabled="${activeTemplate == null}">저장</button>
+    </footer>
+</main>
+<div id="composeLoadingOverlay" class="admin-compose-loading" hidden>
+    <div class="admin-compose-loading-card">
+        <div class="admin-compose-spinner" aria-hidden="true"></div>
+        <p id="composeLoadingText">LLM 결과를 생성하는 중입니다...</p>
+    </div>
+</div>
+<script th:src="@{/js/admin-generation-compose.js}" src="/js/admin-generation-compose.js"></script>
+</body>
+</html>
