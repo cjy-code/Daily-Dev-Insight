@@ -5,7 +5,6 @@ import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.InsightDetailResponseDTO;
 import com.dailydevinsight.service.DailyInsightService;
 import com.dailydevinsight.service.InsightDetailService;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -100,20 +99,13 @@ public class InsightPageController {
             @PathVariable("type") String type,
             @PathVariable("id") Long id,
             Authentication authentication,
-            HttpSession session,
             Model model
     ) {
-        String sessionViewKey = buildSessionViewKey(type, id);
-        boolean shouldIncreaseViewCount = session.getAttribute(sessionViewKey) == null;
-        if (shouldIncreaseViewCount) {
-            session.setAttribute(sessionViewKey, Boolean.TRUE);
-        }
-
         InsightDetailResponseDTO detail = insightDetailService.getInsightDetail(
                 type,
                 id,
                 resolveUserId(authentication),
-                shouldIncreaseViewCount
+                true
         );
         model.addAttribute("detail", detail);
         return "insight-detail";
@@ -123,10 +115,6 @@ public class InsightPageController {
      * @date 2026-04-14
      * @desc 세션별 조회수 중복 증가 방지를 위한 키를 생성합니다.
      */
-    private String buildSessionViewKey(String type, Long id) {
-        return "insight:viewed:" + type + ":" + id;
-    }
-
     /**
      * @date 2026-04-14
      * @desc 인증 객체에서 로그인 사용자 이메일을 추출합니다.

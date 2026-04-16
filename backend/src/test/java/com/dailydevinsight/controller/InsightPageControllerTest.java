@@ -7,6 +7,7 @@ import com.dailydevinsight.dto.InsightDetailResponseDTO;
 import com.dailydevinsight.service.DailyInsightService;
 import com.dailydevinsight.service.InsightDetailService;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -24,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -87,10 +89,10 @@ public class InsightPageControllerTest {
         InsightDetailResponseDTO detail = InsightDetailResponseDTO.builder()
                 .type("knowledge")
                 .id(1L)
-                .title("상세 제목")
-                .summary("요약")
-                .detail("본문")
-                .source("카테고리")
+                .title("detail title")
+                .summary("summary")
+                .detail("content")
+                .source("category")
                 .publishedAt(LocalDate.of(2026, 4, 13))
                 .viewCount(100L)
                 .likeCount(10L)
@@ -104,5 +106,36 @@ public class InsightPageControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("insight-detail"))
                 .andExpect(model().attributeExists("detail"));
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc ??⑤㈇????瑜곷턄嶺뚯솘? ?브퀗??????브퀗????嶺뚯빘鍮? ????뗥윜諛멥늾? ??疫?true???熬곣뫀堉??濡ル츎嶺뚯솘? ?롪틵?嶺뚯빘鍮쒒뜮????덈펲.
+     */
+    @Test
+    void insightDetail_ShouldAlwaysPassTrueForViewCountIncrease() throws Exception {
+        InsightDetailResponseDTO detail = InsightDetailResponseDTO.builder()
+                .type("knowledge")
+                .id(1L)
+                .title("detail title")
+                .summary("summary")
+                .detail("content")
+                .source("category")
+                .publishedAt(LocalDate.of(2026, 4, 13))
+                .viewCount(100L)
+                .likeCount(10L)
+                .bookmarkCount(3L)
+                .comments(Collections.emptyList())
+                .build();
+
+        given(insightDetailService.getInsightDetail(anyString(), anyLong(), anyString(), anyBoolean())).willReturn(detail);
+
+        mockMvc.perform(get("/insights/knowledge/1"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Boolean> increaseFlagCaptor = ArgumentCaptor.forClass(Boolean.class);
+        verify(insightDetailService)
+                .getInsightDetail(anyString(), anyLong(), anyString(), increaseFlagCaptor.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, increaseFlagCaptor.getValue());
     }
 }
