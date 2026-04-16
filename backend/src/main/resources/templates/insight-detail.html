@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko"
       th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{::script}, true, false, ~{})}">
 <head>
@@ -15,6 +15,15 @@
         <a class="back-link" th:href="@{/index}">목록으로</a>
         <h1 th:text="${detail.title}">상세 제목</h1>
         <p class="summary" th:text="${detail.summary}">요약</p>
+        <div class="detail-image-wrap"
+             th:if="${detail.thumbnailUrl != null and !#strings.isEmpty(detail.thumbnailUrl)}">
+            <img class="detail-image"
+                 th:src="${detail.thumbnailUrl}"
+                 src="/images/default-thumb.svg"
+                 alt="상세 대표 이미지"
+                 loading="lazy"
+                 onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+        </div>
         <div class="meta-row">
             <span th:text="${detail.source}">출처</span>
             <span class="divider">|</span>
@@ -51,7 +60,7 @@
     <section class="comment-section">
         <h2>댓글</h2>
         <form class="comment-form" data-comment-form>
-            <textarea data-comment-input maxlength="500" placeholder="댓글을 입력하세요 (최대 500자)"></textarea>
+            <textarea data-comment-input maxlength="500" placeholder="댓글을 입력하세요. (최대 500자)"></textarea>
             <button type="submit">댓글 등록</button>
         </form>
 
@@ -62,8 +71,11 @@
                     <span th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-13 10:00</span>
                 </div>
                 <p th:text="${comment.content}">댓글 내용</p>
-                <button type="button" class="delete-button" data-comment-delete
-                        th:if="${comment.mine}">삭제</button>
+                <div class="comment-actions">
+                    <button type="button" class="reply-button" data-comment-reply>답글</button>
+                    <button type="button" class="delete-button" data-comment-delete th:if="${comment.mine}">삭제</button>
+                </div>
+                <div class="reply-form-slot" data-reply-slot></div>
             </li>
         </ul>
     </section>

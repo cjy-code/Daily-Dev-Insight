@@ -13,10 +13,12 @@ BEGIN
                 description VARCHAR2(500),
                 template_content CLOB NOT NULL,
                 is_active NUMBER(1) DEFAULT 0 NOT NULL,
+                is_deleted NUMBER(1) DEFAULT 0 NOT NULL,
                 created_at TIMESTAMP(6) NOT NULL,
                 updated_at TIMESTAMP(6) NOT NULL,
                 CONSTRAINT pk_prompt_template PRIMARY KEY (id),
-                CONSTRAINT ck_prompt_template_active CHECK (is_active IN (0, 1))
+                CONSTRAINT ck_prompt_template_active CHECK (is_active IN (0, 1)),
+                CONSTRAINT ck_prompt_template_deleted CHECK (is_deleted IN (0, 1))
             )';
     END IF;
 END;
@@ -165,7 +167,7 @@ END;
 /
 
 INSERT INTO prompt_template (
-    id, name, description, template_content, is_active, created_at, updated_at
+    id, name, description, template_content, is_active, is_deleted, created_at, updated_at
 )
 SELECT
     1,
@@ -179,8 +181,9 @@ Difficulty: ${difficulty}
 Respond format:
 TITLE:
 SUMMARY:
-DETAIL:~',
+    DETAIL:~',
     1,
+    0,
     SYSTIMESTAMP,
     SYSTIMESTAMP
 FROM dual

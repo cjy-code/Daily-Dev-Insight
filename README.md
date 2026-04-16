@@ -1,208 +1,120 @@
-# Daily-Dev-Insight
+# Daily Dev Insight
 
+Daily Dev Insight는 **Spring Boot + Thymeleaf 기반 개발 인사이트 서비스**입니다.
+`develop` 브랜치 기준으로 사용자 화면, 관리자 화면, 인사이트 상호작용(좋아요/북마크/댓글), 관리자 생성 관리 기능을 포함합니다.
 
-**Daily Dev Insight – 개발 지식·기술 뉴스 자동 큐레이션 서비스**
+## 1. 기술 스택
 
----
+- Backend: Java 21, Spring Boot 3.2, Spring MVC, Spring Security, Spring Data JPA
+- View: Thymeleaf, Vanilla JS, CSS
+- DB: Oracle (ojdbc11)
+- Cache: Redis (Spring Cache)
+- Build: Gradle
 
-# 1. 프로젝트 개요
+## 2. 주요 기능
 
-개발자에게 필요한 **하루 1개의 핵심 지식**과 **최신 기술 뉴스를 자동으로 수집·요약·정리**해 제공하는 웹 서비스다.
+- 사용자 인사이트 화면
+- 일자/기간 기반 인사이트 조회 및 검색
+- 인사이트 상세 상호작용
+- 좋아요/북마크 토글
+- 댓글/대댓글 작성 및 삭제
+- 사용자/관리자 로그인 분리
+- 관리자 페이지
+- 대시보드, 게시글 관리, 회원 관리
+- 프롬프트 템플릿 관리
+- 수동 생성 실행
+- 예약 생성 설정 및 실행 이력 확인
 
-LLM을 활용해 매일 자동으로 갱신되고, 사용자는 날짜별로 정제된 개발 정보만 효율적으로 소비할 수 있다.
+## 3. 실행 환경
 
----
+- JDK 21
+- Oracle DB
+- Redis
+- (선택) Docker: Oracle 컨테이너 실행
 
-# 2. 프로젝트 목적
+## 4. 빠른 시작
 
-1. 분산된 기술 정보(뉴스/아티클)를 매일 한곳에서 확인
-2. LLM 기반 요약을 통해 핵심 내용만 빠르게 습득
-3. 단순 뉴스 리스트가 아닌 **지식 + 뉴스**의 통합 정보 흐름 제공
-4. 개발자 개인 학습 아카이브 제공(북마크, 히스토리)
+### 4.1 Oracle 실행 (선택: Docker)
 
----
+프로젝트 루트에서:
 
-# 3. 주요 기능
-
-### 1) 자동 지식 생성
-
-- 매일 1회 LLM 프롬프트 실행
-- “오늘의 개발 지식(개발/CS/인프라/시장 중 랜덤)” 생성
-- 요약 + 상세 설명 자동 생성
-- DB 저장
-
-### 2) 기술 뉴스 자동 크롤링
-
-- GeekNews, ZDNet, InfoQ, ITWorld 등 RSS 기반 기사 수집
-- 본문 자동 요약
-- 출처·링크와 함께 저장
-
-### 3) 웹 서비스 기능
-
-- 오늘의 지식
-- 오늘의 기술 뉴스
-- 날짜별 히스토리
-- 카테고리별 지식 탐색
-- 북마크/관심사 기반 추천
-- 기사 원문 링크 제공
-
----
-
-# 4. 시스템 아키텍처
-
-```
-       [Scheduler(LLM + Crawler)]
-                 ↓
-         [Spring Boot API]
-                 ↓
-             [PostgreSQL]
-                 ↓
-       [Next.js Frontend UI]
-                 ↓
-              [사용자]
-
+```powershell
+docker compose up -d
 ```
 
-### 동작 흐름
+기본 포트는 `1521`입니다.
 
-1. Scheduler가 매일 09:00 실행
-2. LLM 프롬프트로 "오늘의 지식" 생성
-3. 크롤러가 기술 기사 수집 → LLM이 요약
-4. DB 저장
-5. Next.js가 API로 데이터를 호출해 화면 렌더링
-6. 과거 데이터는 히스토리로 저장·검색 가능
+### 4.2 DB 스키마 반영
 
----
+아래 SQL 파일을 Oracle에서 순서대로 반영하세요.
 
-# 5. 기술 스택
+1. `docs/sql/2026-04-13_insight_engagement_mvp_oracle.sql`
+2. `docs/sql/2026-04-15_insight_comment_reply_migration_oracle.sql`
+3. `docs/sql/2026-04-15_admin_generation_tables_oracle.sql`
+4. `docs/sql/2026-04-15_users_user_id_migration_oracle.sql`
+5. `docs/sql/2026-04-15_daily_knowledge_attachment_seed_oracle.sql`
+6. `docs/sql/2026-04-15_tech_news_attachment_seed_oracle.sql`
 
-### Backend
+### 4.3 환경 변수
 
-- **Java 21 / Spring Boot 3**
-- Spring Scheduler
-- Spring Data JPA
-- PostgreSQL
-- Jsoup (크롤링)
-- OpenAI API or Claude API
+`backend/src/main/resources/application.yml` 기준 주요 값:
 
-### Frontend
+- `DB_URL` (기본: `jdbc:oracle:thin:@//localhost:1521/ORCLPDB`)
+- `DB_USERNAME` (기본: `daily`)
+- `DB_PASSWORD` (기본: `1234`)
+- `DB_DRIVER` (기본: `oracle.jdbc.OracleDriver`)
+- `REDIS_HOST` (기본: `127.0.0.1`)
+- `REDIS_PORT` (기본: `6379`)
+- `REDIS_TIMEOUT` (기본: `3s`)
+- `JPA_DDL_AUTO` (기본: `none`)
 
-- **Next.js 14**
-- TypeScript
-- TailwindCSS
-- React Query
+### 4.4 애플리케이션 실행
 
-### Infra
-
-- **Vercel** (Frontend)
-- **Render / Railway / EC2** (Backend)
-- GitHub Actions (스케줄러/배포 자동화 가능)
-
----
-
-# 6. DB 스키마(ERD 요약)
-
-### daily_knowledge
-
-| column | type | desc |
-| --- | --- | --- |
-| id | bigint PK |  |
-| date | date | 오늘 날짜 |
-| category | varchar | backend/cs/cloud/economy |
-| title | varchar | 지식 제목 |
-| summary | text | 요약 |
-| detail | text | 상세 |
-| created_at | timestamp |  |
-
-### tech_news
-
-| column | type | desc |
-| --- | --- | --- |
-| id | bigint PK |  |
-| date | date |  |
-| source | varchar |  |
-| title | varchar |  |
-| url | varchar |  |
-| summary | text |  |
-| created_at | timestamp |  |
-
----
-
-# 7. API 설계
-
-### GET /api/daily
-
-오늘의 지식 반환
-
-### GET /api/daily/{date}
-
-특정 날짜의 지식 조회
-
-### GET /api/news/today
-
-오늘 기술 뉴스 목록
-
-### GET /api/news/{date}
-
-특정 날짜 뉴스 조회
-
-### POST /api/admin/generate
-
-관리자용 수동 실행(LLM + 뉴스 업데이트)
-
----
-
-# 8. 스케줄러 구조 예시
-
-```java
-@Scheduled(cron = "0 0 9 * * *")
-public void runDailyUpdate() {
-    // 1. LLM 지식 생성
-    var knowledge = llmService.generateDailyKnowledge();
-
-    // 2. 뉴스 크롤링 + 요약
-    var newsList = crawlerService.collectTechNews();
-    var summarized = newsList.stream()
-        .map(n -> llmService.summarize(n))
-        .collect(Collectors.toList());
-
-    // 3. DB 저장
-    dailyKnowledgeRepository.save(knowledge);
-    techNewsRepository.saveAll(summarized);
-}
-
+```powershell
+cd backend
+.\gradlew.bat bootRun
 ```
 
----
+기본 실행 주소: `http://localhost:9090`
 
-# 9. 프롬프트 예시(LLM)
+## 5. 기본 계정 (마이그레이션 스크립트 기준)
 
-### 오늘의 지식 자동 생성
+`docs/sql/2026-04-15_users_user_id_migration_oracle.sql`에서 아래 계정을 시드합니다.
 
+- 사용자: `user01` / `1234`
+- 관리자: `admin01` / `1234`
+
+현재 `SecurityConfig`는 `NoOpPasswordEncoder`를 사용합니다. 운영 환경 전환 시 반드시 암호화 인코더로 교체하세요.
+
+## 6. 주요 URL
+
+- 사용자 로그인: `/login`
+- 관리자 로그인: `/admin/login`
+- 메인: `/`
+- 인사이트 상세: `/insights/{type}/{id}`
+- 관리자 대시보드: `/admin/dashboard`
+- 관리자 생성 관리: `/admin/generation`
+
+## 7. 주요 API
+
+- `GET /api/insights?date=yyyy-MM-dd`
+- `GET /api/insights/{type}/{id}`
+- `POST /api/insights/{type}/{id}/likes/toggle`
+- `POST /api/insights/{type}/{id}/bookmarks/toggle`
+- `POST /api/insights/{type}/{id}/comments`
+- `DELETE /api/insights/{type}/{id}/comments/{commentId}`
+
+상세 스펙은 `docs/API_SPEC.md`를 참고하세요.
+
+## 8. 문서
+
+- MVP 범위: `docs/MVP_SCOPE.md`
+- API 스펙: `docs/API_SPEC.md`
+- SQL 스크립트: `docs/sql/`
+
+## 9. 테스트
+
+```powershell
+cd backend
+.\gradlew.bat test
 ```
-"오늘의 개발 지식을 생성해줘. 카테고리는 backend/cs/cloud/economy 중 하나를 랜덤으로 선택해라.
-요약 5줄 + 상세 설명 7~10줄로 구성해라.
-실무 적용 사례와 간단 예제 코드도 포함해라."
-
-```
-
-### 기술 뉴스 요약
-
-```
-"다음 기술 기사를 개발자 기준으로 5줄로 요약해줘.
-핵심은 변화/이유/영향 3가지 기준으로 정리해라."
-
-```
-
----
-
-# 10. 기능 확장 아이디어
-
-- 개인 맞춤 추천(태그 기반)
-- 북마크 기능
-- 알림: “오늘의 지식 업데이트됨”
-- RSS/Slack/Discord 연동
-- 모바일 반응형 UI
-- 관리자 대시보드(조회수/클릭률/관심태그 분석)
-
----

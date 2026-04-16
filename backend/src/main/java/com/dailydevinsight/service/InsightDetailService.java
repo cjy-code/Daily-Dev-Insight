@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +53,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc ?곸꽭 ?섏씠吏 吏꾩엯 ??議고쉶??利앷? ?щ?瑜?諛섏쁺?섏뿬 ?곸꽭 ?곗씠?곕? 諛섑솚?⑸땲??
+     * @desc ?怨멸쉭 ??륁뵠筌왖 筌욊쑴????鈺곌퀬???筌앹빓? ?????獄쏆꼷???뤿연 ?怨멸쉭 ?怨쀬뵠?怨? 獄쏆꼹???몃빍??
      */
     public InsightDetailResponseDTO getInsightDetail(String type, Long contentId, String loginUserId, boolean shouldIncreaseViewCount) {
         InsightContentType contentType = resolveContentType(type);
@@ -65,7 +67,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 議고쉶??利앷? ?놁씠 ?곹샇?묒슜 吏묎퀎 ?곹깭留?議고쉶?⑸땲??
+     * @desc 鈺곌퀬???筌앹빓? ??곸뵠 ?怨뱀깈?臾믪뒠 筌욌쵌???怨밴묶筌?鈺곌퀬???몃빍??
      */
     @Cacheable(
             cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT,
@@ -84,7 +86,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 醫뗭븘?붾? ?ъ슜???⑥쐞濡??좉??섍퀬 理쒖떊 移댁슫?몃? 諛섑솚?⑸땲??
+     * @desc ?ル뿭釉?遺? ???????μ맄嚥??醫???랁?筌ㅼ뮇??燁삳똻??紐? 獄쏆꼹???몃빍??
      */
     @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
     public InsightToggleResponseDTO toggleLike(String type, Long contentId, String loginUserId) {
@@ -119,7 +121,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 遺곷쭏?щ? ?ъ슜???⑥쐞濡??좉??섍퀬 理쒖떊 移댁슫?몃? 諛섑솚?⑸땲??
+     * @desc ?브낮彛??? ???????μ맄嚥??醫???랁?筌ㅼ뮇??燁삳똻??紐? 獄쏆꼹???몃빍??
      */
     @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
     public InsightToggleResponseDTO toggleBookmark(String type, Long contentId, String loginUserId) {
@@ -154,20 +156,22 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc ?볤????깅줉?섍퀬 理쒖떊 ?곸꽭 ?곹깭瑜?諛섑솚?⑸땲??
+     * @desc ?蹂????源낆쨯??랁?筌ㅼ뮇???怨멸쉭 ?怨밴묶??獄쏆꼹???몃빍??
      */
     @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
-    public InsightDetailResponseDTO addComment(String type, Long contentId, String loginUserId, String content) {
+    public InsightDetailResponseDTO addComment(String type, Long contentId, String loginUserId, String content, Long parentCommentId) {
         InsightContentType contentType = resolveContentType(type);
         Long userId = resolveUserId(loginUserId);
         ensureContentExists(contentType, contentId);
 
         String normalizedContent = normalizeCommentContent(content);
+        Long validatedParentCommentId = validateParentCommentId(contentType, contentId, parentCommentId);
         insightCommentRepository.save(InsightComment.builder()
                 .contentType(toContentTypeKey(contentType))
                 .contentId(contentId)
                 .userId(userId)
                 .content(normalizedContent)
+                .parentCommentId(validatedParentCommentId)
                 .isDeleted(COMMENT_ACTIVE)
                 .build());
 
@@ -177,7 +181,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 蹂몄씤 ?볤?留??뚰봽????젣?섍퀬 理쒖떊 ?곸꽭 ?곹깭瑜?諛섑솚?⑸땲??
+     * @desc 癰귣챷???蹂?筌???곕늄???????랁?筌ㅼ뮇???怨멸쉭 ?怨밴묶??獄쏆꼹???몃빍??
      */
     @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT, allEntries = true)
     public InsightDetailResponseDTO deleteComment(String type, Long contentId, Long commentId, String loginUserId) {
@@ -200,7 +204,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc 肄섑뀗痢????臾몄옄?댁쓣 enum?쇰줈 蹂?섑븯硫??좏슚???ㅻ쪟瑜?怨듯넻 泥섎━?⑸땲??
+     * @desc ?꾩꼹?쀯㎘??????얜챷???곸뱽 enum??곗쨮 癰궰??묐릭筌??醫륁뒞????살첒???⑤벏??筌ｌ꼶???몃빍??
      */
     private InsightContentType resolveContentType(String type) {
         try {
@@ -212,21 +216,21 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc ?몄쬆 ?대찓?쇱쓣 users.id濡?留ㅽ븨?섍퀬 誘몄씤利??곹깭瑜?李⑤떒?⑸땲??
+     * @desc ?紐꾩쵄 ??李??깆뱽 users.id嚥?筌띲끋釉??랁?沃섎챷?ㅿ쭩??怨밴묶??筌△뫀???몃빍??
      */
     private Long resolveUserId(String loginUserId) {
         if (loginUserId == null || loginUserId.isBlank()) {
-            throw new ResponseStatusException(UNAUTHORIZED, "濡쒓렇?몄씠 ?꾩슂?⑸땲??");
+            throw new ResponseStatusException(UNAUTHORIZED, "嚥≪뮄??紐꾩뵠 ?袁⑹뒄??몃빍??");
         }
 
         return userRepository.findByUserId(loginUserId)
                 .map(User::getId)
-                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "?ъ슜???뺣낫瑜?李얠쓣 ???놁뒿?덈떎."));
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "??????類ｋ궖??筌≪뼚??????곷뮸??덈뼄."));
     }
 
     /**
      * @date 2026-04-14
-     * @desc 肄섑뀗痢???낅퀎 議고쉶??而щ읆??1 利앷??쒗궢?덈떎.
+     * @desc ?꾩꼹?쀯㎘?????낇?鈺곌퀬????뚎됱쓥??1 筌앹빓???쀪땁??덈뼄.
      */
     private void incrementViewCount(InsightContentType contentType, Long contentId) {
         int updatedCount = switch (contentType) {
@@ -235,28 +239,28 @@ public class InsightDetailService {
         };
 
         if (updatedCount == 0) {
-            throw new ResponseStatusException(NOT_FOUND, "?곸꽭 ??곸쓣 李얠쓣 ???놁뒿?덈떎.");
+            throw new ResponseStatusException(NOT_FOUND, "?怨멸쉭 ???怨몄뱽 筌≪뼚??????곷뮸??덈뼄.");
         }
     }
 
     /**
      * @date 2026-04-14
-     * @desc 肄섑뀗痢????ID濡??곸꽭 湲곕낯 ?곗씠?곕? 議고쉶?⑸땲??
+     * @desc ?꾩꼹?쀯㎘?????ID嚥??怨멸쉭 疫꿸퀡???怨쀬뵠?怨? 鈺곌퀬???몃빍??
      */
     private InsightBaseData findBaseData(InsightContentType contentType, Long contentId) {
         return switch (contentType) {
             case KNOWLEDGE -> dailyKnowledgeRepository.findById(contentId)
                     .map(this::toKnowledgeBaseData)
-                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "?몄궗?댄듃瑜?李얠쓣 ???놁뒿?덈떎."));
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "?紐꾧텢??꾨뱜??筌≪뼚??????곷뮸??덈뼄."));
             case NEWS -> techNewsRepository.findById(contentId)
                     .map(this::toNewsBaseData)
-                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "?댁뒪瑜?李얠쓣 ???놁뒿?덈떎."));
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "??곷뮞??筌≪뼚??????곷뮸??덈뼄."));
         };
     }
 
     /**
      * @date 2026-04-14
-     * @desc ?좉?/?볤? ?묒뾽 ??肄섑뀗痢?議댁옱 ?щ?瑜?寃利앺빀?덈떎.
+     * @desc ?醫?/?蹂? ?臾믩씜 ???꾩꼹?쀯㎘?鈺곕똻???????野꺜筌앹빜鍮??덈뼄.
      */
     private void ensureContentExists(InsightContentType contentType, Long contentId) {
         findBaseData(contentType, contentId);
@@ -264,22 +268,38 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc ?볤? ?댁슜??trim/湲몄씠 寃利앺븯?????媛?ν븳 臾몄옄?대줈 ?뺢퇋?뷀빀?덈떎.
+     * @desc ?蹂? ??곸뒠??trim/疫뀀챷??野꺜筌앹빜釉??????揶쎛?館釉??얜챷???以??類?뇣?酉鍮??덈뼄.
      */
     private String normalizeCommentContent(String content) {
         String normalizedContent = content == null ? "" : content.trim();
         if (normalizedContent.isEmpty()) {
-            throw new ResponseStatusException(BAD_REQUEST, "?볤? ?댁슜???낅젰??二쇱꽭??");
+            throw new ResponseStatusException(BAD_REQUEST, "?蹂? ??곸뒠????낆젾??雅뚯눘苑??");
         }
         if (normalizedContent.length() > MAX_COMMENT_LENGTH) {
-            throw new ResponseStatusException(BAD_REQUEST, "?볤?? 500???댄븯濡??낅젰??二쇱꽭??");
+            throw new ResponseStatusException(BAD_REQUEST, "?蹂??? 500????꾨릭嚥???낆젾??雅뚯눘苑??");
         }
         return normalizedContent;
+    }
+    /**
+     * @date 2026-04-15
+     * @desc 대댓글 등록 시 부모 댓글 유효성(존재/삭제 여부/동일 콘텐츠)을 검증합니다.
+     */
+    private Long validateParentCommentId(InsightContentType contentType, Long contentId, Long parentCommentId) {
+        if (parentCommentId == null) {
+            return null;
+        }
+
+        String contentTypeKey = toContentTypeKey(contentType);
+        InsightComment parentComment = insightCommentRepository
+                .findByIdAndContentTypeAndContentIdAndIsDeleted(parentCommentId, contentTypeKey, contentId, COMMENT_ACTIVE)
+                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "유효하지 않은 부모 댓글입니다."));
+
+        return parentComment.getId();
     }
 
     /**
      * @date 2026-04-14
-     * @desc enum ??낆쓣 DB ??μ슜 臾몄옄???ㅻ줈 蹂?섑빀?덈떎.
+     * @desc enum ????놁뱽 DB ???關???얜챷?????살쨮 癰궰??묐???덈뼄.
      */
     private String toContentTypeKey(InsightContentType contentType) {
         return contentType.name();
@@ -287,7 +307,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc ?곸꽭 ?묐떟 DTO瑜?DB 吏묎퀎 湲곗??쇰줈 援ъ꽦?⑸땲??
+     * @desc ?怨멸쉭 ?臾먮뼗 DTO??DB 筌욌쵌??疫꿸퀣???곗쨮 ?닌딄쉐??몃빍??
      */
     private InsightDetailResponseDTO buildDetailResponse(InsightContentType contentType, InsightBaseData baseData, Long userId) {
         String contentTypeKey = toContentTypeKey(contentType);
@@ -303,6 +323,7 @@ public class InsightDetailService {
                 .title(baseData.title())
                 .summary(baseData.summary())
                 .detail(baseData.detail())
+                .thumbnailUrl(baseData.thumbnailUrl())
                 .source(baseData.source())
                 .url(baseData.url())
                 .publishedAt(baseData.publishedAt())
@@ -317,29 +338,51 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc ?볤? 紐⑸줉怨??묒꽦?먮챸??寃고빀?섏뿬 ?묐떟 DTO 紐⑸줉?쇰줈 蹂?섑빀?덈떎.
+     * @desc ?蹂? 筌뤴뫖以됪??臾믨쉐?癒?구??野껉퀬鍮??뤿연 ?臾먮뼗 DTO 筌뤴뫖以??곗쨮 癰궰??묐???덈뼄.
      */
     private List<InsightCommentDTO> findCommentDtos(String contentTypeKey, Long contentId, Long loginUserId) {
         List<InsightComment> commentList = insightCommentRepository
-                .findByContentTypeAndContentIdAndIsDeletedOrderByCreatedAtDesc(contentTypeKey, contentId, COMMENT_ACTIVE);
+                .findByContentTypeAndContentIdAndIsDeletedOrderByCreatedAtAsc(contentTypeKey, contentId, COMMENT_ACTIVE);
+        if (commentList.isEmpty()) {
+            return List.of();
+        }
+
         Set<Long> commentWriterIds = commentList.stream().map(InsightComment::getUserId).collect(Collectors.toSet());
         Map<Long, String> userNameById = userRepository.findAllById(commentWriterIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getName));
+        Map<Long, InsightCommentDTO> commentDtoById = new LinkedHashMap<>();
 
-        return commentList.stream()
-                .map(comment -> InsightCommentDTO.builder()
-                        .id(comment.getId())
-                        .authorName(userNameById.getOrDefault(comment.getUserId(), "?????놁쓬"))
-                        .content(comment.getContent())
-                        .createdAt(comment.getCreatedAt())
-                        .mine(loginUserId.equals(comment.getUserId()))
-                        .build())
-                .toList();
+        for (InsightComment comment : commentList) {
+            commentDtoById.put(comment.getId(), InsightCommentDTO.builder()
+                    .id(comment.getId())
+                    .parentCommentId(comment.getParentCommentId())
+                    .authorName(userNameById.getOrDefault(comment.getUserId(), "??????곸벉"))
+                    .content(comment.getContent())
+                    .createdAt(comment.getCreatedAt())
+                    .mine(loginUserId.equals(comment.getUserId()))
+                    .replies(new ArrayList<>())
+                    .build());
+        }
+
+        List<InsightCommentDTO> rootComments = new ArrayList<>();
+        for (InsightComment comment : commentList) {
+            InsightCommentDTO commentDto = commentDtoById.get(comment.getId());
+            Long parentCommentId = comment.getParentCommentId();
+            InsightCommentDTO parentCommentDto = parentCommentId == null ? null : commentDtoById.get(parentCommentId);
+
+            if (parentCommentDto == null) {
+                rootComments.add(commentDto);
+                continue;
+            }
+            parentCommentDto.getReplies().add(commentDto);
+        }
+
+        return rootComments;
     }
 
     /**
      * @date 2026-04-14
-     * @desc DailyKnowledge ?뷀떚?곕? ?곸꽭 湲곕낯 ?곗씠?곕줈 蹂?섑빀?덈떎.
+     * @desc DailyKnowledge ?酉??怨? ?怨멸쉭 疫꿸퀡???怨쀬뵠?怨뺤쨮 癰궰??묐???덈뼄.
      */
     private InsightBaseData toKnowledgeBaseData(DailyKnowledge knowledge) {
         long viewCount = knowledge.getViewCount() == null ? 0L : knowledge.getViewCount();
@@ -348,6 +391,7 @@ public class InsightDetailService {
                 knowledge.getTitle(),
                 knowledge.getSummary(),
                 knowledge.getDetail(),
+                knowledge.getAttachmentImagePath(),
                 knowledge.getCategory(),
                 null,
                 knowledge.getKnowledgeDate(),
@@ -357,7 +401,7 @@ public class InsightDetailService {
 
     /**
      * @date 2026-04-14
-     * @desc TechNews ?뷀떚?곕? ?곸꽭 湲곕낯 ?곗씠?곕줈 蹂?섑빀?덈떎.
+     * @desc TechNews ?酉??怨? ?怨멸쉭 疫꿸퀡???怨쀬뵠?怨뺤쨮 癰궰??묐???덈뼄.
      */
     private InsightBaseData toNewsBaseData(TechNews news) {
         long viewCount = news.getViewCount() == null ? 0L : news.getViewCount();
@@ -366,6 +410,7 @@ public class InsightDetailService {
                 news.getTitle(),
                 news.getSummary(),
                 news.getSummary(),
+                news.getAttachmentImagePath(),
                 news.getSource(),
                 news.getUrl(),
                 news.getNewsDate(),
@@ -378,6 +423,7 @@ public class InsightDetailService {
             String title,
             String summary,
             String detail,
+            String thumbnailUrl,
             String source,
             String url,
             LocalDate publishedAt,
@@ -385,4 +431,6 @@ public class InsightDetailService {
     ) {
     }
 }
+
+
 

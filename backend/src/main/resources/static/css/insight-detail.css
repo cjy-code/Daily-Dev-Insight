@@ -44,6 +44,21 @@
     line-height: 1.6;
 }
 
+.detail-image-wrap {
+    margin-top: 14px;
+    border: 1px solid var(--detail-line);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+.detail-image {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+}
+
 .meta-row {
     margin-top: 12px;
     color: var(--detail-muted);
@@ -174,8 +189,70 @@
     white-space: pre-wrap;
 }
 
-.delete-button {
+.comment-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
     margin-top: 8px;
+}
+
+.reply-button {
+    border: 1px solid #9db4d5;
+    background: #f5f8ff;
+    color: #1d4f91;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.reply-form-slot {
+    margin-top: 8px;
+}
+
+.reply-form {
+    display: grid;
+    gap: 6px;
+    border: 1px solid #d5deec;
+    border-radius: 10px;
+    background: #f8fbff;
+    padding: 10px;
+}
+
+.reply-form textarea {
+    resize: vertical;
+    min-height: 70px;
+    border: 1px solid #c8d3e2;
+    border-radius: 8px;
+    padding: 8px;
+    font-family: inherit;
+}
+
+.reply-form-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.reply-submit-button,
+.reply-cancel-button {
+    border-radius: 8px;
+    font-weight: 700;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.reply-submit-button {
+    border: 0;
+    background: var(--detail-accent);
+    color: #fff;
+}
+
+.reply-cancel-button {
+    border: 1px solid #bfcde0;
+    background: #fff;
+    color: #475467;
+}
+
+.delete-button {
     border: 1px solid #fda29b;
     background: #fff5f4;
     color: #b42318;
@@ -184,8 +261,26 @@
     cursor: pointer;
 }
 
+.comment-reply-list {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.comment-item-reply {
+    margin-left: 18px;
+    border-color: #c8d7ef;
+    background: #fbfdff;
+}
+
 @media (max-width: 820px) {
     .comment-form {
         grid-template-columns: 1fr;
+    }
+
+    .comment-item-reply {
+        margin-left: 12px;
     }
 }

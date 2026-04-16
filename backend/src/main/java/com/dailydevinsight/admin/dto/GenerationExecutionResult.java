@@ -8,6 +8,7 @@ import lombok.Getter;
 public class GenerationExecutionResult {
 
     private boolean success;
+    private String errorCode;
     private String message;
     private Long createdKnowledgeId;
 }

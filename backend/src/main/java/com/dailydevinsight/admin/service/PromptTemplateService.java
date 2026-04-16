@@ -9,12 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class PromptTemplateService {
 
-    private static final String DEFAULT_TEMPLATE_NAME = "일일 개발 지식 기본 템플릿";
+    private static final String DEFAULT_TEMPLATE_NAME = "Daily Knowledge Default Template";
+    private static final String DEFAULT_TEMPLATE_DESCRIPTION = "Default template for admin manual and scheduled generation";
+    private static final int MAX_TEMPLATE_COUNT = 10;
     private static final String DEFAULT_TEMPLATE_CONTENT = """
             You are a senior developer educator.
             Create one daily development knowledge article for ${date}.
@@ -31,28 +34,36 @@ public class PromptTemplateService {
     private final PromptTemplateRepository promptTemplateRepository;
 
     /**
-     * @date 2026-04-15
-     * @desc 최신 수정 순으로 프롬프트 템플릿 목록을 조회합니다.
+     * @date 2026-04-16
+     * @desc Find active prompt template as Optional.
+     */
+    @Transactional(readOnly = true)
+    public Optional<PromptTemplate> findActiveTemplate() {
+        return promptTemplateRepository.findTopByActiveTrueAndDeletedFalseOrderByUpdatedAtDesc();
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc Find non-deleted templates in updated desc order.
      */
     @Transactional(readOnly = true)
     public List<PromptTemplate> findAllTemplates() {
-        return promptTemplateRepository.findAllByOrderByUpdatedAtDesc();
+        return promptTemplateRepository.findAllByDeletedFalseOrderByUpdatedAtDesc();
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 활성 프롬프트 템플릿을 조회하고 없으면 기본 템플릿을 생성합니다.
+     * @date 2026-04-16
+     * @desc Return active template or throw when absent.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public PromptTemplate getActiveTemplate() {
-        ensureDefaultTemplateExists();
-        return promptTemplateRepository.findTopByActiveTrueOrderByUpdatedAtDesc()
-                .orElseThrow(() -> new IllegalStateException("활성 프롬프트 템플릿이 없습니다."));
+        return findActiveTemplate()
+                .orElseThrow(() -> new IllegalStateException("No active prompt template. Please activate one and retry."));
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 프롬프트 템플릿을 신규 등록 또는 수정 저장합니다.
+     * @date 2026-04-16
+     * @desc Save prompt template as create or update.
      */
     @Transactional
     public PromptTemplate saveTemplate(PromptTemplateForm form) {
@@ -60,7 +71,12 @@ public class PromptTemplateService {
 
         Long templateId = resolveTemplateId(form.getId());
         LocalDateTime now = LocalDateTime.now();
-        boolean shouldActivate = form.getId() == null && promptTemplateRepository.findTopByActiveTrueOrderByUpdatedAtDesc().isEmpty();
+        boolean isCreateRequest = form.getId() == null;
+        boolean shouldActivate = isCreateRequest && findActiveTemplate().isEmpty();
+
+        if (isCreateRequest && promptTemplateRepository.countByDeletedFalse() >= MAX_TEMPLATE_COUNT) {
+            throw new IllegalArgumentException("Prompt templates are limited to " + MAX_TEMPLATE_COUNT + ".");
+        }
 
         PromptTemplate savedTemplate = PromptTemplate.builder()
                 .id(templateId)
@@ -68,6 +84,7 @@ public class PromptTemplateService {
                 .description(trimToNull(form.getDescription()))
                 .templateContent(form.getTemplateContent().trim())
                 .active(shouldActivate || isTemplateCurrentlyActive(templateId))
+                .deleted(false)
                 .createdAt(resolveCreatedAt(form.getId(), now))
                 .updatedAt(now)
                 .build();
@@ -76,48 +93,78 @@ public class PromptTemplateService {
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 특정 템플릿을 활성화하고 나머지 템플릿은 비활성화합니다.
+     * @date 2026-04-16
+     * @desc Activate only target template and deactivate others.
      */
     @Transactional
     public void activateTemplate(Long templateId) {
-        PromptTemplate targetTemplate = promptTemplateRepository.findById(templateId)
-                .orElseThrow(() -> new IllegalArgumentException("대상 프롬프트 템플릿을 찾을 수 없습니다."));
+        PromptTemplate targetTemplate = findNotDeletedTemplate(templateId);
 
         LocalDateTime now = LocalDateTime.now();
-        List<PromptTemplate> allTemplates = promptTemplateRepository.findAll();
+        List<PromptTemplate> allTemplates = promptTemplateRepository.findAllByDeletedFalseOrderByUpdatedAtDesc();
         for (PromptTemplate template : allTemplates) {
             boolean isTarget = template.getId().equals(targetTemplate.getId());
-            PromptTemplate updatedTemplate = PromptTemplate.builder()
-                    .id(template.getId())
-                    .name(template.getName())
-                    .description(template.getDescription())
-                    .templateContent(template.getTemplateContent())
-                    .active(isTarget)
-                    .createdAt(template.getCreatedAt())
-                    .updatedAt(now)
-                    .build();
-            promptTemplateRepository.save(updatedTemplate);
+            promptTemplateRepository.save(copyTemplateWithFlags(template, isTarget, false, now));
         }
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 템플릿이 하나도 없을 경우 기본 템플릿을 자동 생성합니다.
+     * @date 2026-04-16
+     * @desc Toggle target template active flag.
      */
     @Transactional
-    public void ensureDefaultTemplateExists() {
-        if (!promptTemplateRepository.findAll().isEmpty()) {
+    public void toggleTemplateActive(Long templateId) {
+        PromptTemplate targetTemplate = findNotDeletedTemplate(templateId);
+
+        if (!Boolean.TRUE.equals(targetTemplate.getActive())) {
+            activateTemplate(templateId);
             return;
         }
 
         LocalDateTime now = LocalDateTime.now();
+        promptTemplateRepository.save(copyTemplateWithFlags(targetTemplate, false, false, now));
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc Soft delete template.
+     */
+    @Transactional
+    public void deleteTemplate(Long templateId) {
+        PromptTemplate targetTemplate = findNotDeletedTemplate(templateId);
+
+        if (Boolean.TRUE.equals(targetTemplate.getActive())) {
+            throw new IllegalArgumentException("Active template cannot be deleted. Deactivate it first.");
+        }
+
+        List<PromptTemplate> allTemplates = promptTemplateRepository.findAllByDeletedFalseOrderByUpdatedAtDesc();
+        if (allTemplates.size() <= 1) {
+            throw new IllegalArgumentException("At least one prompt template must remain.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        promptTemplateRepository.save(copyTemplateWithFlags(targetTemplate, false, true, now));
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc Ensure default template exists when no non-deleted template remains.
+     */
+    @Transactional
+    public void ensureDefaultTemplateExists() {
+        if (promptTemplateRepository.countByDeletedFalse() > 0) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Long templateId = resolveTemplateId(null);
         PromptTemplate defaultTemplate = PromptTemplate.builder()
-                .id(1L)
+                .id(templateId)
                 .name(DEFAULT_TEMPLATE_NAME)
-                .description("예약/수동 생성에서 공통으로 사용되는 기본 템플릿")
+                .description(DEFAULT_TEMPLATE_DESCRIPTION)
                 .templateContent(DEFAULT_TEMPLATE_CONTENT)
                 .active(true)
+                .deleted(false)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -125,24 +172,25 @@ public class PromptTemplateService {
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 템플릿 폼 필수 항목을 검증합니다.
+     * @date 2026-04-16
+     * @desc Validate required fields of template form.
      */
     private void validateTemplateForm(PromptTemplateForm form) {
         if (form.getName() == null || form.getName().isBlank()) {
-            throw new IllegalArgumentException("템플릿 이름은 필수입니다.");
+            throw new IllegalArgumentException("Template name is required.");
         }
         if (form.getTemplateContent() == null || form.getTemplateContent().isBlank()) {
-            throw new IllegalArgumentException("프롬프트 본문은 필수입니다.");
+            throw new IllegalArgumentException("Template content is required.");
         }
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 신규 저장 시 다음 템플릿 식별자를 계산합니다.
+     * @date 2026-04-16
+     * @desc Resolve next template id for create.
      */
     private Long resolveTemplateId(Long requestId) {
         if (requestId != null) {
+            findNotDeletedTemplate(requestId);
             return requestId;
         }
         return promptTemplateRepository.findTopByOrderByIdDesc()
@@ -151,31 +199,55 @@ public class PromptTemplateService {
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 수정 저장 시 기존 생성 시각을 유지합니다.
+     * @date 2026-04-16
+     * @desc Keep createdAt timestamp for update.
      */
     private LocalDateTime resolveCreatedAt(Long requestId, LocalDateTime now) {
         if (requestId == null) {
             return now;
         }
-        return promptTemplateRepository.findById(requestId)
-                .map(PromptTemplate::getCreatedAt)
-                .orElse(now);
+        return findNotDeletedTemplate(requestId).getCreatedAt();
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 대상 템플릿의 현재 활성 상태를 조회합니다.
+     * @date 2026-04-16
+     * @desc Check whether template is currently active.
      */
     private boolean isTemplateCurrentlyActive(Long templateId) {
-        return promptTemplateRepository.findById(templateId)
+        return promptTemplateRepository.findByIdAndDeletedFalse(templateId)
                 .map(PromptTemplate::getActive)
                 .orElse(false);
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 공백 문자열을 null로 정규화합니다.
+     * @date 2026-04-16
+     * @desc Find non-deleted template by id or throw.
+     */
+    private PromptTemplate findNotDeletedTemplate(Long templateId) {
+        return promptTemplateRepository.findByIdAndDeletedFalse(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Target prompt template not found."));
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc Build copied template with active/deleted flag changes.
+     */
+    private PromptTemplate copyTemplateWithFlags(PromptTemplate sourceTemplate, boolean active, boolean deleted, LocalDateTime now) {
+        return PromptTemplate.builder()
+                .id(sourceTemplate.getId())
+                .name(sourceTemplate.getName())
+                .description(sourceTemplate.getDescription())
+                .templateContent(sourceTemplate.getTemplateContent())
+                .active(active)
+                .deleted(deleted)
+                .createdAt(sourceTemplate.getCreatedAt())
+                .updatedAt(now)
+                .build();
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc Normalize blank string to null.
      */
     private String trimToNull(String value) {
         if (value == null || value.isBlank()) {

@@ -30,3 +30,4 @@ backend/.gradle/
 backend/build/
 backend/out/
 .idea/material_theme_project_new.xml
+.tmp_sqlnet/

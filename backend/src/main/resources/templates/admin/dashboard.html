@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko"
+      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{}, true, false, ~{::aside})}">
+<head>
+    <title>관리자 대시보드 | Daily Dev Insight</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}" href="/css/admin.css">
+</head>
+<body>
+<section class="admin-shell">
+    <aside th:replace="~{fragments/adminNav :: adminNav(${currentMenu})}"></aside>
+    <section class="admin-content">
+        <header class="admin-topbar">
+            <h2>운영 대시보드</h2>
+            <p>서비스 핵심 지표를 한 눈에 확인합니다.</p>
+        </header>
+
+        <div class="alert success" th:if="${adminMessage}" th:text="${adminMessage}"></div>
+        <div class="alert error" th:if="${adminError}" th:text="${adminError}"></div>
+
+        <section class="admin-panel">
+            <h3>운영 지표</h3>
+            <div class="stats-grid">
+                <article class="stat-card"><span>총 회원</span><strong th:text="${stats.totalUsers}">0</strong></article>
+                <article class="stat-card"><span>활성 회원</span><strong th:text="${stats.activeUsers}">0</strong></article>
+                <article class="stat-card"><span>총 게시물</span><strong th:text="${stats.totalPosts}">0</strong></article>
+                <article class="stat-card"><span>오늘 게시물</span><strong th:text="${stats.todayPosts}">0</strong></article>
+                <article class="stat-card"><span>생성 성공</span><strong th:text="${stats.generationSuccessCount}">0</strong></article>
+                <article class="stat-card"><span>생성 실패</span><strong th:text="${stats.generationFailedCount}">0</strong></article>
+            </div>
+        </section>
+    </section>
+</section>
+<aside></aside>
+</body>
+</html>

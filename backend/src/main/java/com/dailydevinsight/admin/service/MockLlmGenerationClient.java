@@ -1,16 +1,19 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 
 @Component
+@ConditionalOnProperty(name = "llm.provider", havingValue = "mock", matchIfMissing = true)
 public class MockLlmGenerationClient implements LlmGenerationClient {
 
     /**
-     * @date 2026-04-15
-     * @desc 실제 LLM 연동 전까지 템플릿 기반 응답을 생성합니다.
+     * @date 2026-04-16
+     * @desc 로컬 개발용 임시 Mock 구현체입니다.
+     *       운영 연동 시 실제 LLM API 클라이언트 구현체로 교체해야 합니다.
      */
     @Override
     public GeneratedKnowledgeResult generateKnowledge(
@@ -32,8 +35,8 @@ public class MockLlmGenerationClient implements LlmGenerationClient {
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 템플릿 입력값을 포함한 상세 본문을 구성합니다.
+     * @date 2026-04-16
+     * @desc 요청 조건과 프롬프트 미리보기를 포함한 Mock 본문을 구성합니다.
      */
     private String buildDetail(String prompt, String category, String tone, String difficulty) {
         String normalizedPrompt = prompt == null ? "" : prompt.trim();

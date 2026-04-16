@@ -61,12 +61,17 @@
                                th:href="${response.todayKnowledge.id != null} ? @{/insights/knowledge/{id}(id=${response.todayKnowledge.id})} : '#'"
                                th:attr="aria-disabled=${response.todayKnowledge.id == null}">
                             <div class="thumb-wrap">
-                                <img
-                                    th:src="${response.todayKnowledge.thumbnailUrl != null and !#strings.isEmpty(response.todayKnowledge.thumbnailUrl)} ? ${response.todayKnowledge.thumbnailUrl} : @{/images/default-thumb.svg}"
-                                    src="/images/default-thumb.svg"
-                                    alt="오늘의 개발 인사이트 썸네일"
-                                    loading="lazy"
-                                    onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                <img th:if="${response.todayKnowledge.thumbnailUrl != null and !#strings.isEmpty(response.todayKnowledge.thumbnailUrl)}"
+                                     th:src="${response.todayKnowledge.thumbnailUrl}"
+                                     src="/images/default-thumb.svg"
+                                     alt="오늘의 개발 인사이트 썸네일"
+                                     loading="lazy"
+                                     onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                <div class="thumb-fallback-title"
+                                     th:unless="${response.todayKnowledge.thumbnailUrl != null and !#strings.isEmpty(response.todayKnowledge.thumbnailUrl)}"
+                                     th:text="${response.todayKnowledge.title}">
+                                    오늘의 개발 인사이트 제목
+                                </div>
                             </div>
                             <div class="card-body">
                                 <h4 class="card-title" th:text="${response.todayKnowledge.title}">오늘의 개발 인사이트 제목</h4>
@@ -93,12 +98,17 @@
                                                th:href="${item.id != null} ? @{/insights/knowledge/{id}(id=${item.id})} : '#'"
                                                th:attr="aria-disabled=${item.id == null}">
                                                 <div class="thumb-wrap hot-thumb">
-                                                    <img
-                                                        th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
-                                                        src="/images/default-thumb.svg"
-                                                        alt="TOP 10 썸네일"
-                                                        loading="lazy"
-                                                        onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                                    <img th:if="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)}"
+                                                         th:src="${item.thumbnailUrl}"
+                                                         src="/images/default-thumb.svg"
+                                                         alt="TOP 10 썸네일"
+                                                         loading="lazy"
+                                                         onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                                    <div class="thumb-fallback-title"
+                                                         th:unless="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)}"
+                                                         th:text="${item.title}">
+                                                        TOP 10 제목
+                                                    </div>
                                                 </div>
                                                 <div class="card-body">
                                                     <h4 class="card-title" th:text="${item.title}">TOP 10 제목</h4>
@@ -134,12 +144,17 @@
                                        th:href="${item.id != null} ? @{/insights/knowledge/{id}(id=${item.id})} : '#'"
                                        th:attr="aria-disabled=${item.id == null}">
                                         <div class="thumb-wrap">
-                                            <img
-                                                th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
-                                                src="/images/default-thumb.svg"
-                                                alt="개발 인사이트 썸네일"
-                                                loading="lazy"
-                                                onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                            <img th:if="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)}"
+                                                 th:src="${item.thumbnailUrl}"
+                                                 src="/images/default-thumb.svg"
+                                                 alt="개발 인사이트 썸네일"
+                                                 loading="lazy"
+                                                 onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                            <div class="thumb-fallback-title"
+                                                 th:unless="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)}"
+                                                 th:text="${item.title}">
+                                                개발 인사이트 제목
+                                            </div>
                                         </div>
                                         <div class="card-body">
                                             <h3 class="card-title" th:text="${item.title}">개발 인사이트 제목</h3>
@@ -180,12 +195,17 @@
                                        th:href="${item.id != null} ? @{/insights/news/{id}(id=${item.id})} : '#'"
                                        th:attr="aria-disabled=${item.id == null}">
                                         <div class="thumb-wrap">
-                                            <img
-                                                th:src="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)} ? ${item.thumbnailUrl} : @{/images/default-thumb.svg}"
-                                                src="/images/default-thumb.svg"
-                                                alt="오늘의 뉴스 썸네일"
-                                                loading="lazy"
-                                                onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                            <img th:if="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)}"
+                                                 th:src="${item.thumbnailUrl}"
+                                                 src="/images/default-thumb.svg"
+                                                 alt="오늘의 뉴스 썸네일"
+                                                 loading="lazy"
+                                                 onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                                            <div class="thumb-fallback-title"
+                                                 th:unless="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)}"
+                                                 th:text="${item.title}">
+                                                뉴스 제목
+                                            </div>
                                         </div>
                                         <div class="card-body">
                                             <h3 class="card-title" th:text="${item.title}">뉴스 제목</h3>

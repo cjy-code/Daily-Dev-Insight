@@ -1,7 +1,7 @@
-(function () {
+﻿(function () {
     /**
-     * @date 2026-04-13
-     * @desc JSON 요청 공통 처리 및 오류 메시지 변환을 수행합니다.
+     * @date 2026-04-15
+     * @desc JSON 요청 공통 처리와 에러 메시지 변환을 수행합니다.
      */
     async function requestJson(url, options) {
         const response = await fetch(url, options);
@@ -21,7 +21,21 @@
     }
 
     /**
-     * @date 2026-04-13
+     * @date 2026-04-15
+     * @desc 댓글/대댓글을 포함한 총 댓글 수를 재귀 계산합니다.
+     */
+    function countTotalComments(comments) {
+        if (!Array.isArray(comments) || comments.length === 0) {
+            return 0;
+        }
+
+        return comments.reduce(function (total, comment) {
+            return total + 1 + countTotalComments(comment.replies || []);
+        }, 0);
+    }
+
+    /**
+     * @date 2026-04-15
      * @desc 상세 페이지 DOM에 집계 데이터와 버튼 상태를 반영합니다.
      */
     function renderEngagement(root, detailState) {
@@ -41,8 +55,8 @@
         if (bookmarkCountNode) {
             bookmarkCountNode.textContent = String(detailState.bookmarkCount || 0);
         }
-        if (commentCountNode && Array.isArray(detailState.comments)) {
-            commentCountNode.textContent = String(detailState.comments.length);
+        if (commentCountNode) {
+            commentCountNode.textContent = String(countTotalComments(detailState.comments || []));
         }
         if (likeButton) {
             likeButton.classList.toggle('active', !!detailState.liked);
@@ -53,8 +67,58 @@
     }
 
     /**
-     * @date 2026-04-13
-     * @desc 댓글 목록을 최신 상태로 재렌더링합니다.
+     * @date 2026-04-15
+     * @desc 대댓글 입력 폼 HTML을 생성합니다.
+     */
+    function buildReplyFormHtml(parentCommentId) {
+        return [
+            '<form class="reply-form" data-reply-form data-parent-comment-id="' + parentCommentId + '">',
+            '<textarea data-reply-input maxlength="500" placeholder="답글을 입력하세요. (최대 500자)"></textarea>',
+            '<div class="reply-form-actions">',
+            '<button type="submit" class="reply-submit-button">답글 등록</button>',
+            '<button type="button" class="reply-cancel-button" data-reply-cancel>취소</button>',
+            '</div>',
+            '</form>'
+        ].join('');
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc 댓글 1건을 계층형 HTML 문자열로 렌더링합니다.
+     */
+    function buildCommentHtml(comment, depth) {
+        const createdAt = comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : '';
+        const deleteButton = comment.mine
+            ? '<button type="button" class="delete-button" data-comment-delete>삭제</button>'
+            : '';
+        const replyButton = '<button type="button" class="reply-button" data-comment-reply>답글</button>';
+        const replies = Array.isArray(comment.replies) ? comment.replies : [];
+        const replyListHtml = replies.length > 0
+            ? '<ul class="comment-reply-list">' + replies.map(function (reply) {
+                return buildCommentHtml(reply, depth + 1);
+            }).join('') + '</ul>'
+            : '';
+
+        return [
+            '<li class="comment-item' + (depth > 0 ? ' comment-item-reply' : '') + '" data-comment-id="' + comment.id + '">',
+            '<div class="comment-meta">',
+            '<strong>' + escapeHtml(comment.authorName || '') + '</strong>',
+            '<span>' + escapeHtml(createdAt) + '</span>',
+            '</div>',
+            '<p>' + escapeHtml(comment.content || '') + '</p>',
+            '<div class="comment-actions">',
+            replyButton,
+            deleteButton,
+            '</div>',
+            '<div class="reply-form-slot" data-reply-slot></div>',
+            replyListHtml,
+            '</li>'
+        ].join('');
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc 댓글 목록을 최신 상태로 렌더링합니다.
      */
     function renderComments(root, comments) {
         const listNode = root.querySelector('[data-comment-list]');
@@ -68,29 +132,16 @@
         }
 
         listNode.innerHTML = comments.map(function (comment) {
-            const createdAt = comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : '';
-            const deleteButton = comment.mine
-                ? '<button type="button" class="delete-button" data-comment-delete>삭제</button>'
-                : '';
-            return [
-                '<li class="comment-item" data-comment-id="' + comment.id + '">',
-                '<div class="comment-meta">',
-                '<strong>' + escapeHtml(comment.authorName || '') + '</strong>',
-                '<span>' + escapeHtml(createdAt) + '</span>',
-                '</div>',
-                '<p>' + escapeHtml(comment.content || '') + '</p>',
-                deleteButton,
-                '</li>'
-            ].join('');
+            return buildCommentHtml(comment, 0);
         }).join('');
     }
 
     /**
-     * @date 2026-04-13
-     * @desc HTML 문자열 이스케이프를 수행합니다.
+     * @date 2026-04-15
+     * @desc HTML 문자열을 이스케이프합니다.
      */
     function escapeHtml(value) {
-        return value
+        return String(value)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
@@ -99,8 +150,8 @@
     }
 
     /**
-     * @date 2026-04-13
-     * @desc CSRF 헤더 정보를 DOM 메타태그에서 조회합니다.
+     * @date 2026-04-15
+     * @desc CSRF 헤더 정보를 DOM 메타 태그에서 조회합니다.
      */
     function buildCsrfHeaders() {
         const tokenNode = document.querySelector('meta[name="_csrf"]');
@@ -114,7 +165,30 @@
     }
 
     /**
-     * @date 2026-04-13
+     * @date 2026-04-15
+     * @desc 선택한 댓글 아래 대댓글 입력 폼을 토글합니다.
+     */
+    function toggleReplyForm(commentItem, parentCommentId) {
+        const slot = commentItem.querySelector('[data-reply-slot]');
+        if (!slot) {
+            return;
+        }
+
+        const existingForm = slot.querySelector('[data-reply-form]');
+        if (existingForm) {
+            slot.innerHTML = '';
+            return;
+        }
+
+        slot.innerHTML = buildReplyFormHtml(parentCommentId);
+        const replyInput = slot.querySelector('[data-reply-input]');
+        if (replyInput instanceof HTMLElement) {
+            replyInput.focus();
+        }
+    }
+
+    /**
+     * @date 2026-04-15
      * @desc 상세 페이지 상호작용 이벤트를 초기화합니다.
      */
     function initDetailPage() {
@@ -188,7 +262,7 @@
                     const state = await requestJson(apiPath + '/comments', {
                         method: 'POST',
                         headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeaders),
-                        body: JSON.stringify({ content: content })
+                        body: JSON.stringify({ content: content, parentCommentId: null })
                     });
                     renderFromState(state);
                     commentInput.value = '';
@@ -202,9 +276,41 @@
         if (commentList) {
             commentList.addEventListener('click', async function (event) {
                 const target = event.target;
-                if (!(target instanceof HTMLElement) || !target.matches('[data-comment-delete]')) {
+                if (!(target instanceof HTMLElement)) {
                     return;
                 }
+
+                if (target.matches('[data-comment-reply]')) {
+                    const commentItem = target.closest('[data-comment-id]');
+                    if (!commentItem) {
+                        return;
+                    }
+
+                    const parentCommentId = commentItem.getAttribute('data-comment-id');
+                    if (!parentCommentId) {
+                        return;
+                    }
+
+                    toggleReplyForm(commentItem, parentCommentId);
+                    return;
+                }
+
+                if (target.matches('[data-reply-cancel]')) {
+                    const replyForm = target.closest('[data-reply-form]');
+                    if (!replyForm) {
+                        return;
+                    }
+                    const slot = replyForm.closest('[data-reply-slot]');
+                    if (slot) {
+                        slot.innerHTML = '';
+                    }
+                    return;
+                }
+
+                if (!target.matches('[data-comment-delete]')) {
+                    return;
+                }
+
                 const item = target.closest('[data-comment-id]');
                 if (!item) {
                     return;
@@ -224,7 +330,48 @@
                     window.alert(error.message);
                 }
             });
+
+            commentList.addEventListener('submit', async function (event) {
+                const target = event.target;
+                if (!(target instanceof HTMLFormElement) || !target.matches('[data-reply-form]')) {
+                    return;
+                }
+                event.preventDefault();
+
+                const parentCommentId = target.getAttribute('data-parent-comment-id');
+                const replyInput = target.querySelector('[data-reply-input]');
+                if (!(replyInput instanceof HTMLTextAreaElement) || !parentCommentId) {
+                    return;
+                }
+
+                const content = replyInput.value.trim();
+                if (!content) {
+                    window.alert('답글 내용을 입력해 주세요.');
+                    return;
+                }
+
+                try {
+                    const state = await requestJson(apiPath + '/comments', {
+                        method: 'POST',
+                        headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeaders),
+                        body: JSON.stringify({
+                            content: content,
+                            parentCommentId: Number(parentCommentId)
+                        })
+                    });
+                    renderFromState(state);
+                } catch (error) {
+                    window.alert(error.message);
+                }
+            });
         }
+
+        requestJson(apiPath, {
+            method: 'GET',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeaders)
+        }).then(renderFromState).catch(function () {
+            renderComments(root, []);
+        });
     }
 
     initDetailPage();

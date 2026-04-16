@@ -72,7 +72,13 @@ public class InsightDetailRestController {
             @RequestBody InsightCommentRequestDTO request,
             Authentication authentication
     ) {
-        return insightDetailService.addComment(type, id, resolveUserId(authentication), request.getContent());
+        return insightDetailService.addComment(
+                type,
+                id,
+                resolveUserId(authentication),
+                request.getContent(),
+                request.getParentCommentId()
+        );
     }
 
     /**

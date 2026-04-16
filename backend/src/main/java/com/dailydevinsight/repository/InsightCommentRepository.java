@@ -9,6 +9,7 @@ import java.util.Optional;
 public interface InsightCommentRepository extends JpaRepository<InsightComment, Long> {
 
     List<InsightComment> findByContentTypeAndContentIdAndIsDeletedOrderByCreatedAtDesc(String contentType, Long contentId, Integer isDeleted);
+    List<InsightComment> findByContentTypeAndContentIdAndIsDeletedOrderByCreatedAtAsc(String contentType, Long contentId, Integer isDeleted);
 
     long countByContentTypeAndContentIdAndIsDeleted(String contentType, Long contentId, Integer isDeleted);
 

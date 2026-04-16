@@ -44,6 +44,9 @@ public class InsightComment {
     @Lob
     private String content;
 
+    @Column(name = "parent_comment_id")
+    private Long parentCommentId;
+
     @Column(name = "is_deleted", nullable = false)
     private Integer isDeleted;
 

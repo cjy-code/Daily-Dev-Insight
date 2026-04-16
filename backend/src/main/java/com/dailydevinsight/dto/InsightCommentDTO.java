@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -14,8 +15,10 @@ import java.time.LocalDateTime;
 public class InsightCommentDTO {
 
     private Long id;
+    private Long parentCommentId;
     private String authorName;
     private String content;
     private LocalDateTime createdAt;
     private boolean mine;
+    private List<InsightCommentDTO> replies;
 }

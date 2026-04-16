@@ -10,7 +10,11 @@ public interface PromptTemplateRepository extends JpaRepository<PromptTemplate, 
 
     Optional<PromptTemplate> findTopByOrderByIdDesc();
 
-    Optional<PromptTemplate> findTopByActiveTrueOrderByUpdatedAtDesc();
+    Optional<PromptTemplate> findTopByActiveTrueAndDeletedFalseOrderByUpdatedAtDesc();
 
-    List<PromptTemplate> findAllByOrderByUpdatedAtDesc();
+    List<PromptTemplate> findAllByDeletedFalseOrderByUpdatedAtDesc();
+
+    long countByDeletedFalse();
+
+    Optional<PromptTemplate> findByIdAndDeletedFalse(Long id);
 }

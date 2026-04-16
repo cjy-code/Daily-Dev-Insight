@@ -7,7 +7,6 @@
         <p class="brand-subtitle">Developer-first login experience template</p>
     </div>
     <nav class="header-nav" aria-label="Global" th:if="${showNav}">
-        <a class="header-link" th:href="@{/admin}" sec:authorize="hasRole('ADMIN')">관리자</a>
         <form method="post" th:action="@{/auth/logout}">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <button type="submit" class="header-link header-link-button">로그아웃</button>
