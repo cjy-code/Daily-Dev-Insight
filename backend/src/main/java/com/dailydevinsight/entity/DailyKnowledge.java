@@ -34,6 +34,9 @@ public class DailyKnowledge {
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 
+    @Column(name = "attachment_image_path", length = 500)
+    private String attachmentImagePath;
+
     @Lob
     @Column(name = "summary", nullable = false)
     private String summary;

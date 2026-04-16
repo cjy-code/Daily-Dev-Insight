@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     /**
      * @date 2026-04-15
      * @desc JSON 요청 공통 처리와 에러 메시지 변환을 수행합니다.
@@ -73,7 +73,7 @@
     function buildReplyFormHtml(parentCommentId) {
         return [
             '<form class="reply-form" data-reply-form data-parent-comment-id="' + parentCommentId + '">',
-            '<textarea data-reply-input maxlength="500" placeholder="답글을 입력하세요 (최대 500자)"></textarea>',
+            '<textarea data-reply-input maxlength="500" placeholder="답글을 입력하세요. (최대 500자)"></textarea>',
             '<div class="reply-form-actions">',
             '<button type="submit" class="reply-submit-button">답글 등록</button>',
             '<button type="button" class="reply-cancel-button" data-reply-cancel>취소</button>',
@@ -84,7 +84,7 @@
 
     /**
      * @date 2026-04-15
-     * @desc 댓글 1건을 재귀적으로 HTML 문자열로 렌더링합니다.
+     * @desc 댓글 1건을 계층형 HTML 문자열로 렌더링합니다.
      */
     function buildCommentHtml(comment, depth) {
         const createdAt = comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : '';
@@ -166,7 +166,7 @@
 
     /**
      * @date 2026-04-15
-     * @desc 선택된 댓글에 답글 입력 폼을 토글합니다.
+     * @desc 선택한 댓글 아래 대댓글 입력 폼을 토글합니다.
      */
     function toggleReplyForm(commentItem, parentCommentId) {
         const slot = commentItem.querySelector('[data-reply-slot]');

@@ -52,6 +52,8 @@ docker compose up -d
 2. `docs/sql/2026-04-15_insight_comment_reply_migration_oracle.sql`
 3. `docs/sql/2026-04-15_admin_generation_tables_oracle.sql`
 4. `docs/sql/2026-04-15_users_user_id_migration_oracle.sql`
+5. `docs/sql/2026-04-15_daily_knowledge_attachment_seed_oracle.sql`
+6. `docs/sql/2026-04-15_tech_news_attachment_seed_oracle.sql`
 
 ### 4.3 환경 변수
 

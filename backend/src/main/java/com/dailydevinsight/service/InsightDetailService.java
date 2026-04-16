@@ -323,6 +323,7 @@ public class InsightDetailService {
                 .title(baseData.title())
                 .summary(baseData.summary())
                 .detail(baseData.detail())
+                .thumbnailUrl(baseData.thumbnailUrl())
                 .source(baseData.source())
                 .url(baseData.url())
                 .publishedAt(baseData.publishedAt())
@@ -390,6 +391,7 @@ public class InsightDetailService {
                 knowledge.getTitle(),
                 knowledge.getSummary(),
                 knowledge.getDetail(),
+                knowledge.getAttachmentImagePath(),
                 knowledge.getCategory(),
                 null,
                 knowledge.getKnowledgeDate(),
@@ -408,6 +410,7 @@ public class InsightDetailService {
                 news.getTitle(),
                 news.getSummary(),
                 news.getSummary(),
+                news.getAttachmentImagePath(),
                 news.getSource(),
                 news.getUrl(),
                 news.getNewsDate(),
@@ -420,6 +423,7 @@ public class InsightDetailService {
             String title,
             String summary,
             String detail,
+            String thumbnailUrl,
             String source,
             String url,
             LocalDate publishedAt,

@@ -20,6 +20,9 @@ public class OracleSchemaMigrationRunner {
     private static final String COLUMN_PARENT_COMMENT_ID = "PARENT_COMMENT_ID";
     private static final String CONSTRAINT_PARENT_COMMENT = "FK_INSIGHT_COMMENT_PARENT";
     private static final String INDEX_PARENT_COMMENT = "IDX_INSIGHT_COMMENT_PARENT";
+    private static final String TABLE_TECH_NEWS = "TECH_NEWS";
+    private static final String TABLE_DAILY_KNOWLEDGE = "DAILY_KNOWLEDGE";
+    private static final String COLUMN_ATTACHMENT_IMAGE_PATH = "ATTACHMENT_IMAGE_PATH";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -28,7 +31,7 @@ public class OracleSchemaMigrationRunner {
      * @desc 애플리케이션 시작 시 Oracle 스키마의 대댓글 컬럼/제약/인덱스를 보정합니다.
      */
     @PostConstruct
-    public void ensureInsightCommentReplySchema() {
+    public void ensureOracleSchemaMigrations() {
         if (!isOracleDatabase()) {
             return;
         }
@@ -36,6 +39,8 @@ public class OracleSchemaMigrationRunner {
         ensureParentCommentIdColumn();
         ensureParentCommentConstraint();
         ensureParentCommentIndex();
+        ensureDailyKnowledgeAttachmentImagePathColumn();
+        ensureTechNewsAttachmentImagePathColumn();
     }
 
     /**
@@ -75,6 +80,30 @@ public class OracleSchemaMigrationRunner {
         }
         jdbcTemplate.execute("CREATE INDEX idx_insight_comment_parent ON insight_comment (parent_comment_id)");
         log.info("Applied schema migration: added index {}", INDEX_PARENT_COMMENT);
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc daily_knowledge 첨부 이미지 경로 컬럼이 없으면 추가합니다.
+     */
+    private void ensureDailyKnowledgeAttachmentImagePathColumn() {
+        if (existsColumn(TABLE_DAILY_KNOWLEDGE, COLUMN_ATTACHMENT_IMAGE_PATH)) {
+            return;
+        }
+        jdbcTemplate.execute("ALTER TABLE daily_knowledge ADD (attachment_image_path VARCHAR2(500))");
+        log.info("Applied schema migration: added {}.{}", TABLE_DAILY_KNOWLEDGE, COLUMN_ATTACHMENT_IMAGE_PATH);
+    }
+
+    /**
+     * @date 2026-04-15
+     * @desc tech_news 첨부 이미지 경로 컬럼이 없으면 추가합니다.
+     */
+    private void ensureTechNewsAttachmentImagePathColumn() {
+        if (existsColumn(TABLE_TECH_NEWS, COLUMN_ATTACHMENT_IMAGE_PATH)) {
+            return;
+        }
+        jdbcTemplate.execute("ALTER TABLE tech_news ADD (attachment_image_path VARCHAR2(500))");
+        log.info("Applied schema migration: added {}.{}", TABLE_TECH_NEWS, COLUMN_ATTACHMENT_IMAGE_PATH);
     }
 
     /**
