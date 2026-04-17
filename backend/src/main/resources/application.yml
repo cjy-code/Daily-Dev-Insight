@@ -38,3 +38,9 @@ openai:
   base-url: ${OPENAI_BASE_URL:https://api.openai.com}
   model: ${OPENAI_MODEL:gpt-4.1-mini}
   api-key: ${OPENAI_API_KEY:}
+
+crawler:
+  user-agent: ${CRAWLER_USER_AGENT:DailyDevInsightBot/1.0}
+  thumbnail-upload-dir: ${CRAWLER_THUMBNAIL_UPLOAD_DIR:./uploads}
+
+

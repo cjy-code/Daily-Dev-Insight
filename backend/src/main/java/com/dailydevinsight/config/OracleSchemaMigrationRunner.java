@@ -24,9 +24,13 @@ public class OracleSchemaMigrationRunner {
     private static final String TABLE_DAILY_KNOWLEDGE = "DAILY_KNOWLEDGE";
     private static final String TABLE_PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
     private static final String TABLE_GENERATION_HISTORY = "GENERATION_HISTORY";
+    private static final String TABLE_CRAWL_SCHEDULE = "CRAWL_SCHEDULE";
+    private static final String TABLE_CRAWL_HISTORY = "CRAWL_HISTORY";
     private static final String COLUMN_ATTACHMENT_IMAGE_PATH = "ATTACHMENT_IMAGE_PATH";
     private static final String SEQUENCE_PROMPT_TEMPLATE = "SEQ_PROMPT_TEMPLATE";
     private static final String SEQUENCE_GENERATION_HISTORY = "SEQ_GENERATION_HISTORY";
+    private static final String SEQUENCE_CRAWL_HISTORY = "SEQ_CRAWL_HISTORY";
+    private static final String INDEX_TECH_NEWS_URL = "IDX_TECH_NEWS_URL";
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -45,8 +49,13 @@ public class OracleSchemaMigrationRunner {
         ensureParentCommentIndex();
         ensureDailyKnowledgeAttachmentImagePathColumn();
         ensureTechNewsAttachmentImagePathColumn();
+        ensureTechNewsUrlIndex();
+        ensureCrawlScheduleTable();
+        ensureCrawlHistoryTable();
+        ensureCrawlHistorySequence();
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_PROMPT_TEMPLATE, TABLE_PROMPT_TEMPLATE);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_GENERATION_HISTORY, TABLE_GENERATION_HISTORY);
+        ensureSequenceAlignedWithTableMaxId(SEQUENCE_CRAWL_HISTORY, TABLE_CRAWL_HISTORY);
     }
 
     /**
@@ -113,6 +122,80 @@ public class OracleSchemaMigrationRunner {
     }
 
     /**
+     * @date 2026-04-17
+     * @desc tech_news.url 조회 성능을 위해 인덱스가 없으면 생성합니다.
+     */
+    private void ensureTechNewsUrlIndex() {
+        if (existsIndex(INDEX_TECH_NEWS_URL) || existsSingleColumnIndex(TABLE_TECH_NEWS, "URL")) {
+            return;
+        }
+        jdbcTemplate.execute("CREATE INDEX idx_tech_news_url ON tech_news (url)");
+        log.info("Applied schema migration: added index {}", INDEX_TECH_NEWS_URL);
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc crawl_schedule 테이블이 없으면 생성합니다.
+     */
+    private void ensureCrawlScheduleTable() {
+        if (existsTable(TABLE_CRAWL_SCHEDULE)) {
+            return;
+        }
+        jdbcTemplate.execute("""
+                CREATE TABLE crawl_schedule (
+                    id NUMBER(19) NOT NULL,
+                    is_enabled NUMBER(1) DEFAULT 0 NOT NULL,
+                    cron_expression VARCHAR2(120) NOT NULL,
+                    source_name VARCHAR2(100) NOT NULL,
+                    source_url VARCHAR2(500) NOT NULL,
+                    max_articles NUMBER(10) DEFAULT 20 NOT NULL,
+                    last_executed_at TIMESTAMP(6),
+                    updated_at TIMESTAMP(6) NOT NULL,
+                    CONSTRAINT pk_crawl_schedule PRIMARY KEY (id)
+                )
+                """);
+        log.info("Applied schema migration: created table {}", TABLE_CRAWL_SCHEDULE);
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc crawl_history 테이블이 없으면 생성합니다.
+     */
+    private void ensureCrawlHistoryTable() {
+        if (existsTable(TABLE_CRAWL_HISTORY)) {
+            return;
+        }
+        jdbcTemplate.execute("""
+                CREATE TABLE crawl_history (
+                    id NUMBER(19) NOT NULL,
+                    trigger_type VARCHAR2(20) NOT NULL,
+                    target_date DATE NOT NULL,
+                    status VARCHAR2(20) NOT NULL,
+                    source_name VARCHAR2(100) NOT NULL,
+                    requested_count NUMBER(10) NOT NULL,
+                    collected_count NUMBER(10) NOT NULL,
+                    inserted_count NUMBER(10) NOT NULL,
+                    error_message VARCHAR2(1000),
+                    created_at TIMESTAMP(6) NOT NULL,
+                    CONSTRAINT pk_crawl_history PRIMARY KEY (id)
+                )
+                """);
+        log.info("Applied schema migration: created table {}", TABLE_CRAWL_HISTORY);
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc crawl_history ID 시퀀스가 없으면 생성합니다.
+     */
+    private void ensureCrawlHistorySequence() {
+        if (existsSequence(SEQUENCE_CRAWL_HISTORY)) {
+            return;
+        }
+        jdbcTemplate.execute("CREATE SEQUENCE seq_crawl_history START WITH 1 INCREMENT BY 1 NOCACHE");
+        log.info("Applied schema migration: created sequence {}", SEQUENCE_CRAWL_HISTORY);
+    }
+
+    /**
      * @date 2026-04-15
      * @desc 현재 데이터베이스가 Oracle인지 메타데이터로 판별합니다.
      */
@@ -146,6 +229,19 @@ public class OracleSchemaMigrationRunner {
     }
 
     /**
+     * @date 2026-04-17
+     * @desc user_tables 기준으로 대상 테이블 존재 여부를 확인합니다.
+     */
+    private boolean existsTable(String tableName) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM user_tables WHERE table_name = ?",
+                Integer.class,
+                tableName
+        );
+        return count != null && count > 0;
+    }
+
+    /**
      * @date 2026-04-15
      * @desc user_constraints 기준으로 지정 제약조건 존재 여부를 조회합니다.
      */
@@ -168,6 +264,31 @@ public class OracleSchemaMigrationRunner {
                 "SELECT COUNT(*) FROM user_indexes WHERE index_name = ?",
                 Integer.class,
                 indexName
+        );
+        return count != null && count > 0;
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 지정한 테이블/컬럼으로 구성된 단일 컬럼 인덱스 존재 여부를 조회합니다.
+     */
+    private boolean existsSingleColumnIndex(String tableName, String columnName) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) " +
+                        "FROM user_indexes ui " +
+                        "JOIN user_ind_columns uic ON ui.index_name = uic.index_name " +
+                        "WHERE ui.table_name = ? " +
+                        "AND uic.column_name = ? " +
+                        "AND ui.index_type = 'NORMAL' " +
+                        "AND uic.column_position = 1 " +
+                        "AND NOT EXISTS ( " +
+                        "  SELECT 1 FROM user_ind_columns uic2 " +
+                        "  WHERE uic2.index_name = ui.index_name " +
+                        "  AND uic2.column_position > 1" +
+                        ")",
+                Integer.class,
+                tableName,
+                columnName
         );
         return count != null && count > 0;
     }

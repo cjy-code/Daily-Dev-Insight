@@ -10,7 +10,21 @@
         <a th:href="@{/admin/dashboard}" th:classappend="${currentMenu == 'dashboard'} ? ' active' : ''">대시보드</a>
         <a th:href="@{/admin/posts}" th:classappend="${currentMenu == 'posts'} ? ' active' : ''">게시물 관리</a>
         <a th:href="@{/admin/members}" th:classappend="${currentMenu == 'members'} ? ' active' : ''">회원 관리</a>
-        <a th:href="@{/admin/generation}" th:classappend="${currentMenu == 'generation'} ? ' active' : ''">생성 관리</a>
+        <section class="admin-side-nav-group"
+                 th:classappend="${currentMenu == 'generation' or currentMenu == 'crawling'} ? ' has-active-child' : ''"
+                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'generation' or currentMenu == 'crawling'},data-accordion-storage-key='admin-side-generation-group'">
+            <button type="button"
+                    class="admin-side-nav-group-toggle"
+                    aria-expanded="false"
+                    aria-controls="adminGenerationGroupItems">
+                <span class="admin-side-nav-group-title">생성 관리</span>
+                <span class="admin-side-nav-group-icon" aria-hidden="true">▾</span>
+            </button>
+            <div id="adminGenerationGroupItems" class="admin-side-nav-group-items">
+                <a th:href="@{/admin/generation}" th:classappend="${currentMenu == 'generation'} ? ' active' : ''">일일 지식</a>
+                <a th:href="@{/admin/crawling}" th:classappend="${currentMenu == 'crawling'} ? ' active' : ''">크롤링 관리</a>
+            </div>
+        </section>
     </nav>
 </aside>
 </body>

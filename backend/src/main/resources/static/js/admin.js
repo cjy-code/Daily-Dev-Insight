@@ -186,6 +186,10 @@
      * @desc 활성 프롬프트가 없을 때 수동/예약 생성 폼 제출을 차단합니다.
      */
     function bindGenerationActionGuard() {
+        const promptPanel = document.querySelector('.generation-tab-panel[data-tab-panel="prompt"]');
+        if (!promptPanel) {
+            return;
+        }
         const guardedForms = document.querySelectorAll('[data-tab-panel="manual"] form, [data-tab-panel="schedule"] form');
         guardedForms.forEach((form) => {
             form.addEventListener('submit', (event) => {
@@ -410,6 +414,9 @@
         if (sortKey === 'targetDate') {
             return Number(row.dataset.historyTargetDate || 0);
         }
+        if (sortKey === 'insertedCount') {
+            return Number(row.dataset.historyInsertedCount || 0);
+        }
         if (sortKey === 'createdKnowledgeId') {
             return Number(row.dataset.historyCreatedKnowledgeId || 0);
         }
@@ -524,6 +531,55 @@
     }
 
     /**
+     * @date 2026-04-17
+     * @desc 좌측 메뉴 그룹(생성 관리) 아코디언 접기/펼치기 동작을 등록하고 상태를 유지합니다.
+     */
+    function bindSideNavAccordion() {
+        const groups = document.querySelectorAll('.admin-side-nav-group[data-accordion-group="true"]');
+        if (groups.length === 0) {
+            return;
+        }
+
+        groups.forEach((group, index) => {
+            const toggleButton = group.querySelector('.admin-side-nav-group-toggle');
+            if (!toggleButton) {
+                return;
+            }
+
+            const defaultOpen = group.dataset.accordionDefaultOpen === 'true';
+            const storageKey = group.dataset.accordionStorageKey || ('admin-side-nav-accordion-' + index);
+            let savedState = null;
+            try {
+                savedState = window.localStorage.getItem(storageKey);
+            } catch (error) {
+                savedState = null;
+            }
+            const isOpen = savedState === null ? defaultOpen : savedState === 'open';
+
+            /**
+             * @date 2026-04-17
+             * @desc 아코디언 열린/닫힘 상태를 클래스와 접근성 속성에 반영합니다.
+             */
+            function applyAccordionState(open) {
+                group.classList.toggle('is-collapsed', !open);
+                toggleButton.setAttribute('aria-expanded', String(open));
+            }
+
+            applyAccordionState(isOpen);
+
+            toggleButton.addEventListener('click', () => {
+                const willOpen = group.classList.contains('is-collapsed');
+                applyAccordionState(willOpen);
+                try {
+                    window.localStorage.setItem(storageKey, willOpen ? 'open' : 'collapsed');
+                } catch (error) {
+                    // localStorage 사용이 불가한 환경에서는 메모리 상태만 유지합니다.
+                }
+            });
+        });
+    }
+
+    /**
      * @date 2026-04-15
      * @desc 관리자 페이지 초기 스크립트를 실행합니다.
      */
@@ -538,6 +594,7 @@
         bindGenerationHistorySort();
         bindHistoryErrorModal();
         bindManualGenerationComposeWindow();
+        bindSideNavAccordion();
     }
 
     initializeAdminPage();

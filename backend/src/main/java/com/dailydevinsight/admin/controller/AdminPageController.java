@@ -1,5 +1,7 @@
 package com.dailydevinsight.admin.controller;
 
+import com.dailydevinsight.admin.dto.CrawlRunForm;
+import com.dailydevinsight.admin.dto.CrawlScheduleForm;
 import com.dailydevinsight.admin.dto.GenerationRequestForm;
 import com.dailydevinsight.admin.dto.GenerationExecutionResult;
 import com.dailydevinsight.admin.dto.GenerationPreviewRequest;
@@ -7,13 +9,17 @@ import com.dailydevinsight.admin.dto.GenerationPreviewResponse;
 import com.dailydevinsight.admin.dto.GenerationSaveRequest;
 import com.dailydevinsight.admin.dto.PromptTemplateForm;
 import com.dailydevinsight.admin.dto.ScheduleForm;
+import com.dailydevinsight.admin.entity.CrawlSchedule;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
 import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.service.AdminManagementService;
+import com.dailydevinsight.admin.service.CrawlHistoryService;
+import com.dailydevinsight.admin.service.CrawlScheduleService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
+import com.dailydevinsight.admin.service.TechNewsCrawlingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -40,12 +46,16 @@ public class AdminPageController {
     private static final String MENU_POSTS = "posts";
     private static final String MENU_MEMBERS = "members";
     private static final String MENU_GENERATION = "generation";
+    private static final String MENU_CRAWLING = "crawling";
 
     private final PromptTemplateService promptTemplateService;
     private final GenerationScheduleService generationScheduleService;
     private final DailyKnowledgeGenerationService dailyKnowledgeGenerationService;
     private final GenerationHistoryService generationHistoryService;
     private final AdminManagementService adminManagementService;
+    private final CrawlScheduleService crawlScheduleService;
+    private final CrawlHistoryService crawlHistoryService;
+    private final TechNewsCrawlingService techNewsCrawlingService;
 
     /**
      * @date 2026-04-15
@@ -105,6 +115,21 @@ public class AdminPageController {
         model.addAttribute("scheduleForm", toScheduleForm(generationScheduleService.getOrCreateSchedule()));
         model.addAttribute("historyList", generationHistoryService.findRecentHistory());
         return "admin/generation";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 관리자 크롤링 관리 페이지를 렌더링합니다.
+     */
+    @GetMapping("/crawling")
+    public String crawlingPage(Model model) {
+        CrawlSchedule crawlSchedule = crawlScheduleService.getOrCreateSchedule();
+
+        model.addAttribute("currentMenu", MENU_CRAWLING);
+        model.addAttribute("crawlRunForm", createDefaultCrawlRunForm(crawlSchedule));
+        model.addAttribute("crawlScheduleForm", toCrawlScheduleForm(crawlSchedule));
+        model.addAttribute("crawlHistoryList", crawlHistoryService.findRecentHistory());
+        return "admin/crawling";
     }
 
     /**
@@ -328,6 +353,46 @@ public class AdminPageController {
     }
 
     /**
+     * @date 2026-04-17
+     * @desc 관리자 수동 실행 요청으로 뉴스 크롤링을 수행합니다.
+     */
+    @PostMapping("/crawling/run")
+    public String runManualCrawling(CrawlRunForm crawlRunForm, RedirectAttributes redirectAttributes) {
+        try {
+            var executionResult = techNewsCrawlingService.executeManualCrawling(crawlRunForm);
+            if (executionResult.isSuccess()) {
+                redirectAttributes.addFlashAttribute(
+                        "adminMessage",
+                        "크롤링 완료 (수집: " + executionResult.getCollectedCount() + "건, 신규 저장: " + executionResult.getInsertedCount() + "건)"
+                );
+            } else {
+                if (executionResult.getErrorCode() != null && !executionResult.getErrorCode().isBlank()) {
+                    redirectAttributes.addFlashAttribute("adminErrorCode", executionResult.getErrorCode());
+                }
+                redirectAttributes.addFlashAttribute("adminError", executionResult.getMessage());
+            }
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/crawling";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 뉴스 크롤링 예약 설정을 저장합니다.
+     */
+    @PostMapping("/crawling/schedule")
+    public String updateCrawlSchedule(CrawlScheduleForm crawlScheduleForm, RedirectAttributes redirectAttributes) {
+        try {
+            crawlScheduleService.updateSchedule(crawlScheduleForm);
+            redirectAttributes.addFlashAttribute("adminMessage", "크롤링 예약 설정이 저장되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/crawling";
+    }
+
+    /**
      * @date 2026-04-15
      * @desc 관리자가 수동 생성에서 사용할 기본 입력값을 생성합니다.
      */
@@ -351,6 +416,33 @@ public class AdminPageController {
         form.setCategory(generationSchedule.getCategory());
         form.setTone(generationSchedule.getTone());
         form.setDifficulty(generationSchedule.getDifficulty());
+        return form;
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 관리자 크롤링 수동 실행 폼의 기본값을 생성합니다.
+     */
+    private CrawlRunForm createDefaultCrawlRunForm(CrawlSchedule crawlSchedule) {
+        CrawlRunForm form = new CrawlRunForm();
+        form.setTargetDate(LocalDate.now());
+        form.setSourceName(crawlSchedule.getSourceName());
+        form.setSourceUrl(crawlSchedule.getSourceUrl());
+        form.setMaxArticles(crawlSchedule.getMaxArticles());
+        return form;
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 크롤링 예약 엔티티를 화면 입력 폼으로 변환합니다.
+     */
+    private CrawlScheduleForm toCrawlScheduleForm(CrawlSchedule crawlSchedule) {
+        CrawlScheduleForm form = new CrawlScheduleForm();
+        form.setEnabled(crawlSchedule.getEnabled());
+        form.setCronExpression(crawlSchedule.getCronExpression());
+        form.setSourceName(crawlSchedule.getSourceName());
+        form.setSourceUrl(crawlSchedule.getSourceUrl());
+        form.setMaxArticles(crawlSchedule.getMaxArticles());
         return form;
     }
 }

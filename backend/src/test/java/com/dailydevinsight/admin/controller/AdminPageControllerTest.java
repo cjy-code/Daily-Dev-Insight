@@ -1,14 +1,18 @@
 package com.dailydevinsight.admin.controller;
 
 import com.dailydevinsight.admin.dto.GenerationExecutionResult;
+import com.dailydevinsight.admin.entity.CrawlSchedule;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
 import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.service.AdminManagementService;
 import com.dailydevinsight.admin.service.AdminStatsData;
+import com.dailydevinsight.admin.service.CrawlHistoryService;
+import com.dailydevinsight.admin.service.CrawlScheduleService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
+import com.dailydevinsight.admin.service.TechNewsCrawlingService;
 import com.dailydevinsight.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +59,15 @@ class AdminPageControllerTest {
 
     @MockBean
     private AdminManagementService adminManagementService;
+
+    @MockBean
+    private CrawlScheduleService crawlScheduleService;
+
+    @MockBean
+    private CrawlHistoryService crawlHistoryService;
+
+    @MockBean
+    private TechNewsCrawlingService techNewsCrawlingService;
 
     @MockBean
     private UserDetailsService userDetailsService;
@@ -110,6 +123,27 @@ class AdminPageControllerTest {
         mockMvc.perform(get("/admin/generation"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/generation"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void crawlingPage_ShouldRenderView() throws Exception {
+        given(crawlScheduleService.getOrCreateSchedule()).willReturn(
+                CrawlSchedule.builder()
+                        .id(1L)
+                        .enabled(false)
+                        .cronExpression("0 0 8 * * *")
+                        .sourceName("Hacker News")
+                        .sourceUrl("https://hnrss.org/frontpage")
+                        .maxArticles(20)
+                        .updatedAt(LocalDateTime.now())
+                        .build()
+        );
+        given(crawlHistoryService.findRecentHistory()).willReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/admin/crawling"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/crawling"));
     }
 
     @Test
