@@ -2,8 +2,10 @@ package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.repository.GenerationHistoryRepository;
 import com.dailydevinsight.entity.DailyKnowledge;
+import com.dailydevinsight.entity.TechNews;
 import com.dailydevinsight.entity.User;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
+import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,12 +19,13 @@ import java.util.List;
 public class AdminManagementService {
 
     private final DailyKnowledgeRepository dailyKnowledgeRepository;
+    private final TechNewsRepository techNewsRepository;
     private final UserRepository userRepository;
     private final GenerationHistoryRepository generationHistoryRepository;
 
     /**
      * @date 2026-04-15
-     * @desc 관리자 게시물 관리 화면에 노출할 최근 게시물 목록을 조회합니다.
+     * @desc 관리자 일일 지식 관리 화면에 출력할 최근 게시물 목록을 조회합니다.
      */
     @Transactional(readOnly = true)
     public List<DailyKnowledge> findRecentKnowledgePosts() {
@@ -30,8 +33,17 @@ public class AdminManagementService {
     }
 
     /**
+     * @date 2026-04-17
+     * @desc 관리자 테크 뉴스 관리 화면에 출력할 최근 게시물 목록을 조회합니다.
+     */
+    @Transactional(readOnly = true)
+    public List<TechNews> findRecentTechNewsPosts() {
+        return techNewsRepository.findTop30ByOrderByNewsDateDescIdDesc();
+    }
+
+    /**
      * @date 2026-04-15
-     * @desc 관리자 회원 관리 화면에 노출할 최근 회원 목록을 조회합니다.
+     * @desc 관리자 회원 관리 화면에 출력할 최근 회원 목록을 조회합니다.
      */
     @Transactional(readOnly = true)
     public List<User> findRecentUsers() {
@@ -40,7 +52,7 @@ public class AdminManagementService {
 
     /**
      * @date 2026-04-15
-     * @desc 게시물의 카테고리와 제목을 수정합니다.
+     * @desc 일일 지식 게시물의 카테고리와 제목을 수정합니다.
      */
     @Transactional
     public void updateKnowledgePost(Long postId, String category, String title) {
@@ -52,6 +64,7 @@ public class AdminManagementService {
                 .knowledgeDate(originalPost.getKnowledgeDate())
                 .category(normalizeRequiredValue(category, "카테고리"))
                 .title(normalizeRequiredValue(title, "제목"))
+                .attachmentImagePath(originalPost.getAttachmentImagePath())
                 .summary(originalPost.getSummary())
                 .detail(originalPost.getDetail())
                 .viewCount(originalPost.getViewCount())
@@ -63,7 +76,7 @@ public class AdminManagementService {
 
     /**
      * @date 2026-04-15
-     * @desc 게시물을 삭제합니다.
+     * @desc 일일 지식 게시물을 삭제합니다.
      */
     @Transactional
     public void deleteKnowledgePost(Long postId) {
@@ -71,6 +84,42 @@ public class AdminManagementService {
             throw new IllegalArgumentException("삭제할 게시물을 찾을 수 없습니다.");
         }
         dailyKnowledgeRepository.deleteById(postId);
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 테크 뉴스 게시물의 출처와 제목을 수정합니다.
+     */
+    @Transactional
+    public void updateTechNewsPost(Long newsId, String source, String title) {
+        TechNews originalNews = techNewsRepository.findById(newsId)
+                .orElseThrow(() -> new IllegalArgumentException("테크 뉴스를 찾을 수 없습니다."));
+
+        TechNews updatedNews = TechNews.builder()
+                .id(originalNews.getId())
+                .newsDate(originalNews.getNewsDate())
+                .source(normalizeRequiredValue(source, "출처"))
+                .title(normalizeRequiredValue(title, "제목"))
+                .url(originalNews.getUrl())
+                .attachmentImagePath(originalNews.getAttachmentImagePath())
+                .summary(originalNews.getSummary())
+                .viewCount(originalNews.getViewCount())
+                .createdAt(originalNews.getCreatedAt())
+                .build();
+
+        techNewsRepository.save(updatedNews);
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 테크 뉴스 게시물을 삭제합니다.
+     */
+    @Transactional
+    public void deleteTechNewsPost(Long newsId) {
+        if (!techNewsRepository.existsById(newsId)) {
+            throw new IllegalArgumentException("삭제할 테크 뉴스를 찾을 수 없습니다.");
+        }
+        techNewsRepository.deleteById(newsId);
     }
 
     /**
@@ -102,7 +151,7 @@ public class AdminManagementService {
 
     /**
      * @date 2026-04-15
-     * @desc 관리자 대시보드 통계 수치를 계산합니다.
+     * @desc 관리자 대시보드 통계 지표를 계산합니다.
      */
     @Transactional(readOnly = true)
     public AdminStatsData getAdminStats() {
@@ -141,7 +190,7 @@ public class AdminManagementService {
     private String normalizeRole(String role) {
         String normalizedRole = normalizeRequiredValue(role, "권한").toUpperCase();
         if (!"USER".equals(normalizedRole) && !"ADMIN".equals(normalizedRole)) {
-            throw new IllegalArgumentException("권한은 USER 또는 ADMIN만 허용됩니다.");
+            throw new IllegalArgumentException("권한은 USER 또는 ADMIN만 허용합니다.");
         }
         return normalizedRole;
     }
@@ -153,7 +202,7 @@ public class AdminManagementService {
     private String normalizeStatus(String status) {
         String normalizedStatus = normalizeRequiredValue(status, "상태").toUpperCase();
         if (!"ACTIVE".equals(normalizedStatus) && !"INACTIVE".equals(normalizedStatus)) {
-            throw new IllegalArgumentException("상태는 ACTIVE 또는 INACTIVE만 허용됩니다.");
+            throw new IllegalArgumentException("상태는 ACTIVE 또는 INACTIVE만 허용합니다.");
         }
         return normalizedStatus;
     }

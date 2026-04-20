@@ -18,6 +18,8 @@ import com.dailydevinsight.repository.InsightLikeRepository;
 import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class InsightDetailService {
     private final InsightBookmarkRepository insightBookmarkRepository;
     private final InsightCommentRepository insightCommentRepository;
     private final UserRepository userRepository;
+    private final CacheManager cacheManager;
 
     /**
      * @date 2026-04-14
@@ -60,6 +63,7 @@ public class InsightDetailService {
         Long userId = resolveUserId(loginUserId);
         if (shouldIncreaseViewCount) {
             incrementViewCount(contentType, contentId);
+            clearInsightEngagementCache();
         }
         InsightBaseData baseData = findBaseData(contentType, contentId);
         return buildDetailResponse(contentType, baseData, userId);
@@ -240,6 +244,17 @@ public class InsightDetailService {
 
         if (updatedCount == 0) {
             throw new ResponseStatusException(NOT_FOUND, "?怨멸쉭 ???怨몄뱽 筌≪뼚??????곷뮸??덈뼄.");
+        }
+    }
+
+    /**
+     * @date 2026-04-16
+     * @desc 조회수 증가 직후 집계 캐시를 비워 상세 페이지에 최신 조회수가 반영되도록 합니다.
+     */
+    private void clearInsightEngagementCache() {
+        Cache engagementCache = cacheManager.getCache(RedisCacheConfig.CACHE_INSIGHT_ENGAGEMENT);
+        if (engagementCache != null) {
+            engagementCache.clear();
         }
     }
 

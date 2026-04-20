@@ -1,5 +1,9 @@
 package com.dailydevinsight.admin.controller;
 
+import com.dailydevinsight.admin.dto.CrawlRunForm;
+import com.dailydevinsight.admin.dto.CrawlScheduleForm;
+import com.dailydevinsight.admin.dto.CrawlPresetForm;
+import com.dailydevinsight.admin.dto.CrawlPreviewResponse;
 import com.dailydevinsight.admin.dto.GenerationRequestForm;
 import com.dailydevinsight.admin.dto.GenerationExecutionResult;
 import com.dailydevinsight.admin.dto.GenerationPreviewRequest;
@@ -7,13 +11,18 @@ import com.dailydevinsight.admin.dto.GenerationPreviewResponse;
 import com.dailydevinsight.admin.dto.GenerationSaveRequest;
 import com.dailydevinsight.admin.dto.PromptTemplateForm;
 import com.dailydevinsight.admin.dto.ScheduleForm;
+import com.dailydevinsight.admin.entity.CrawlSchedule;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
 import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.service.AdminManagementService;
+import com.dailydevinsight.admin.service.CrawlHistoryService;
+import com.dailydevinsight.admin.service.CrawlConditionPresetService;
+import com.dailydevinsight.admin.service.CrawlScheduleService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
+import com.dailydevinsight.admin.service.TechNewsCrawlingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -30,6 +39,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
+import java.util.Collections;
 
 @Controller
 @RequestMapping("/admin")
@@ -37,15 +47,21 @@ import java.time.LocalDate;
 public class AdminPageController {
 
     private static final String MENU_DASHBOARD = "dashboard";
-    private static final String MENU_POSTS = "posts";
+    private static final String MENU_POSTS_KNOWLEDGE = "posts-knowledge";
+    private static final String MENU_POSTS_NEWS = "posts-news";
     private static final String MENU_MEMBERS = "members";
     private static final String MENU_GENERATION = "generation";
+    private static final String MENU_CRAWLING = "crawling";
 
     private final PromptTemplateService promptTemplateService;
     private final GenerationScheduleService generationScheduleService;
     private final DailyKnowledgeGenerationService dailyKnowledgeGenerationService;
     private final GenerationHistoryService generationHistoryService;
     private final AdminManagementService adminManagementService;
+    private final CrawlScheduleService crawlScheduleService;
+    private final CrawlHistoryService crawlHistoryService;
+    private final CrawlConditionPresetService crawlConditionPresetService;
+    private final TechNewsCrawlingService techNewsCrawlingService;
 
     /**
      * @date 2026-04-15
@@ -72,10 +88,30 @@ public class AdminPageController {
      * @desc 관리자 게시물 관리 페이지를 렌더링합니다.
      */
     @GetMapping("/posts")
-    public String postsPage(Model model) {
-        model.addAttribute("currentMenu", MENU_POSTS);
+    public String postsRootPage() {
+        return "redirect:/admin/posts/knowledge";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 일일 지식 게시물 관리 페이지를 렌더링합니다.
+     */
+    @GetMapping("/posts/knowledge")
+    public String postsKnowledgePage(Model model) {
+        model.addAttribute("currentMenu", MENU_POSTS_KNOWLEDGE);
         model.addAttribute("knowledgePostList", adminManagementService.findRecentKnowledgePosts());
-        return "admin/posts";
+        return "admin/posts-knowledge";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 테크 뉴스 게시물 관리 페이지를 렌더링합니다.
+     */
+    @GetMapping("/posts/news")
+    public String postsNewsPage(Model model) {
+        model.addAttribute("currentMenu", MENU_POSTS_NEWS);
+        model.addAttribute("techNewsPostList", adminManagementService.findRecentTechNewsPosts());
+        return "admin/posts-news";
     }
 
     /**
@@ -108,10 +144,27 @@ public class AdminPageController {
     }
 
     /**
+     * @date 2026-04-17
+     * @desc 관리자 크롤링 관리 페이지를 렌더링합니다.
+     */
+    @GetMapping("/crawling")
+    public String crawlingPage(Model model) {
+        CrawlSchedule crawlSchedule = crawlScheduleService.getOrCreateSchedule();
+
+        model.addAttribute("currentMenu", MENU_CRAWLING);
+        model.addAttribute("crawlPresetList", crawlConditionPresetService.findActivePresets());
+        model.addAttribute("crawlPresetForm", createDefaultCrawlPresetForm());
+        model.addAttribute("crawlRunForm", createDefaultCrawlRunForm(crawlSchedule));
+        model.addAttribute("crawlScheduleForm", toCrawlScheduleForm(crawlSchedule));
+        model.addAttribute("crawlHistoryList", crawlHistoryService.findRecentHistory());
+        return "admin/crawling";
+    }
+
+    /**
      * @date 2026-04-15
      * @desc 게시물의 기본 정보(카테고리/제목)를 수정합니다.
      */
-    @PostMapping("/posts/{id}/update")
+    @PostMapping("/posts/knowledge/{id}/update")
     public String updateKnowledgePost(
             @PathVariable("id") Long postId,
             @RequestParam("category") String category,
@@ -124,14 +177,14 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin/posts";
+        return "redirect:/admin/posts/knowledge";
     }
 
     /**
      * @date 2026-04-15
      * @desc 게시물을 삭제합니다.
      */
-    @PostMapping("/posts/{id}/delete")
+    @PostMapping("/posts/knowledge/{id}/delete")
     public String deleteKnowledgePost(
             @PathVariable("id") Long postId,
             RedirectAttributes redirectAttributes
@@ -142,7 +195,45 @@ public class AdminPageController {
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
-        return "redirect:/admin/posts";
+        return "redirect:/admin/posts/knowledge";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 테크 뉴스 게시물의 출처/제목을 수정합니다.
+     */
+    @PostMapping("/posts/news/{id}/update")
+    public String updateTechNewsPost(
+            @PathVariable("id") Long newsId,
+            @RequestParam("source") String source,
+            @RequestParam("title") String title,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminManagementService.updateTechNewsPost(newsId, source, title);
+            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 정보가 수정되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/posts/news";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 테크 뉴스 게시물을 삭제합니다.
+     */
+    @PostMapping("/posts/news/{id}/delete")
+    public String deleteTechNewsPost(
+            @PathVariable("id") Long newsId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminManagementService.deleteTechNewsPost(newsId);
+            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 게시물이 삭제되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/posts/news";
     }
 
     /**
@@ -328,6 +419,71 @@ public class AdminPageController {
     }
 
     /**
+     * @date 2026-04-17
+     * @desc 관리자 수동 실행 요청으로 뉴스 크롤링을 수행합니다.
+     */
+    @PostMapping("/crawling/run")
+    public String runManualCrawling(CrawlRunForm crawlRunForm, RedirectAttributes redirectAttributes) {
+        try {
+            var executionResult = techNewsCrawlingService.executeManualCrawling(crawlRunForm);
+            if (executionResult.isSuccess()) {
+                redirectAttributes.addFlashAttribute(
+                        "adminMessage",
+                        "크롤링 완료 (수집: " + executionResult.getCollectedCount() + "건, 신규 저장: " + executionResult.getInsertedCount() + "건)"
+                );
+            } else {
+                if (executionResult.getErrorCode() != null && !executionResult.getErrorCode().isBlank()) {
+                    redirectAttributes.addFlashAttribute("adminErrorCode", executionResult.getErrorCode());
+                }
+                redirectAttributes.addFlashAttribute("adminError", executionResult.getMessage());
+            }
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/crawling";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 뉴스 크롤링 예약 설정을 저장합니다.
+     */
+    @PostMapping("/crawling/schedule")
+    public String updateCrawlSchedule(CrawlScheduleForm crawlScheduleForm, RedirectAttributes redirectAttributes) {
+        try {
+            crawlScheduleService.updateSchedule(crawlScheduleForm);
+            redirectAttributes.addFlashAttribute("adminMessage", "크롤링 예약 설정이 저장되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/crawling";
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 관리자 수동 실행 입력값으로 저장 없는 크롤링 미리보기 목록을 반환합니다.
+     */
+    @PostMapping("/crawling/preview")
+    @ResponseBody
+    public ResponseEntity<CrawlPreviewResponse> previewManualCrawling(@RequestBody CrawlRunForm crawlRunForm) {
+        return ResponseEntity.ok(techNewsCrawlingService.previewManualCrawling(crawlRunForm));
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 크롤링 조건 프리셋을 저장합니다.
+     */
+    @PostMapping("/crawling/presets")
+    public String saveCrawlPreset(CrawlPresetForm crawlPresetForm, RedirectAttributes redirectAttributes) {
+        try {
+            crawlConditionPresetService.savePreset(crawlPresetForm);
+            redirectAttributes.addFlashAttribute("adminMessage", "크롤링 조건 프리셋이 저장되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/crawling";
+    }
+
+    /**
      * @date 2026-04-15
      * @desc 관리자가 수동 생성에서 사용할 기본 입력값을 생성합니다.
      */
@@ -351,6 +507,67 @@ public class AdminPageController {
         form.setCategory(generationSchedule.getCategory());
         form.setTone(generationSchedule.getTone());
         form.setDifficulty(generationSchedule.getDifficulty());
+        return form;
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 관리자 크롤링 수동 실행 폼의 기본값을 생성합니다.
+     */
+    private CrawlRunForm createDefaultCrawlRunForm(CrawlSchedule crawlSchedule) {
+        CrawlRunForm form = new CrawlRunForm();
+        form.setTargetDate(LocalDate.now());
+        form.setSourceName(crawlSchedule.getSourceName());
+        form.setSourceUrl(crawlSchedule.getSourceUrl());
+        form.setMaxArticles(crawlSchedule.getMaxArticles());
+        form.setKeywordMatchType(crawlSchedule.getKeywordMatchType());
+        form.setIncludeKeywords(crawlScheduleService.splitCsv(crawlSchedule.getIncludeKeywords()));
+        form.setIncludeKeywordOperators(crawlScheduleService.splitCsv(crawlSchedule.getIncludeKeywordOperators()));
+        form.setExcludeKeywords(crawlScheduleService.splitCsv(crawlSchedule.getExcludeKeywords()));
+        form.setTargetDomains(crawlScheduleService.splitCsv(crawlSchedule.getTargetDomains()));
+        form.setConnectTimeoutSeconds(crawlSchedule.getConnectTimeoutSeconds());
+        form.setReadTimeoutSeconds(crawlSchedule.getReadTimeoutSeconds());
+        form.setRetryCount(crawlSchedule.getRetryCount());
+        return form;
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 크롤링 예약 엔티티를 화면 입력 폼으로 변환합니다.
+     */
+    private CrawlScheduleForm toCrawlScheduleForm(CrawlSchedule crawlSchedule) {
+        CrawlScheduleForm form = new CrawlScheduleForm();
+        form.setEnabled(crawlSchedule.getEnabled());
+        form.setCronExpression(crawlSchedule.getCronExpression());
+        form.setSourceName(crawlSchedule.getSourceName());
+        form.setSourceUrl(crawlSchedule.getSourceUrl());
+        form.setMaxArticles(crawlSchedule.getMaxArticles());
+        form.setKeywordMatchType(crawlSchedule.getKeywordMatchType());
+        form.setIncludeKeywords(crawlScheduleService.splitCsv(crawlSchedule.getIncludeKeywords()));
+        form.setIncludeKeywordOperators(crawlScheduleService.splitCsv(crawlSchedule.getIncludeKeywordOperators()));
+        form.setExcludeKeywords(crawlScheduleService.splitCsv(crawlSchedule.getExcludeKeywords()));
+        form.setTargetDomains(crawlScheduleService.splitCsv(crawlSchedule.getTargetDomains()));
+        form.setConnectTimeoutSeconds(crawlSchedule.getConnectTimeoutSeconds());
+        form.setReadTimeoutSeconds(crawlSchedule.getReadTimeoutSeconds());
+        form.setRetryCount(crawlSchedule.getRetryCount());
+        return form;
+    }
+
+    /**
+     * @date 2026-04-17
+     * @desc 크롤링 조건 프리셋 기본 입력값을 생성합니다.
+     */
+    private CrawlPresetForm createDefaultCrawlPresetForm() {
+        CrawlPresetForm form = new CrawlPresetForm();
+        form.setKeywordMatchType("OR");
+        form.setIncludeKeywords(Collections.emptyList());
+        form.setIncludeKeywordOperators(Collections.emptyList());
+        form.setExcludeKeywords(Collections.emptyList());
+        form.setTargetDomains(Collections.emptyList());
+        form.setConnectTimeoutSeconds(5);
+        form.setReadTimeoutSeconds(5);
+        form.setRetryCount(1);
+        form.setMaxArticles(20);
         return form;
     }
 }
