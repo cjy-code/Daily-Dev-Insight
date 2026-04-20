@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockHttpSession;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -25,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -113,7 +115,7 @@ public class InsightPageControllerTest {
      * @desc ??⑤㈇????瑜곷턄嶺뚯솘? ?브퀗??????브퀗????嶺뚯빘鍮? ????뗥윜諛멥늾? ??疫?true???熬곣뫀堉??濡ル츎嶺뚯솘? ?롪틵?嶺뚯빘鍮쒒뜮????덈펲.
      */
     @Test
-    void insightDetail_ShouldAlwaysPassTrueForViewCountIncrease() throws Exception {
+    void insightDetail_ShouldIncreaseViewCountOnlyOncePerSession() throws Exception {
         InsightDetailResponseDTO detail = InsightDetailResponseDTO.builder()
                 .type("knowledge")
                 .id(1L)
@@ -130,12 +132,18 @@ public class InsightPageControllerTest {
 
         given(insightDetailService.getInsightDetail(anyString(), anyLong(), anyString(), anyBoolean())).willReturn(detail);
 
-        mockMvc.perform(get("/insights/knowledge/1"))
+        MockHttpSession session = new MockHttpSession();
+
+        mockMvc.perform(get("/insights/knowledge/1").session(session))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/insights/knowledge/1").session(session))
                 .andExpect(status().isOk());
 
         ArgumentCaptor<Boolean> increaseFlagCaptor = ArgumentCaptor.forClass(Boolean.class);
-        verify(insightDetailService)
+        verify(insightDetailService, times(2))
                 .getInsightDetail(anyString(), anyLong(), anyString(), increaseFlagCaptor.capture());
-        org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, increaseFlagCaptor.getValue());
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, increaseFlagCaptor.getAllValues().get(0));
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.FALSE, increaseFlagCaptor.getAllValues().get(1));
     }
 }

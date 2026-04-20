@@ -13,6 +13,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpSession;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InsightPageController {
 
+    private static final String VIEW_COUNT_SESSION_KEY_PREFIX = "insight:viewed:";
     private final DailyInsightService dailyInsightService;
     private final InsightDetailService insightDetailService;
 
@@ -99,14 +101,20 @@ public class InsightPageController {
             @PathVariable("type") String type,
             @PathVariable("id") Long id,
             Authentication authentication,
+            HttpSession session,
             Model model
     ) {
+        String viewCountSessionKey = buildViewCountSessionKey(type, id);
+        boolean shouldIncreaseViewCount = session.getAttribute(viewCountSessionKey) == null;
         InsightDetailResponseDTO detail = insightDetailService.getInsightDetail(
                 type,
                 id,
                 resolveUserId(authentication),
-                true
+                shouldIncreaseViewCount
         );
+        if (shouldIncreaseViewCount) {
+            session.setAttribute(viewCountSessionKey, true);
+        }
         model.addAttribute("detail", detail);
         return "insight-detail";
     }
@@ -119,6 +127,14 @@ public class InsightPageController {
      * @date 2026-04-14
      * @desc 인증 객체에서 로그인 사용자 이메일을 추출합니다.
      */
+    /**
+     * @date 2026-04-20
+     * @desc 세션별 중복 조회수 증가 방지를 위한 상세 콘텐츠 키를 생성합니다.
+     */
+    private String buildViewCountSessionKey(String type, Long id) {
+        return VIEW_COUNT_SESSION_KEY_PREFIX + type + ":" + id;
+    }
+
     private String resolveUserId(Authentication authentication) {
         if (authentication == null || authentication.getName() == null) {
             return "";
