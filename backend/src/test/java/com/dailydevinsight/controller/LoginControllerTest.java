@@ -49,6 +49,14 @@ class LoginControllerTest {
     }
 
     @Test
+    void login_WithWithdrawParam_ShouldRedirectToCleanLoginUrl() throws Exception {
+        mockMvc.perform(get("/login").param("withdraw", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"))
+                .andExpect(flash().attribute("withdrawSuccess", true));
+    }
+
+    @Test
     void adminLogin_ShouldRenderAdminLoginView() throws Exception {
         mockMvc.perform(get("/admin/login"))
                 .andExpect(status().isOk())

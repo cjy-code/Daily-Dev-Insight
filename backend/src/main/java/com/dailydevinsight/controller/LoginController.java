@@ -16,6 +16,7 @@ public class LoginController {
     public String login(
             @RequestParam(value = "error", required = false) String error,
             @RequestParam(value = "logout", required = false) String logout,
+            @RequestParam(value = "withdraw", required = false) String withdraw,
             RedirectAttributes redirectAttributes
     ) {
         if (error != null) {
@@ -24,6 +25,10 @@ public class LoginController {
         }
         if (logout != null) {
             redirectAttributes.addFlashAttribute("logoutSuccess", true);
+            return "redirect:/login";
+        }
+        if (withdraw != null) {
+            redirectAttributes.addFlashAttribute("withdrawSuccess", true);
             return "redirect:/login";
         }
         return "views/login";

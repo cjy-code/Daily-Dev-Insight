@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko"
+      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{}, true, false, ~{::aside})}">
+<head>
+    <title>북마크/좋아요 | Daily Dev Insight</title>
+    <link rel="stylesheet" th:href="@{/css/mypage.css}" href="/css/mypage.css">
+</head>
+<body>
+<section class="mypage-shell card">
+    <aside th:replace="~{fragments/mypageNav :: mypageNav(${currentMenu})}"></aside>
+
+    <section class="mypage-content">
+        <header class="mypage-head">
+            <h2>북마크/좋아요</h2>
+            <p>최근 활동 30건을 확인할 수 있습니다.</p>
+        </header>
+
+        <section class="mypage-panel">
+            <h3>북마크</h3>
+            <ul class="activity-list" th:if="${!#lists.isEmpty(activity.bookmarkItems)}">
+                <li class="activity-item" th:each="item : ${activity.bookmarkItems}">
+                    <a th:href="@{/insights/{type}/{id}(type=${item.detailTypePath}, id=${item.contentId})}" class="activity-link">
+                        <strong th:text="${item.title}">제목</strong>
+                        <span th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</span>
+                    </a>
+                </li>
+            </ul>
+            <p class="empty" th:if="${#lists.isEmpty(activity.bookmarkItems)}">북마크한 콘텐츠가 없습니다.</p>
+        </section>
+
+        <section class="mypage-panel">
+            <h3>좋아요</h3>
+            <ul class="activity-list" th:if="${!#lists.isEmpty(activity.likeItems)}">
+                <li class="activity-item" th:each="item : ${activity.likeItems}">
+                    <a th:href="@{/insights/{type}/{id}(type=${item.detailTypePath}, id=${item.contentId})}" class="activity-link">
+                        <strong th:text="${item.title}">제목</strong>
+                        <span th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</span>
+                    </a>
+                </li>
+            </ul>
+            <p class="empty" th:if="${#lists.isEmpty(activity.likeItems)}">좋아요한 콘텐츠가 없습니다.</p>
+        </section>
+    </section>
+</section>
+</body>
+</html>
