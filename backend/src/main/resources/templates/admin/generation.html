@@ -39,25 +39,10 @@
                 </p>
                 <p th:if="${activeTemplate == null}" class="inactive-text">현재 활성화된 템플릿이 없습니다.</p>
             </div>
-            <div class="template-limit-guide" th:text="'템플릿 수: ' + ${#lists.size(templateList)} + ' / 10'">템플릿 수: 1 / 10</div>
-            <form method="post" th:action="@{/admin/prompts}" class="admin-form" id="promptTemplateForm">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <input type="hidden" name="id" id="promptId">
-
-                <label for="promptName">템플릿 이름</label>
-                <input type="text" id="promptName" name="name" required>
-
-                <label for="promptDescription">설명</label>
-                <input type="text" id="promptDescription" name="description">
-
-                <label for="templateContent">프롬프트 본문</label>
-                <textarea id="templateContent" name="templateContent" rows="8" required></textarea>
-
-                <div class="btn-row">
-                    <button type="submit" id="savePromptTemplateButton">저장</button>
-                    <button type="button" class="secondary" id="resetPromptForm">초기화</button>
-                </div>
-            </form>
+            <div class="template-toolbar">
+                <div class="template-limit-guide" th:text="'템플릿 수: ' + ${#lists.size(templateList)} + ' / 10'">템플릿 수: 1 / 10</div>
+                <button type="button" id="openPromptTemplateCreateModal" class="template-add-button" aria-label="프롬프트 템플릿 추가">+</button>
+            </div>
 
             <table class="admin-table" id="promptTemplateTable">
                 <thead>
@@ -106,12 +91,54 @@
             <form method="post" th:action="@{/admin/generate}" class="admin-form" id="manualGenerationForm">
                 <label for="targetDate">대상 날짜</label>
                 <input type="date" id="targetDate" name="targetDate" th:value="${generationRequestForm.targetDate}" required>
-                <label for="category">카테고리</label>
-                <input type="text" id="category" name="category" th:value="${generationRequestForm.category}" required>
-                <label for="tone">톤</label>
-                <input type="text" id="tone" name="tone" th:value="${generationRequestForm.tone}" required>
-                <label for="difficulty">난이도</label>
-                <input type="text" id="difficulty" name="difficulty" th:value="${generationRequestForm.difficulty}" required>
+
+                <input type="hidden" id="category" name="category" th:value="${generationRequestForm.category}">
+                <input type="hidden" id="tone" name="tone" th:value="${generationRequestForm.tone}">
+                <input type="hidden" id="difficulty" name="difficulty" th:value="${generationRequestForm.difficulty}">
+
+                <div class="preset-input-group" data-preset-group data-hidden-field-id="category" data-preset-select-id="categoryPreset" data-custom-input-id="categoryCustom">
+                    <label for="categoryPreset">카테고리</label>
+                    <div class="preset-input-row">
+                        <select id="categoryPreset">
+                            <option value="Backend">Backend</option>
+                            <option value="Frontend">Frontend</option>
+                            <option value="DevOps">DevOps</option>
+                            <option value="Data">Data</option>
+                            <option value="AI">AI</option>
+                            <option value="Security">Security</option>
+                            <option value="__custom__">직접 입력</option>
+                        </select>
+                        <input type="text" id="categoryCustom" placeholder="카테고리 직접 입력" disabled>
+                    </div>
+                </div>
+
+                <div class="preset-input-group" data-preset-group data-hidden-field-id="tone" data-preset-select-id="tonePreset" data-custom-input-id="toneCustom">
+                    <label for="tonePreset">톤</label>
+                    <div class="preset-input-row">
+                        <select id="tonePreset">
+                            <option value="실무형">실무형</option>
+                            <option value="친절한 설명형">친절한 설명형</option>
+                            <option value="요약형">요약형</option>
+                            <option value="심화형">심화형</option>
+                            <option value="__custom__">직접 입력</option>
+                        </select>
+                        <input type="text" id="toneCustom" placeholder="톤 직접 입력" disabled>
+                    </div>
+                </div>
+
+                <div class="preset-input-group" data-preset-group data-hidden-field-id="difficulty" data-preset-select-id="difficultyPreset" data-custom-input-id="difficultyCustom">
+                    <label for="difficultyPreset">난이도</label>
+                    <div class="preset-input-row">
+                        <select id="difficultyPreset">
+                            <option value="초급">초급</option>
+                            <option value="중급">중급</option>
+                            <option value="고급">고급</option>
+                            <option value="__custom__">직접 입력</option>
+                        </select>
+                        <input type="text" id="difficultyCustom" placeholder="난이도 직접 입력" disabled>
+                    </div>
+                </div>
+
                 <button type="button" id="openManualGenerationComposeWindow">지금 생성</button>
             </form>
         </section>
@@ -188,6 +215,32 @@
                 <footer class="history-error-modal-footer">
                     <button type="button" class="secondary" id="historyErrorModalClose">창닫기</button>
                 </footer>
+            </section>
+        </div>
+
+        <div id="promptTemplateModalOverlay" class="history-error-modal-overlay" aria-hidden="true">
+            <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="promptTemplateModalTitle">
+                <header class="history-error-modal-header">
+                    <h3 id="promptTemplateModalTitle">프롬프트 템플릿 추가</h3>
+                </header>
+                <form method="post" th:action="@{/admin/prompts}" class="admin-form prompt-template-modal-form" id="promptTemplateForm">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="id" id="promptId">
+                    <div class="history-error-modal-body">
+                        <label for="promptName">템플릿 이름</label>
+                        <input type="text" id="promptName" name="name" required>
+
+                        <label for="promptDescription">설명</label>
+                        <input type="text" id="promptDescription" name="description">
+
+                        <label for="templateContent">프롬프트 본문</label>
+                        <textarea id="templateContent" name="templateContent" rows="10" required></textarea>
+                    </div>
+                    <footer class="history-error-modal-footer">
+                        <button type="button" class="secondary" id="cancelPromptTemplateModalButton">취소</button>
+                        <button type="submit" id="savePromptTemplateButton">저장</button>
+                    </footer>
+                </form>
             </section>
         </div>
     </section>

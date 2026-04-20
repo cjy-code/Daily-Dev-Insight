@@ -1,12 +1,14 @@
 package com.dailydevinsight.admin.controller;
 
 import com.dailydevinsight.admin.dto.GenerationExecutionResult;
+import com.dailydevinsight.admin.dto.CrawlPreviewResponse;
 import com.dailydevinsight.admin.entity.CrawlSchedule;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
 import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.service.AdminManagementService;
 import com.dailydevinsight.admin.service.AdminStatsData;
 import com.dailydevinsight.admin.service.CrawlHistoryService;
+import com.dailydevinsight.admin.service.CrawlConditionPresetService;
 import com.dailydevinsight.admin.service.CrawlScheduleService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
@@ -35,6 +37,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -67,6 +70,9 @@ class AdminPageControllerTest {
     private CrawlHistoryService crawlHistoryService;
 
     @MockBean
+    private CrawlConditionPresetService crawlConditionPresetService;
+
+    @MockBean
     private TechNewsCrawlingService techNewsCrawlingService;
 
     @MockBean
@@ -88,6 +94,34 @@ class AdminPageControllerTest {
         mockMvc.perform(get("/admin/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/dashboard"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postsRoot_ShouldRedirectToKnowledgePage() throws Exception {
+        mockMvc.perform(get("/admin/posts"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/posts/knowledge"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postsKnowledgePage_ShouldRenderView() throws Exception {
+        given(adminManagementService.findRecentKnowledgePosts()).willReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/admin/posts/knowledge"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/posts-knowledge"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void postsNewsPage_ShouldRenderView() throws Exception {
+        given(adminManagementService.findRecentTechNewsPosts()).willReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/admin/posts/news"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/posts-news"));
     }
 
     @Test
@@ -136,9 +170,16 @@ class AdminPageControllerTest {
                         .sourceName("Hacker News")
                         .sourceUrl("https://hnrss.org/frontpage")
                         .maxArticles(20)
+                        .keywordMatchType("OR")
+                        .includeKeywords(null)
+                        .targetDomains(null)
+                        .connectTimeoutSeconds(5)
+                        .readTimeoutSeconds(5)
+                        .retryCount(1)
                         .updatedAt(LocalDateTime.now())
                         .build()
         );
+        given(crawlConditionPresetService.findActivePresets()).willReturn(Collections.emptyList());
         given(crawlHistoryService.findRecentHistory()).willReturn(Collections.emptyList());
 
         mockMvc.perform(get("/admin/crawling"))
@@ -150,7 +191,8 @@ class AdminPageControllerTest {
     @WithMockUser(roles = "USER")
     void dashboard_ShouldReturnForbiddenForUserRole() throws Exception {
         mockMvc.perform(get("/admin/dashboard"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/?adminDenied=true"));
     }
 
     @Test
@@ -211,5 +253,42 @@ class AdminPageControllerTest {
                 .andExpect(redirectedUrl("/admin/generation"));
 
         verify(promptTemplateService).toggleTemplateActive(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void previewManualCrawling_ShouldReturnPreviewResponse() throws Exception {
+        given(techNewsCrawlingService.previewManualCrawling(any())).willReturn(
+                CrawlPreviewResponse.builder()
+                        .success(true)
+                        .message("ok")
+                        .collectedCount(3)
+                        .filteredCount(2)
+                        .previewItems(Collections.emptyList())
+                        .build()
+        );
+
+        mockMvc.perform(post("/admin/crawling/preview")
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "targetDate":"2026-04-17",
+                                  "sourceName":"Hacker News",
+                                  "sourceUrl":"https://hnrss.org/frontpage",
+                                  "maxArticles":20,
+                                  "keywordMatchType":"OR",
+                                  "includeKeywords":["spring"],
+                                  "includeKeywordOperators":[],
+                                  "excludeKeywords":[],
+                                  "targetDomains":[],
+                                  "connectTimeoutSeconds":5,
+                                  "readTimeoutSeconds":5,
+                                  "retryCount":1
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.filteredCount").value(2));
     }
 }

@@ -2,7 +2,10 @@ package com.dailydevinsight.admin.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,22 +15,21 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "crawl_schedule")
+@Table(name = "crawl_condition_preset")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CrawlSchedule {
+public class CrawlConditionPreset {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "crawl_condition_preset_seq_gen")
+    @SequenceGenerator(name = "crawl_condition_preset_seq_gen", sequenceName = "seq_crawl_condition_preset", allocationSize = 1)
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "is_enabled", nullable = false)
-    private Boolean enabled;
-
-    @Column(name = "cron_expression", nullable = false, length = 120)
-    private String cronExpression;
+    @Column(name = "preset_name", nullable = false, length = 100)
+    private String presetName;
 
     @Column(name = "source_name", nullable = false, length = 100)
     private String sourceName;
@@ -62,8 +64,11 @@ public class CrawlSchedule {
     @Column(name = "retry_count", nullable = false)
     private Integer retryCount;
 
-    @Column(name = "last_executed_at")
-    private LocalDateTime lastExecutedAt;
+    @Column(name = "is_active", nullable = false)
+    private Boolean active;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;

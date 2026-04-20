@@ -7,10 +7,10 @@ import java.util.List;
 
 @Getter
 @Setter
-public class CrawlScheduleForm {
+public class CrawlPresetForm {
 
-    private Boolean enabled;
-    private String cronExpression;
+    private Long presetId;
+    private String presetName;
     private String sourceName;
     private String sourceUrl;
     private Integer maxArticles;

@@ -11,7 +11,7 @@
     <section class="admin-content">
         <header class="admin-topbar">
             <h2>크롤링 관리</h2>
-            <p>수동 실행, 예약 실행, 크롤링 이력을 분리 관리합니다.</p>
+            <p>조건 프리셋, 수동 실행, 예약 실행, 이력 조회를 관리합니다.</p>
         </header>
 
         <div class="alert success" th:if="${adminMessage}" th:text="${adminMessage}"></div>
@@ -21,15 +21,87 @@
         </div>
 
         <nav class="admin-tab-nav" aria-label="크롤링 관리 탭">
-            <button type="button" class="admin-tab-btn active" data-tab-target="manual">수동 실행</button>
+            <button type="button" class="admin-tab-btn active" data-tab-target="preset">조건 프리셋</button>
+            <button type="button" class="admin-tab-btn" data-tab-target="manual">수동 실행</button>
             <button type="button" class="admin-tab-btn" data-tab-target="schedule">예약 설정</button>
             <button type="button" class="admin-tab-btn" data-tab-target="history">크롤링 이력</button>
         </nav>
 
-        <section class="admin-panel generation-tab-panel" data-tab-panel="manual">
+        <section class="admin-panel generation-tab-panel" data-tab-panel="preset">
+            <h3>조건 프리셋</h3>
+            <div class="template-toolbar">
+                <div class="template-limit-guide">프리셋을 만들어 수동 실행/예약 설정에 바로 적용할 수 있습니다.</div>
+                <button type="button" id="openCrawlPresetCreateModal" class="template-add-button" aria-label="조건 프리셋 추가">+</button>
+            </div>
+
+            <table class="admin-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>프리셋 이름</th>
+                    <th>키워드 조건</th>
+                    <th>소스</th>
+                    <th>작업</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="preset : ${crawlPresetList}">
+                    <td th:text="${preset.id}">1</td>
+                    <td th:text="${preset.presetName}">기본 프리셋</td>
+                    <td th:text="${preset.keywordMatchType}">OR</td>
+                    <td th:text="${preset.sourceName}">Hacker News</td>
+                    <td>
+                        <button type="button"
+                                class="secondary"
+                                data-crawl-preset-edit
+                                th:attr="data-preset-id=${preset.id},
+                                         data-preset-name=${preset.presetName},
+                                         data-source-name=${preset.sourceName},
+                                         data-source-url=${preset.sourceUrl},
+                                         data-max-articles=${preset.maxArticles},
+                                         data-keyword-match-type=${preset.keywordMatchType},
+                                         data-include-keywords=${preset.includeKeywords},
+                                         data-include-keyword-operators=${preset.includeKeywordOperators},
+                                         data-exclude-keywords=${preset.excludeKeywords},
+                                         data-target-domains=${preset.targetDomains},
+                                         data-connect-timeout-seconds=${preset.connectTimeoutSeconds},
+                                         data-read-timeout-seconds=${preset.readTimeoutSeconds},
+                                         data-retry-count=${preset.retryCount}">수정</button>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(crawlPresetList)}">
+                    <td colspan="5">등록된 프리셋이 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="admin-panel generation-tab-panel" data-tab-panel="manual" hidden>
             <h3>수동 실행</h3>
-            <form method="post" th:action="@{/admin/crawling/run}" class="admin-form">
+            <form method="post" th:action="@{/admin/crawling/run}" class="admin-form" id="crawlManualForm">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label for="crawlManualPresetSelect">조건 프리셋 (덮어쓰기)</label>
+                <div class="inline-form-control">
+                    <select id="crawlManualPresetSelect" data-crawl-preset-select data-target-form-id="crawlManualForm">
+                        <option value="">직접 입력</option>
+                        <option th:each="preset : ${crawlPresetList}"
+                                th:value="${preset.id}"
+                                th:text="${preset.presetName}"
+                                th:attr="data-source-name=${preset.sourceName},
+                                         data-source-url=${preset.sourceUrl},
+                                         data-max-articles=${preset.maxArticles},
+                                         data-keyword-match-type=${preset.keywordMatchType},
+                                         data-include-keywords=${preset.includeKeywords},
+                                         data-include-keyword-operators=${preset.includeKeywordOperators},
+                                         data-exclude-keywords=${preset.excludeKeywords},
+                                         data-target-domains=${preset.targetDomains},
+                                         data-connect-timeout-seconds=${preset.connectTimeoutSeconds},
+                                         data-read-timeout-seconds=${preset.readTimeoutSeconds},
+                                         data-retry-count=${preset.retryCount}">기본 프리셋</option>
+                    </select>
+                    <button type="button" class="secondary" data-crawl-preset-apply data-target-form-id="crawlManualForm">적용</button>
+                </div>
 
                 <label for="crawlTargetDate">대상 날짜</label>
                 <input type="date" id="crawlTargetDate" name="targetDate" th:value="${crawlRunForm.targetDate}" required>
@@ -43,14 +115,97 @@
                 <label for="crawlMaxArticles">최대 수집 건수</label>
                 <input type="number" id="crawlMaxArticles" name="maxArticles" min="1" max="100" th:value="${crawlRunForm.maxArticles}" required>
 
-                <button type="submit">지금 실행</button>
+                <input type="hidden" name="keywordMatchType" value="OR">
+
+                <label>포함 키워드 (AND/OR, 최대 5개)</label>
+                <div class="dynamic-input-wrapper"
+                     data-dynamic-list
+                     data-input-name="includeKeywords"
+                     data-operator-name="includeKeywordOperators"
+                     data-max-items="5"
+                     th:attr="data-operator-csv=${crawlRunForm.includeKeywordOperators == null ? '' : #strings.listJoin(crawlRunForm.includeKeywordOperators, ',')}"
+                     data-default-placeholder="예: spring">
+                    <div class="dynamic-input-row" th:each="keyword : ${crawlRunForm.includeKeywords}">
+                        <input type="text" name="includeKeywords" th:value="${keyword}" placeholder="예: spring">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlRunForm.includeKeywords)}">
+                        <input type="text" name="includeKeywords" placeholder="예: spring">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <button type="button" class="secondary" data-dynamic-add>+ 키워드 추가</button>
+                </div>
+
+                <label>제외 검색어 (NOT, 최대 5개)</label>
+                <div class="dynamic-input-wrapper" data-dynamic-list data-input-name="excludeKeywords" data-max-items="5" data-default-placeholder="예: rumor">
+                    <div class="dynamic-input-row" th:each="keyword : ${crawlRunForm.excludeKeywords}">
+                        <input type="text" name="excludeKeywords" th:value="${keyword}" placeholder="예: rumor">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlRunForm.excludeKeywords)}">
+                        <input type="text" name="excludeKeywords" placeholder="예: rumor">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <button type="button" class="secondary" data-dynamic-add>+ 제외 검색어 추가</button>
+                </div>
+
+                <label>크롤링 대상 도메인</label>
+                <div class="dynamic-input-wrapper" data-dynamic-list data-input-name="targetDomains" data-default-placeholder="예: techcrunch.com">
+                    <div class="dynamic-input-row" th:each="domain : ${crawlRunForm.targetDomains}">
+                        <input type="text" name="targetDomains" th:value="${domain}" placeholder="예: techcrunch.com">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlRunForm.targetDomains)}">
+                        <input type="text" name="targetDomains" placeholder="예: techcrunch.com">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <button type="button" class="secondary" data-dynamic-add>+ 도메인 추가</button>
+                </div>
+
+                <label for="crawlConnectTimeoutSeconds">연결 타임아웃(초)</label>
+                <input type="number" id="crawlConnectTimeoutSeconds" name="connectTimeoutSeconds" min="1" max="60"
+                       th:value="${crawlRunForm.connectTimeoutSeconds}" required>
+
+                <label for="crawlReadTimeoutSeconds">응답 타임아웃(초)</label>
+                <input type="number" id="crawlReadTimeoutSeconds" name="readTimeoutSeconds" min="1" max="60"
+                       th:value="${crawlRunForm.readTimeoutSeconds}" required>
+
+                <label for="crawlRetryCount">재시도 횟수</label>
+                <input type="number" id="crawlRetryCount" name="retryCount" min="0" max="5"
+                       th:value="${crawlRunForm.retryCount}" required>
+
+                <div class="btn-row crawl-manual-action-row">
+                    <button type="submit">저장 실행</button>
+                </div>
             </form>
         </section>
 
         <section class="admin-panel generation-tab-panel" data-tab-panel="schedule" hidden>
             <h3>예약 설정</h3>
-            <form method="post" th:action="@{/admin/crawling/schedule}" class="admin-form">
+            <form method="post" th:action="@{/admin/crawling/schedule}" class="admin-form" id="crawlScheduleFormSection">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <label for="crawlSchedulePresetSelect">조건 프리셋 (덮어쓰기)</label>
+                <div class="inline-form-control">
+                    <select id="crawlSchedulePresetSelect" data-crawl-preset-select data-target-form-id="crawlScheduleFormSection">
+                        <option value="">직접 입력</option>
+                        <option th:each="preset : ${crawlPresetList}"
+                                th:value="${preset.id}"
+                                th:text="${preset.presetName}"
+                                th:attr="data-source-name=${preset.sourceName},
+                                         data-source-url=${preset.sourceUrl},
+                                         data-max-articles=${preset.maxArticles},
+                                         data-keyword-match-type=${preset.keywordMatchType},
+                                         data-include-keywords=${preset.includeKeywords},
+                                         data-include-keyword-operators=${preset.includeKeywordOperators},
+                                         data-exclude-keywords=${preset.excludeKeywords},
+                                         data-target-domains=${preset.targetDomains},
+                                         data-connect-timeout-seconds=${preset.connectTimeoutSeconds},
+                                         data-read-timeout-seconds=${preset.readTimeoutSeconds},
+                                         data-retry-count=${preset.retryCount}">기본 프리셋</option>
+                    </select>
+                    <button type="button" class="secondary" data-crawl-preset-apply data-target-form-id="crawlScheduleFormSection">적용</button>
+                </div>
 
                 <label class="checkbox-label">
                     <input type="checkbox" name="enabled" value="true" th:checked="${crawlScheduleForm.enabled}">예약 실행 활성화
@@ -68,6 +223,65 @@
                 <label for="crawlScheduleMaxArticles">최대 수집 건수</label>
                 <input type="number" id="crawlScheduleMaxArticles" name="maxArticles" min="1" max="100"
                        th:value="${crawlScheduleForm.maxArticles}" required>
+
+                <input type="hidden" name="keywordMatchType" value="OR">
+
+                <label>포함 키워드 (AND/OR, 최대 5개)</label>
+                <div class="dynamic-input-wrapper"
+                     data-dynamic-list
+                     data-input-name="includeKeywords"
+                     data-operator-name="includeKeywordOperators"
+                     data-max-items="5"
+                     th:attr="data-operator-csv=${crawlScheduleForm.includeKeywordOperators == null ? '' : #strings.listJoin(crawlScheduleForm.includeKeywordOperators, ',')}"
+                     data-default-placeholder="예: ai">
+                    <div class="dynamic-input-row" th:each="keyword : ${crawlScheduleForm.includeKeywords}">
+                        <input type="text" name="includeKeywords" th:value="${keyword}" placeholder="예: ai">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlScheduleForm.includeKeywords)}">
+                        <input type="text" name="includeKeywords" placeholder="예: ai">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <button type="button" class="secondary" data-dynamic-add>+ 키워드 추가</button>
+                </div>
+
+                <label>제외 검색어 (NOT, 최대 5개)</label>
+                <div class="dynamic-input-wrapper" data-dynamic-list data-input-name="excludeKeywords" data-max-items="5" data-default-placeholder="예: opinion">
+                    <div class="dynamic-input-row" th:each="keyword : ${crawlScheduleForm.excludeKeywords}">
+                        <input type="text" name="excludeKeywords" th:value="${keyword}" placeholder="예: opinion">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlScheduleForm.excludeKeywords)}">
+                        <input type="text" name="excludeKeywords" placeholder="예: opinion">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <button type="button" class="secondary" data-dynamic-add>+ 제외 검색어 추가</button>
+                </div>
+
+                <label>크롤링 대상 도메인</label>
+                <div class="dynamic-input-wrapper" data-dynamic-list data-input-name="targetDomains" data-default-placeholder="예: thenextweb.com">
+                    <div class="dynamic-input-row" th:each="domain : ${crawlScheduleForm.targetDomains}">
+                        <input type="text" name="targetDomains" th:value="${domain}" placeholder="예: thenextweb.com">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlScheduleForm.targetDomains)}">
+                        <input type="text" name="targetDomains" placeholder="예: thenextweb.com">
+                        <button type="button" class="secondary" data-dynamic-remove>-</button>
+                    </div>
+                    <button type="button" class="secondary" data-dynamic-add>+ 도메인 추가</button>
+                </div>
+
+                <label for="crawlScheduleConnectTimeoutSeconds">연결 타임아웃(초)</label>
+                <input type="number" id="crawlScheduleConnectTimeoutSeconds" name="connectTimeoutSeconds" min="1" max="60"
+                       th:value="${crawlScheduleForm.connectTimeoutSeconds}" required>
+
+                <label for="crawlScheduleReadTimeoutSeconds">응답 타임아웃(초)</label>
+                <input type="number" id="crawlScheduleReadTimeoutSeconds" name="readTimeoutSeconds" min="1" max="60"
+                       th:value="${crawlScheduleForm.readTimeoutSeconds}" required>
+
+                <label for="crawlScheduleRetryCount">재시도 횟수</label>
+                <input type="number" id="crawlScheduleRetryCount" name="retryCount" min="0" max="5"
+                       th:value="${crawlScheduleForm.retryCount}" required>
 
                 <button type="submit">예약 저장</button>
             </form>
@@ -97,7 +311,7 @@
                     <td th:text="${history.targetDate}">-</td>
                     <td>
                         <span class="history-status-badge"
-                              th:classappend="${history.status == 'SUCCESS'} ? ' success' : ' failed'"
+                              th:classappend="${history.status == 'SUCCESS'} ? ' success' : (${history.status == 'RUNNING'} ? ' running' : (${history.status == 'SKIPPED'} ? ' skipped' : ' failed'))"
                               th:text="${history.status}">SUCCESS</span>
                     </td>
                     <td th:text="${history.sourceName}">Hacker News</td>
@@ -134,6 +348,122 @@
                 <footer class="history-error-modal-footer">
                     <button type="button" class="secondary" id="historyErrorModalClose">창닫기</button>
                 </footer>
+            </section>
+        </div>
+
+        <div id="crawlPresetModalOverlay" class="history-error-modal-overlay" aria-hidden="true">
+            <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="crawlPresetModalTitle">
+                <header class="history-error-modal-header">
+                    <h3 id="crawlPresetModalTitle">조건 프리셋 추가</h3>
+                </header>
+                <form method="post" th:action="@{/admin/crawling/presets}" class="admin-form prompt-template-modal-form" id="crawlPresetModalForm">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="presetId" id="crawlPresetId" th:value="${crawlPresetForm.presetId}">
+                    <div class="history-error-modal-body">
+                        <label for="crawlPresetName">프리셋 이름</label>
+                        <input type="text" id="crawlPresetName" name="presetName" th:value="${crawlPresetForm.presetName}" required>
+
+                        <label for="crawlPresetSourceName">소스 이름</label>
+                        <input type="text" id="crawlPresetSourceName" name="sourceName" th:value="${crawlPresetForm.sourceName}" required>
+
+                        <label for="crawlPresetSourceUrl">소스 URL(RSS)</label>
+                        <input type="url" id="crawlPresetSourceUrl" name="sourceUrl" th:value="${crawlPresetForm.sourceUrl}" required>
+
+                        <label for="crawlPresetMaxArticles">최대 수집 건수</label>
+                        <input type="number" id="crawlPresetMaxArticles" name="maxArticles" min="1" max="100" th:value="${crawlPresetForm.maxArticles}" required>
+
+                        <input type="hidden" name="keywordMatchType" value="OR">
+
+                        <label>포함 키워드 (AND/OR, 최대 5개)</label>
+                        <div class="dynamic-input-wrapper"
+                             data-dynamic-list
+                             data-input-name="includeKeywords"
+                             data-operator-name="includeKeywordOperators"
+                             data-max-items="5"
+                             th:attr="data-operator-csv=${crawlPresetForm.includeKeywordOperators == null ? '' : #strings.listJoin(crawlPresetForm.includeKeywordOperators, ',')}"
+                             data-default-placeholder="예: cloud">
+                            <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlPresetForm.includeKeywords)}">
+                                <input type="text" name="includeKeywords" placeholder="예: cloud">
+                                <button type="button" class="secondary" data-dynamic-remove>-</button>
+                            </div>
+                            <button type="button" class="secondary" data-dynamic-add>+ 키워드 추가</button>
+                        </div>
+
+                        <label>제외 검색어 (NOT, 최대 5개)</label>
+                        <div class="dynamic-input-wrapper" data-dynamic-list data-input-name="excludeKeywords" data-max-items="5" data-default-placeholder="예: rumor">
+                            <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlPresetForm.excludeKeywords)}">
+                                <input type="text" name="excludeKeywords" placeholder="예: rumor">
+                                <button type="button" class="secondary" data-dynamic-remove>-</button>
+                            </div>
+                            <button type="button" class="secondary" data-dynamic-add>+ 제외 검색어 추가</button>
+                        </div>
+
+                        <label>크롤링 대상 도메인</label>
+                        <div class="dynamic-input-wrapper" data-dynamic-list data-input-name="targetDomains" data-default-placeholder="예: venturebeat.com">
+                            <div class="dynamic-input-row" th:if="${#lists.isEmpty(crawlPresetForm.targetDomains)}">
+                                <input type="text" name="targetDomains" placeholder="예: venturebeat.com">
+                                <button type="button" class="secondary" data-dynamic-remove>-</button>
+                            </div>
+                            <button type="button" class="secondary" data-dynamic-add>+ 도메인 추가</button>
+                        </div>
+
+                        <label for="crawlPresetConnectTimeoutSeconds">연결 타임아웃(초)</label>
+                        <input type="number" id="crawlPresetConnectTimeoutSeconds" name="connectTimeoutSeconds" min="1" max="60"
+                               th:value="${crawlPresetForm.connectTimeoutSeconds}" required>
+
+                        <label for="crawlPresetReadTimeoutSeconds">응답 타임아웃(초)</label>
+                        <input type="number" id="crawlPresetReadTimeoutSeconds" name="readTimeoutSeconds" min="1" max="60"
+                               th:value="${crawlPresetForm.readTimeoutSeconds}" required>
+
+                        <label for="crawlPresetRetryCount">재시도 횟수</label>
+                        <input type="number" id="crawlPresetRetryCount" name="retryCount" min="0" max="5"
+                               th:value="${crawlPresetForm.retryCount}" required>
+                    </div>
+                    <footer class="history-error-modal-footer">
+                        <button type="button" class="secondary" id="cancelCrawlPresetModalButton">취소</button>
+                        <button type="submit" id="saveCrawlPresetButton">저장</button>
+                    </footer>
+                </form>
+            </section>
+        </div>
+
+        <div id="crawlPreviewModalOverlay" class="history-error-modal-overlay" aria-hidden="true">
+            <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="crawlPreviewModalTitle">
+                <header class="history-error-modal-header">
+                    <h3 id="crawlPreviewModalTitle">크롤링 미리보기</h3>
+                </header>
+                <div class="history-error-modal-body">
+                    <p id="crawlPreviewSummary" class="crawl-preview-summary">미리보기 결과를 불러오는 중입니다.</p>
+                    <table class="admin-table">
+                        <thead>
+                        <tr>
+                            <th>제목</th>
+                            <th>URL</th>
+                        </tr>
+                        </thead>
+                        <tbody id="crawlPreviewTableBody">
+                        <tr>
+                            <td colspan="2">미리보기 결과가 없습니다.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <footer class="history-error-modal-footer">
+                    <button type="button" class="secondary" id="cancelCrawlPreviewModalButton">취소</button>
+                    <button type="button" id="confirmCrawlPreviewRunButton">저장 실행</button>
+                </footer>
+            </section>
+        </div>
+
+        <div id="crawlRunProgressModalOverlay" class="history-error-modal-overlay" aria-hidden="true">
+            <section class="history-error-modal" role="status" aria-live="polite" aria-labelledby="crawlRunProgressModalTitle">
+                <header class="history-error-modal-header">
+                    <h3 id="crawlRunProgressModalTitle">크롤링 실행 중</h3>
+                </header>
+                <div class="history-error-modal-body">
+                    <p id="crawlRunProgressStepText">현재 진행 작업: 서버에서 크롤링 실행을 처리 중입니다.</p>
+                    <p id="crawlRunProgressElapsedText">진행 시간: 0초</p>
+                </div>
             </section>
         </div>
     </section>

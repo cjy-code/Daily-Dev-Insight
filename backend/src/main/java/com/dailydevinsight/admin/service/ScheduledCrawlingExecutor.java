@@ -1,6 +1,7 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.entity.CrawlSchedule;
+import com.dailydevinsight.admin.dto.CrawlExecutionResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,8 +30,10 @@ public class ScheduledCrawlingExecutor {
         }
 
         CrawlSchedule schedule = crawlScheduleService.getOrCreateSchedule();
-        techNewsCrawlingService.executeScheduledCrawling(LocalDate.now(), schedule);
-        crawlScheduleService.markExecuted(now);
-        log.info("Reserved crawling executed at {}", now);
+        CrawlExecutionResult executionResult = techNewsCrawlingService.executeScheduledCrawling(LocalDate.now(), schedule);
+        if (!"crawl_in_progress".equals(executionResult.getErrorCode())) {
+            crawlScheduleService.markExecuted(now);
+        }
+        log.info("Reserved crawling executed at {} (success={}, errorCode={})", now, executionResult.isSuccess(), executionResult.getErrorCode());
     }
 }

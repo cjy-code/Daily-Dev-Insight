@@ -34,6 +34,10 @@ public class SecurityConfig {
                         .defaultSuccessUrl("/admin", true)
                         .permitAll()
                 )
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                response.sendRedirect("/?adminDenied=true"))
+                )
                 .userDetailsService(userDetailsService);
 
         return http.build();

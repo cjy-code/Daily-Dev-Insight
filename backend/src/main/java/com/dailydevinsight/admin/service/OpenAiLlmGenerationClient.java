@@ -26,10 +26,11 @@ import java.util.Map;
 public class OpenAiLlmGenerationClient implements LlmGenerationClient {
 
     private static final String OPENAI_CHAT_COMPLETIONS_PATH = "/v1/chat/completions";
+    private static final String OPENAI_API_KEY_ENV_NAME = "OPENAI_API_KEY";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final String apiKey;
+    private final String configuredApiKey;
     private final String model;
     private final String baseUrl;
 
@@ -45,7 +46,7 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
     ) {
         this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
-        this.apiKey = apiKey;
+        this.configuredApiKey = apiKey;
         this.model = model;
         this.baseUrl = baseUrl;
     }
@@ -62,9 +63,16 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
             String tone,
             String difficulty
     ) {
-        validateApiKey();
+        String resolvedApiKey = validateAndResolveApiKey();
         try {
-            HttpEntity<Map<String, Object>> httpEntity = createRequestEntity(prompt, targetDate, category, tone, difficulty);
+            HttpEntity<Map<String, Object>> httpEntity = createRequestEntity(
+                    prompt,
+                    targetDate,
+                    category,
+                    tone,
+                    difficulty,
+                    resolvedApiKey
+            );
             ResponseEntity<String> responseEntity = restTemplate.exchange(
                     baseUrl + OPENAI_CHAT_COMPLETIONS_PATH,
                     HttpMethod.POST,
@@ -86,19 +94,38 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
     }
 
     /**
-     * @date 2026-04-16
-     * @desc OpenAI API Key 설정 여부를 검증합니다.
+     * @date 2026-04-20
+     * @desc 설정값/환경변수/JVM 프로퍼티에서 OpenAI API Key를 조회하고 유효성을 검증합니다.
      */
-    private void validateApiKey() {
-        if (apiKey == null || apiKey.isBlank()) {
+    private String validateAndResolveApiKey() {
+        String resolvedApiKey = resolveApiKey();
+        if (resolvedApiKey == null || resolvedApiKey.isBlank()) {
             throw new LlmClientException(
                     "OPENAI",
                     "missing_api_key",
                     0,
-                    "OpenAI API Key가 설정되지 않았습니다.",
-                    "OpenAI API Key가 비어 있습니다."
+                    "OpenAI API Key가 설정되지 않았습니다. 환경변수 적용 후 애플리케이션을 재시작해주세요.",
+                    "OpenAI API Key 조회 실패: openai.api-key, OPENAI_API_KEY(환경변수), OPENAI_API_KEY(JVM 프로퍼티) 모두 비어 있습니다."
             );
         }
+        return resolvedApiKey.trim();
+    }
+
+    /**
+     * @date 2026-04-20
+     * @desc OpenAI API Key를 설정 프로퍼티, 운영체제 환경변수, JVM 시스템 프로퍼티 순으로 조회합니다.
+     */
+    private String resolveApiKey() {
+        if (configuredApiKey != null && !configuredApiKey.isBlank()) {
+            return configuredApiKey;
+        }
+
+        String environmentApiKey = System.getenv(OPENAI_API_KEY_ENV_NAME);
+        if (environmentApiKey != null && !environmentApiKey.isBlank()) {
+            return environmentApiKey;
+        }
+
+        return System.getProperty(OPENAI_API_KEY_ENV_NAME);
     }
 
     /**
@@ -110,7 +137,8 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
             LocalDate targetDate,
             String category,
             String tone,
-            String difficulty
+            String difficulty,
+            String apiKey
     ) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

@@ -8,7 +8,21 @@
     </div>
     <nav class="admin-side-nav" aria-label="관리자 메뉴">
         <a th:href="@{/admin/dashboard}" th:classappend="${currentMenu == 'dashboard'} ? ' active' : ''">대시보드</a>
-        <a th:href="@{/admin/posts}" th:classappend="${currentMenu == 'posts'} ? ' active' : ''">게시물 관리</a>
+        <section class="admin-side-nav-group"
+                 th:classappend="${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'} ? ' has-active-child' : ''"
+                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'},data-accordion-storage-key='admin-side-posts-group'">
+            <button type="button"
+                    class="admin-side-nav-group-toggle"
+                    aria-expanded="false"
+                    aria-controls="adminPostsGroupItems">
+                <span class="admin-side-nav-group-title">게시물 관리</span>
+                <span class="admin-side-nav-group-icon" aria-hidden="true">▾</span>
+            </button>
+            <div id="adminPostsGroupItems" class="admin-side-nav-group-items">
+                <a th:href="@{/admin/posts/knowledge}" th:classappend="${currentMenu == 'posts-knowledge'} ? ' active' : ''">일일 지식</a>
+                <a th:href="@{/admin/posts/news}" th:classappend="${currentMenu == 'posts-news'} ? ' active' : ''">테크 뉴스</a>
+            </div>
+        </section>
         <a th:href="@{/admin/members}" th:classappend="${currentMenu == 'members'} ? ' active' : ''">회원 관리</a>
         <section class="admin-side-nav-group"
                  th:classappend="${currentMenu == 'generation' or currentMenu == 'crawling'} ? ' has-active-child' : ''"
