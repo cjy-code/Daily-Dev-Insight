@@ -11,7 +11,7 @@
     <section class="admin-content">
         <header class="admin-topbar">
             <h2>게시물 관리 - 일일 지식</h2>
-            <p>최근 일일 지식 게시물의 카테고리/제목을 수정하거나 삭제할 수 있습니다.</p>
+            <p>최근 일일 지식 게시물의 카테고리/제목 및 썸네일을 수정하거나 삭제할 수 있습니다.</p>
         </header>
 
         <div class="alert success" th:if="${adminMessage}" th:text="${adminMessage}"></div>
@@ -26,6 +26,7 @@
                     <th>카테고리</th>
                     <th>제목</th>
                     <th>조회수</th>
+                    <th>썸네일</th>
                     <th>작업</th>
                 </tr>
                 </thead>
@@ -34,16 +35,56 @@
                     <td th:text="${post.id}">1</td>
                     <td th:text="${post.knowledgeDate}">2026-04-15</td>
                     <td>
-                        <form method="post" th:action="@{/admin/posts/knowledge/{id}/update(id=${post.id})}" class="inline-form">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                            <input type="text" name="category" th:value="${post.category}" required>
+                        <input type="text"
+                               th:id="'knowledge-category-' + ${post.id}"
+                               th:form="'knowledge-update-form-' + ${post.id}"
+                               name="category"
+                               th:value="${post.category}"
+                               required>
                     </td>
                     <td>
-                            <input type="text" name="title" th:value="${post.title}" required>
+                        <input type="text"
+                               th:id="'knowledge-title-' + ${post.id}"
+                               th:form="'knowledge-update-form-' + ${post.id}"
+                               name="title"
+                               th:value="${post.title}"
+                               required>
                     </td>
                     <td th:text="${post.viewCount}">0</td>
+                    <td class="thumbnail-cell">
+                        <div class="admin-thumbnail-preview">
+                            <img th:if="${post.attachmentImagePath != null and !#strings.isEmpty(post.attachmentImagePath)}"
+                                 th:src="${post.attachmentImagePath}"
+                                 src="/images/default-thumb.svg"
+                                 alt="썸네일"
+                                 onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
+                            <div class="admin-thumbnail-empty"
+                                 th:unless="${post.attachmentImagePath != null and !#strings.isEmpty(post.attachmentImagePath)}">
+                                썸네일 없음
+                            </div>
+                        </div>
+                        <form method="post"
+                              th:action="@{/admin/posts/knowledge/{id}/thumbnail(id=${post.id})}"
+                              enctype="multipart/form-data"
+                              class="admin-thumbnail-upload-form">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="file"
+                                   name="thumbnailFile"
+                                   accept=".jpg,.jpeg,.png,.webp,.gif,image/*"
+                                   required>
+                            <button type="submit" class="secondary">업로드</button>
+                        </form>
+                    </td>
                     <td class="table-actions">
+                        <form method="post"
+                              th:id="'knowledge-update-form-' + ${post.id}"
+                              th:action="@{/admin/posts/knowledge/{id}/update(id=${post.id})}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                             <button type="submit">수정</button>
+                        </form>
+                        <form method="post" th:action="@{/admin/posts/knowledge/{id}/thumbnail/delete(id=${post.id})}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button type="submit" class="secondary">썸네일 삭제</button>
                         </form>
                         <form method="post" th:action="@{/admin/posts/knowledge/{id}/delete(id=${post.id})}">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -52,7 +93,7 @@
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(knowledgePostList)}">
-                    <td colspan="6">게시물이 없습니다.</td>
+                    <td colspan="7">게시물이 없습니다.</td>
                 </tr>
                 </tbody>
             </table>

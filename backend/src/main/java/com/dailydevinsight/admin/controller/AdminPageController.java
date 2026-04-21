@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
@@ -199,6 +200,43 @@ public class AdminPageController {
     }
 
     /**
+     * @date 2026-04-21
+     * @desc 일일 지식 게시물의 썸네일 첨부파일을 업로드합니다.
+     */
+    @PostMapping("/posts/knowledge/{id}/thumbnail")
+    public String uploadKnowledgeThumbnail(
+            @PathVariable("id") Long postId,
+            @RequestParam("thumbnailFile") MultipartFile thumbnailFile,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminManagementService.updateKnowledgeThumbnail(postId, thumbnailFile);
+            redirectAttributes.addFlashAttribute("adminMessage", "일일 지식 썸네일이 업로드되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/posts/knowledge";
+    }
+
+    /**
+     * @date 2026-04-21
+     * @desc 일일 지식 게시물의 썸네일 첨부파일을 삭제합니다.
+     */
+    @PostMapping("/posts/knowledge/{id}/thumbnail/delete")
+    public String deleteKnowledgeThumbnail(
+            @PathVariable("id") Long postId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminManagementService.deleteKnowledgeThumbnail(postId);
+            redirectAttributes.addFlashAttribute("adminMessage", "일일 지식 썸네일이 삭제되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/posts/knowledge";
+    }
+
+    /**
      * @date 2026-04-17
      * @desc 테크 뉴스 게시물의 출처/제목을 수정합니다.
      */
@@ -230,6 +268,43 @@ public class AdminPageController {
         try {
             adminManagementService.deleteTechNewsPost(newsId);
             redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 게시물이 삭제되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/posts/news";
+    }
+
+    /**
+     * @date 2026-04-21
+     * @desc 테크 뉴스 게시물의 썸네일 첨부파일을 업로드합니다.
+     */
+    @PostMapping("/posts/news/{id}/thumbnail")
+    public String uploadTechNewsThumbnail(
+            @PathVariable("id") Long newsId,
+            @RequestParam("thumbnailFile") MultipartFile thumbnailFile,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminManagementService.updateTechNewsThumbnail(newsId, thumbnailFile);
+            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 썸네일이 업로드되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/posts/news";
+    }
+
+    /**
+     * @date 2026-04-21
+     * @desc 테크 뉴스 게시물의 썸네일 첨부파일을 삭제합니다.
+     */
+    @PostMapping("/posts/news/{id}/thumbnail/delete")
+    public String deleteTechNewsThumbnail(
+            @PathVariable("id") Long newsId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminManagementService.deleteTechNewsThumbnail(newsId);
+            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 썸네일이 삭제되었습니다.");
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }
