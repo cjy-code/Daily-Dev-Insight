@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko"
+      th:replace="~{layouts/defaultLayout :: layout(~{::title}, ~{::link}, ~{::section}, ~{}, true, false, ~{::aside})}">
+<head>
+    <title>관심/북마크 통계 | Daily Dev Insight</title>
+    <link rel="stylesheet" th:href="@{/css/admin.css}" href="/css/admin.css">
+</head>
+<body>
+<section class="admin-shell">
+    <aside th:replace="~{fragments/adminNav :: adminNav(${currentMenu})}"></aside>
+    <section class="admin-content">
+        <header class="admin-topbar">
+            <h2>관심/북마크 통계</h2>
+            <p>북마크 총량과 상위 북마크 콘텐츠를 확인합니다.</p>
+        </header>
+
+        <section class="admin-panel dashboard-zone">
+            <div class="dashboard-zone-header">
+                <h3>A. 북마크 요약</h3>
+                <p>전체 북마크와 참여 사용자 수를 표시합니다.</p>
+            </div>
+            <div class="stats-grid">
+                <article class="stat-card stat-card-content"><span>전체 북마크</span><strong th:text="${bookmarkStats.totalBookmarkCount}">0</strong></article>
+                <article class="stat-card stat-card-user"><span>북마크 참여 사용자</span><strong th:text="${bookmarkStats.bookmarkedUserCount}">0</strong></article>
+            </div>
+        </section>
+
+        <section class="admin-panel dashboard-zone">
+            <div class="dashboard-zone-header">
+                <h3>B. 북마크 Top 5 콘텐츠</h3>
+                <p>북마크 수가 높은 콘텐츠를 제공합니다.</p>
+            </div>
+            <table class="admin-table">
+                <thead>
+                <tr>
+                    <th>순위</th>
+                    <th>콘텐츠 유형</th>
+                    <th>제목</th>
+                    <th>북마크 수</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(bookmarkStats.topBookmarkedContentList)}">
+                    <td colspan="4">데이터가 없습니다.</td>
+                </tr>
+                <tr th:each="item, state : ${bookmarkStats.topBookmarkedContentList}">
+                    <td th:text="${state.index + 1}">1</td>
+                    <td th:text="${item.contentType}">KNOWLEDGE</td>
+                    <td th:text="${item.title}">제목</td>
+                    <td th:text="${item.metricValue}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+    </section>
+</section>
+<aside></aside>
+</body>
+</html>

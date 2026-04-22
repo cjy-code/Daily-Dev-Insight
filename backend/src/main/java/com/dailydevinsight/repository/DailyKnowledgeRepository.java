@@ -24,7 +24,12 @@ public interface DailyKnowledgeRepository extends JpaRepository<DailyKnowledge, 
 
     List<DailyKnowledge> findTop30ByOrderByKnowledgeDateDescIdDesc();
 
+    List<DailyKnowledge> findTop5ByOrderByViewCountDescIdDesc();
+
     long countByKnowledgeDate(LocalDate knowledgeDate);
+
+    @Query("select coalesce(sum(d.viewCount), 0) from DailyKnowledge d")
+    long sumViewCount();
 
     @Modifying
     @Query("update DailyKnowledge d set d.viewCount = coalesce(d.viewCount, 0) + 1 where d.id = :id")

@@ -7,6 +7,7 @@ import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.entity.TechNews;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
+import com.dailydevinsight.repository.InsightBookmarkRepository;
 import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -164,13 +165,15 @@ class InsightCacheInvalidationRiskTest {
                 DailyKnowledgeRepository dailyKnowledgeRepository,
                 TechNewsRepository techNewsRepository,
                 UserRepository userRepository,
-                GenerationHistoryRepository generationHistoryRepository
+                GenerationHistoryRepository generationHistoryRepository,
+                InsightBookmarkRepository insightBookmarkRepository
         ) {
             return new AdminManagementService(
                     dailyKnowledgeRepository,
                     techNewsRepository,
                     userRepository,
-                    generationHistoryRepository
+                    generationHistoryRepository,
+                    insightBookmarkRepository
             );
         }
 
@@ -244,6 +247,15 @@ class InsightCacheInvalidationRiskTest {
         @Bean
         GenerationHistoryRepository generationHistoryRepository() {
             return Mockito.mock(GenerationHistoryRepository.class);
+        }
+
+        /**
+         * @date 2026-04-22
+         * @desc 테스트용 InsightBookmarkRepository 목 객체를 제공합니다.
+         */
+        @Bean
+        InsightBookmarkRepository insightBookmarkRepository() {
+            return Mockito.mock(InsightBookmarkRepository.class);
         }
 
         /**

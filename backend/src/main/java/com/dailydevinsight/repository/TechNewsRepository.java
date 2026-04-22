@@ -18,9 +18,14 @@ public interface TechNewsRepository extends JpaRepository<TechNews, Long> {
 
     List<TechNews> findTop30ByOrderByNewsDateDescIdDesc();
 
+    List<TechNews> findTop5ByOrderByViewCountDescIdDesc();
+
     Optional<TechNews> findTopByOrderByIdDesc();
 
     boolean existsByUrl(String url);
+
+    @Query("select coalesce(sum(n.viewCount), 0) from TechNews n")
+    long sumViewCount();
 
     @Modifying
     @Query("update TechNews n set n.viewCount = coalesce(n.viewCount, 0) + 1 where n.id = :id")

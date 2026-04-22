@@ -3,6 +3,7 @@ package com.dailydevinsight.admin.service;
 import com.dailydevinsight.admin.repository.GenerationHistoryRepository;
 import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
+import com.dailydevinsight.repository.InsightBookmarkRepository;
 import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,7 @@ class AdminManagementServiceTest {
     private TechNewsRepository techNewsRepository;
     private UserRepository userRepository;
     private GenerationHistoryRepository generationHistoryRepository;
+    private InsightBookmarkRepository insightBookmarkRepository;
     private AdminManagementService adminManagementService;
 
     @BeforeEach
@@ -42,12 +44,14 @@ class AdminManagementServiceTest {
         techNewsRepository = mock(TechNewsRepository.class);
         userRepository = mock(UserRepository.class);
         generationHistoryRepository = mock(GenerationHistoryRepository.class);
+        insightBookmarkRepository = mock(InsightBookmarkRepository.class);
 
         adminManagementService = new AdminManagementService(
                 dailyKnowledgeRepository,
                 techNewsRepository,
                 userRepository,
-                generationHistoryRepository
+                generationHistoryRepository,
+                insightBookmarkRepository
         );
         ReflectionTestUtils.setField(
                 adminManagementService,

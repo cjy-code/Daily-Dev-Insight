@@ -6,6 +6,8 @@ import com.dailydevinsight.admin.entity.CrawlSchedule;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
 import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.service.AdminManagementService;
+import com.dailydevinsight.admin.service.AdminBookmarkStatsData;
+import com.dailydevinsight.admin.service.AdminContentViewStatsData;
 import com.dailydevinsight.admin.service.AdminStatsData;
 import com.dailydevinsight.admin.service.CrawlHistoryService;
 import com.dailydevinsight.admin.service.CrawlConditionPresetService;
@@ -96,6 +98,34 @@ class AdminPageControllerTest {
         mockMvc.perform(get("/admin/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/dashboard"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void statsRoot_ShouldRedirectToViewsPage() throws Exception {
+        mockMvc.perform(get("/admin/stats"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/stats/views"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void statsViewsPage_ShouldRenderView() throws Exception {
+        given(adminManagementService.getContentViewStats()).willReturn(AdminContentViewStatsData.builder().build());
+
+        mockMvc.perform(get("/admin/stats/views"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/stats-views"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void statsBookmarksPage_ShouldRenderView() throws Exception {
+        given(adminManagementService.getBookmarkStats()).willReturn(AdminBookmarkStatsData.builder().build());
+
+        mockMvc.perform(get("/admin/stats/bookmarks"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/stats-bookmarks"));
     }
 
     @Test

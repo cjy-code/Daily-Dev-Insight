@@ -13,4 +13,6 @@ public class AdminStatsData {
     private long todayPosts;
     private long generationSuccessCount;
     private long generationFailedCount;
+    private long totalViewCount;
+    private long totalBookmarkCount;
 }
