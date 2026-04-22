@@ -53,6 +53,8 @@ public class AdminPageController {
     private static final String MENU_MEMBERS = "members";
     private static final String MENU_GENERATION = "generation";
     private static final String MENU_CRAWLING = "crawling";
+    private static final String MENU_STATS_VIEWS = "stats-views";
+    private static final String MENU_STATS_BOOKMARKS = "stats-bookmarks";
 
     private final PromptTemplateService promptTemplateService;
     private final GenerationScheduleService generationScheduleService;
@@ -82,6 +84,37 @@ public class AdminPageController {
         model.addAttribute("currentMenu", MENU_DASHBOARD);
         model.addAttribute("stats", adminManagementService.getAdminStats());
         return "admin/dashboard";
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 관리자 통계 메뉴의 기본 경로를 조회수 통계 화면으로 리다이렉트합니다.
+     */
+    @GetMapping("/stats")
+    public String statsRootPage() {
+        return "redirect:/admin/stats/views";
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 관리자 조회수 통계 화면을 렌더링합니다.
+     */
+    @GetMapping("/stats/views")
+    public String statsViewsPage(Model model) {
+        model.addAttribute("currentMenu", MENU_STATS_VIEWS);
+        model.addAttribute("viewStats", adminManagementService.getContentViewStats());
+        return "admin/stats-views";
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 관리자 북마크 통계 화면을 렌더링합니다.
+     */
+    @GetMapping("/stats/bookmarks")
+    public String statsBookmarksPage(Model model) {
+        model.addAttribute("currentMenu", MENU_STATS_BOOKMARKS);
+        model.addAttribute("bookmarkStats", adminManagementService.getBookmarkStats());
+        return "admin/stats-bookmarks";
     }
 
     /**

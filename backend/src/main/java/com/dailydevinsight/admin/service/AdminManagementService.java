@@ -6,9 +6,12 @@ import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.entity.TechNews;
 import com.dailydevinsight.entity.User;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
+import com.dailydevinsight.repository.InsightBookmarkRepository;
 import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -51,11 +54,15 @@ public class AdminManagementService {
             "webp",
             "gif"
     );
+    private static final String CONTENT_TYPE_KNOWLEDGE = "KNOWLEDGE";
+    private static final String CONTENT_TYPE_NEWS = "NEWS";
+    private static final int TOP_CONTENT_LIMIT = 5;
 
     private final DailyKnowledgeRepository dailyKnowledgeRepository;
     private final TechNewsRepository techNewsRepository;
     private final UserRepository userRepository;
     private final GenerationHistoryRepository generationHistoryRepository;
+    private final InsightBookmarkRepository insightBookmarkRepository;
 
     @Value("${crawler.thumbnail-upload-dir:./uploads}")
     private String thumbnailUploadDirectory;
@@ -320,6 +327,10 @@ public class AdminManagementService {
         long todayPosts = dailyKnowledgeRepository.countByKnowledgeDate(LocalDate.now());
         long generationSuccessCount = generationHistoryRepository.countByStatus("SUCCESS");
         long generationFailedCount = generationHistoryRepository.countByStatus("FAILED");
+        long knowledgeViewCount = dailyKnowledgeRepository.sumViewCount();
+        long newsViewCount = techNewsRepository.sumViewCount();
+        long totalViewCount = knowledgeViewCount + newsViewCount;
+        long totalBookmarkCount = insightBookmarkRepository.count();
 
         return AdminStatsData.builder()
                 .totalUsers(totalUsers)
@@ -328,7 +339,137 @@ public class AdminManagementService {
                 .todayPosts(todayPosts)
                 .generationSuccessCount(generationSuccessCount)
                 .generationFailedCount(generationFailedCount)
+                .totalViewCount(totalViewCount)
+                .totalBookmarkCount(totalBookmarkCount)
                 .build();
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 조회수 통계 상세 화면용 집계 데이터(총합/콘텐츠별/상위 콘텐츠)를 계산합니다.
+     */
+    @Transactional(readOnly = true)
+    public AdminContentViewStatsData getContentViewStats() {
+        long knowledgeViewCount = dailyKnowledgeRepository.sumViewCount();
+        long newsViewCount = techNewsRepository.sumViewCount();
+
+        return AdminContentViewStatsData.builder()
+                .totalViewCount(knowledgeViewCount + newsViewCount)
+                .knowledgeViewCount(knowledgeViewCount)
+                .newsViewCount(newsViewCount)
+                .topKnowledgeList(mapTopKnowledgeByViewCount())
+                .topNewsList(mapTopNewsByViewCount())
+                .build();
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 북마크 통계 상세 화면용 집계 데이터(총 북마크/참여 사용자/상위 콘텐츠)를 계산합니다.
+     */
+    @Transactional(readOnly = true)
+    public AdminBookmarkStatsData getBookmarkStats() {
+        Pageable topContentPage = PageRequest.of(0, TOP_CONTENT_LIMIT);
+        var topBookmarkedRows = insightBookmarkRepository.findTopBookmarkedContents(topContentPage);
+
+        return AdminBookmarkStatsData.builder()
+                .totalBookmarkCount(insightBookmarkRepository.count())
+                .bookmarkedUserCount(insightBookmarkRepository.countDistinctUserId())
+                .topBookmarkedContentList(mapTopBookmarkedContents(topBookmarkedRows))
+                .build();
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 일일 지식 조회수 상위 5개를 화면 출력 DTO로 변환합니다.
+     */
+    private List<AdminTopContentMetricData> mapTopKnowledgeByViewCount() {
+        return dailyKnowledgeRepository.findTop5ByOrderByViewCountDescIdDesc().stream()
+                .map(knowledge -> AdminTopContentMetricData.builder()
+                        .contentType(CONTENT_TYPE_KNOWLEDGE)
+                        .contentId(knowledge.getId())
+                        .title(knowledge.getTitle())
+                        .metricValue(defaultLongValue(knowledge.getViewCount()))
+                        .build())
+                .toList();
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 테크 뉴스 조회수 상위 5개를 화면 출력 DTO로 변환합니다.
+     */
+    private List<AdminTopContentMetricData> mapTopNewsByViewCount() {
+        return techNewsRepository.findTop5ByOrderByViewCountDescIdDesc().stream()
+                .map(news -> AdminTopContentMetricData.builder()
+                        .contentType(CONTENT_TYPE_NEWS)
+                        .contentId(news.getId())
+                        .title(news.getTitle())
+                        .metricValue(defaultLongValue(news.getViewCount()))
+                        .build())
+                .toList();
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 북마크 집계 결과를 콘텐츠 제목이 포함된 화면 출력 DTO 목록으로 변환합니다.
+     */
+    private List<AdminTopContentMetricData> mapTopBookmarkedContents(
+            List<InsightBookmarkRepository.BookmarkSummaryProjection> topBookmarkedRows
+    ) {
+        return topBookmarkedRows.stream()
+                .map(bookmarkRow -> AdminTopContentMetricData.builder()
+                        .contentType(normalizeContentTypeForView(bookmarkRow.getContentType()))
+                        .contentId(bookmarkRow.getContentId())
+                        .title(resolveContentTitle(bookmarkRow.getContentType(), bookmarkRow.getContentId()))
+                        .metricValue(defaultLongValue(bookmarkRow.getBookmarkCount()))
+                        .build())
+                .toList();
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 콘텐츠 타입과 식별자 기반으로 북마크 대상 콘텐츠 제목을 조회합니다.
+     */
+    private String resolveContentTitle(String contentType, Long contentId) {
+        String normalizedContentType = normalizeContentType(contentType);
+        if (CONTENT_TYPE_KNOWLEDGE.equals(normalizedContentType)) {
+            return dailyKnowledgeRepository.findById(contentId)
+                    .map(DailyKnowledge::getTitle)
+                    .orElse("삭제되었거나 찾을 수 없는 일일 지식");
+        }
+        if (CONTENT_TYPE_NEWS.equals(normalizedContentType)) {
+            return techNewsRepository.findById(contentId)
+                    .map(TechNews::getTitle)
+                    .orElse("삭제되었거나 찾을 수 없는 테크 뉴스");
+        }
+        return "알 수 없는 콘텐츠";
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 콘텐츠 타입 문자열을 표준 대문자 형태로 정규화합니다.
+     */
+    private String normalizeContentType(String contentType) {
+        return normalizeOptionalText(contentType).toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 콘텐츠 타입이 비어있거나 미정일 때 화면 표기를 위한 기본값을 보정합니다.
+     */
+    private String normalizeContentTypeForView(String contentType) {
+        String normalizedContentType = normalizeContentType(contentType);
+        if (normalizedContentType.isBlank()) {
+            return "UNKNOWN";
+        }
+        return normalizedContentType;
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc null 가능 Long 값을 통계 계산/출력 용도로 0으로 보정합니다.
+     */
+    private long defaultLongValue(Long value) {
+        return value == null ? 0L : value;
     }
 
     /**

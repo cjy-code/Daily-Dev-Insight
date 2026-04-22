@@ -172,8 +172,8 @@
     border: 1px solid var(--admin-line);
     border-radius: 16px;
     padding: 16px 18px;
-    width: 850px;
-    height: 100px;
+    width: 100%;
+    min-height: 100px;
     box-sizing: border-box;
 }
 
@@ -315,6 +315,25 @@
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.stats-grid-link {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.dashboard-zone {
+    display: grid;
+    gap: 12px;
+}
+
+.dashboard-zone-header h3 {
+    margin: 0;
+    color: #1f2b46;
+}
+
+.dashboard-zone-header p {
+    margin: 4px 0 0;
+    color: #586785;
+}
+
 .stat-card {
     border: 1px solid var(--admin-line);
     border-radius: 12px;
@@ -333,6 +352,32 @@
     color: #20283a;
     font-size: 23px;
     line-height: 1;
+}
+
+.stat-card-user {
+    border-color: #c9daf8;
+    background: linear-gradient(180deg, #fbfdff, #eff5ff);
+}
+
+.stat-card-content {
+    border-color: #c7e7d7;
+    background: linear-gradient(180deg, #fdfffc, #ecf9f0);
+}
+
+.stat-card-time {
+    border-color: #f0d2b1;
+    background: linear-gradient(180deg, #fffdf9, #fff2e4);
+}
+
+.stat-card-alert {
+    border-color: #f2c7ce;
+    background: linear-gradient(180deg, #fffafb, #ffeef1);
+}
+
+.stat-card-link {
+    text-decoration: none;
+    display: grid;
+    gap: 6px;
 }
 
 .admin-form {

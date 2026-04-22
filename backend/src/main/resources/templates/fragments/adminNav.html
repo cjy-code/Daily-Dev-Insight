@@ -9,6 +9,21 @@
     <nav class="admin-side-nav" aria-label="관리자 메뉴">
         <a th:href="@{/admin/dashboard}" th:classappend="${currentMenu == 'dashboard'} ? ' active' : ''">대시보드</a>
         <section class="admin-side-nav-group"
+                 th:classappend="${currentMenu == 'stats-views' or currentMenu == 'stats-bookmarks'} ? ' has-active-child' : ''"
+                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'stats-views' or currentMenu == 'stats-bookmarks'},data-accordion-storage-key='admin-side-stats-group'">
+            <button type="button"
+                    class="admin-side-nav-group-toggle"
+                    aria-expanded="false"
+                    aria-controls="adminStatsGroupItems">
+                <span class="admin-side-nav-group-title">통계 분석</span>
+                <span class="admin-side-nav-group-icon" aria-hidden="true">▾</span>
+            </button>
+            <div id="adminStatsGroupItems" class="admin-side-nav-group-items">
+                <a th:href="@{/admin/stats/views}" th:classappend="${currentMenu == 'stats-views'} ? ' active' : ''">조회수</a>
+                <a th:href="@{/admin/stats/bookmarks}" th:classappend="${currentMenu == 'stats-bookmarks'} ? ' active' : ''">관심/북마크</a>
+            </div>
+        </section>
+        <section class="admin-side-nav-group"
                  th:classappend="${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'} ? ' has-active-child' : ''"
                  th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'},data-accordion-storage-key='admin-side-posts-group'">
             <button type="button"
