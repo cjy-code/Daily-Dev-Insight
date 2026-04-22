@@ -13,6 +13,10 @@ spring:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
       timeout: ${REDIS_TIMEOUT:3s}
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 7MB
   cache:
     type: redis
   jpa:

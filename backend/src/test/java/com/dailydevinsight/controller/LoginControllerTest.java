@@ -70,4 +70,28 @@ class LoginControllerTest {
                 .andExpect(redirectedUrl("/admin/login"))
                 .andExpect(flash().attribute("adminLoginError", true));
     }
+
+    /**
+     * @date 2026-04-22
+     * @desc 관리자 권한 부족 파라미터가 전달되면 안내 메시지 플래시와 함께 관리자 로그인 페이지로 리다이렉트하는지 검증합니다.
+     */
+    @Test
+    void adminLogin_WithAdminDeniedParam_ShouldRedirectToCleanAdminLoginUrl() throws Exception {
+        mockMvc.perform(get("/admin/login").param("adminDenied", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/login"))
+                .andExpect(flash().attribute("adminDeniedError", true));
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 관리자 CSRF 실패 파라미터가 전달되면 안내 메시지 플래시와 함께 관리자 로그인 페이지로 리다이렉트하는지 검증합니다.
+     */
+    @Test
+    void adminLogin_WithCsrfErrorParam_ShouldRedirectToCleanAdminLoginUrl() throws Exception {
+        mockMvc.perform(get("/admin/login").param("csrfError", "1"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/login"))
+                .andExpect(flash().attribute("adminCsrfError", true));
+    }
 }

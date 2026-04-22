@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.web.csrf.CsrfException;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -26,6 +28,8 @@ public class SecurityConfig {
     private static final String ADMIN_LOGIN_PATH = "/admin/login";
     private static final String USER_SUCCESS_PATH = "/";
     private static final String ADMIN_SUCCESS_PATH = "/admin";
+    private static final String ADMIN_DENIED_PATH = "/admin/login?adminDenied=true";
+    private static final String ADMIN_CSRF_ERROR_PATH = "/admin/login?csrfError=true";
 
     /**
      * @date 2026-04-15
@@ -52,7 +56,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                response.sendRedirect("/?adminDenied=true"))
+                                processAdminAccessDenied(request, response, accessDeniedException))
                 )
                 .userDetailsService(userDetailsService);
 
@@ -129,5 +133,26 @@ public class SecurityConfig {
                 .map(GrantedAuthority::getAuthority)
                 .filter(Objects::nonNull)
                 .anyMatch(authority::equals);
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 관리자 경로 접근 거부 시 CSRF 실패와 권한 부족을 구분하여 적절한 화면으로 이동시킵니다.
+     */
+    private void processAdminAccessDenied(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            AccessDeniedException accessDeniedException
+    ) throws IOException {
+        if (accessDeniedException instanceof CsrfException) {
+            String referer = request.getHeader("Referer");
+            if (referer != null && referer.contains("/admin/posts/")) {
+                response.sendRedirect(referer + (referer.contains("?") ? "&" : "?") + "csrfError=true");
+                return;
+            }
+            response.sendRedirect(ADMIN_CSRF_ERROR_PATH);
+            return;
+        }
+        response.sendRedirect(ADMIN_DENIED_PATH);
     }
 }

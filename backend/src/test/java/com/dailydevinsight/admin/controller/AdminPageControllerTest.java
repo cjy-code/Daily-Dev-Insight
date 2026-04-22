@@ -206,7 +206,30 @@ class AdminPageControllerTest {
                         .file(thumbnailFile)
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/?adminDenied=true"));
+                .andExpect(redirectedUrl("/admin/login?adminDenied=true"));
+
+        verifyNoInteractions(adminManagementService);
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc CSRF 토큰 없이 썸네일 업로드 요청 시 기존 관리자 페이지로 csrfError 쿼리와 함께 리다이렉트하는지 검증합니다.
+     */
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void uploadKnowledgeThumbnail_WithoutCsrf_ShouldRedirectToKnowledgePageWithCsrfError() throws Exception {
+        MockMultipartFile thumbnailFile = new MockMultipartFile(
+                "thumbnailFile",
+                "thumb.jpg",
+                "image/jpeg",
+                "thumbnail".getBytes()
+        );
+
+        mockMvc.perform(multipart("/admin/posts/knowledge/1/thumbnail")
+                        .file(thumbnailFile)
+                        .header("Referer", "http://localhost/admin/posts/knowledge"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/admin/posts/knowledge?csrfError=true"));
 
         verifyNoInteractions(adminManagementService);
     }
@@ -279,7 +302,7 @@ class AdminPageControllerTest {
     void dashboard_ShouldReturnForbiddenForUserRole() throws Exception {
         mockMvc.perform(get("/admin/dashboard"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/?adminDenied=true"));
+                .andExpect(redirectedUrl("/admin/login?adminDenied=true"));
     }
 
     @Test
