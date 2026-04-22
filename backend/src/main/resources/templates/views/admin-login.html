@@ -13,6 +13,12 @@
     <div class="notice-box notice-error" th:if="${adminLoginError}">
         관리자 ID 또는 비밀번호가 올바르지 않습니다.
     </div>
+    <div class="notice-box notice-error" th:if="${adminDeniedError}">
+        관리자 권한이 없어 해당 페이지에 접근할 수 없습니다.
+    </div>
+    <div class="notice-box notice-error" th:if="${adminCsrfError}">
+        보안 토큰 검증에 실패했습니다. 관리자 화면을 새로고침 후 다시 시도해 주세요.
+    </div>
     <div class="notice-box notice-success" th:if="${adminLogoutSuccess}">
         로그아웃되었습니다.
     </div>

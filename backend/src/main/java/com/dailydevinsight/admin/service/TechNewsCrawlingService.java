@@ -7,9 +7,12 @@ import com.dailydevinsight.admin.dto.CrawlRunForm;
 import com.dailydevinsight.admin.entity.CrawlHistory;
 import com.dailydevinsight.admin.entity.CrawlSchedule;
 import com.dailydevinsight.admin.repository.CrawlHistoryRepository;
+import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.entity.TechNews;
 import com.dailydevinsight.repository.TechNewsRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +54,12 @@ public class TechNewsCrawlingService {
      * @desc 관리자 입력값으로 즉시 수동 크롤링을 실행합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public CrawlExecutionResult executeManualCrawling(CrawlRunForm form) {
         validateRunForm(form);
         return executeCrawling(
@@ -138,6 +147,12 @@ public class TechNewsCrawlingService {
      * @desc 예약 설정값으로 스케줄 크롤링을 실행합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public CrawlExecutionResult executeScheduledCrawling(LocalDate targetDate, CrawlSchedule schedule) {
         return executeCrawling(
                 targetDate,

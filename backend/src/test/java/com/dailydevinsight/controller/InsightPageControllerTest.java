@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -76,6 +77,39 @@ public class InsightPageControllerTest {
                 .andExpect(view().name("index"))
                 .andExpect(model().attributeExists("response"))
                 .andExpect(model().attributeExists("selectedDate"));
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 미래 endDate 요청 시 서버에서 오늘 날짜로 보정하여 조회하는지 검증합니다.
+     */
+    @Test
+    void index_ShouldClampFutureEndDateToToday() throws Exception {
+        DailyInsightResponseDTO response = DailyInsightResponseDTO.builder()
+                .date(LocalDate.now())
+                .dailyKnowledgeList(Collections.emptyList())
+                .techNewsList(Collections.emptyList())
+                .top10List(Collections.emptyList())
+                .top5List(Collections.emptyList())
+                .newsList(List.of())
+                .build();
+
+        given(dailyInsightService.getInsightsByRange(any(LocalDate.class), any(LocalDate.class), any(), any())).willReturn(response);
+
+        LocalDate today = LocalDate.now();
+        LocalDate futureDate = today.plusDays(3);
+
+        mockMvc.perform(get("/")
+                        .param("endDate", futureDate.toString()))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<LocalDate> startDateCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        ArgumentCaptor<LocalDate> endDateCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(dailyInsightService, atLeastOnce())
+                .getInsightsByRange(startDateCaptor.capture(), endDateCaptor.capture(), any(), any());
+
+        org.junit.jupiter.api.Assertions.assertEquals(today, endDateCaptor.getValue());
+        org.junit.jupiter.api.Assertions.assertEquals(today.minusMonths(3), startDateCaptor.getValue());
     }
 
     @Test

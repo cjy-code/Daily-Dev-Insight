@@ -16,6 +16,7 @@ public class LoginController {
     public String login(
             @RequestParam(value = "error", required = false) String error,
             @RequestParam(value = "logout", required = false) String logout,
+            @RequestParam(value = "withdraw", required = false) String withdraw,
             RedirectAttributes redirectAttributes
     ) {
         if (error != null) {
@@ -24,6 +25,10 @@ public class LoginController {
         }
         if (logout != null) {
             redirectAttributes.addFlashAttribute("logoutSuccess", true);
+            return "redirect:/login";
+        }
+        if (withdraw != null) {
+            redirectAttributes.addFlashAttribute("withdrawSuccess", true);
             return "redirect:/login";
         }
         return "views/login";
@@ -37,6 +42,8 @@ public class LoginController {
     public String adminLogin(
             @RequestParam(value = "error", required = false) String error,
             @RequestParam(value = "logout", required = false) String logout,
+            @RequestParam(value = "adminDenied", required = false) String adminDenied,
+            @RequestParam(value = "csrfError", required = false) String csrfError,
             RedirectAttributes redirectAttributes
     ) {
         if (error != null) {
@@ -45,6 +52,14 @@ public class LoginController {
         }
         if (logout != null) {
             redirectAttributes.addFlashAttribute("adminLogoutSuccess", true);
+            return "redirect:/admin/login";
+        }
+        if (adminDenied != null) {
+            redirectAttributes.addFlashAttribute("adminDeniedError", true);
+            return "redirect:/admin/login";
+        }
+        if (csrfError != null) {
+            redirectAttributes.addFlashAttribute("adminCsrfError", true);
             return "redirect:/admin/login";
         }
         return "views/admin-login";

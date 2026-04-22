@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
@@ -195,12 +196,13 @@ public class InsightDetailService {
 
         InsightComment targetComment = insightCommentRepository
                 .findByIdAndContentTypeAndContentIdAndIsDeleted(commentId, toContentTypeKey(contentType), contentId, COMMENT_ACTIVE)
-                .orElse(null);
+                .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "이미 삭제되었거나 존재하지 않는 댓글입니다."));
 
-        if (targetComment != null && userId.equals(targetComment.getUserId())) {
-            targetComment.markDeleted();
-            insightCommentRepository.save(targetComment);
+        if (!userId.equals(targetComment.getUserId())) {
+            throw new ResponseStatusException(FORBIDDEN, "본인 댓글만 삭제할 수 있습니다.");
         }
+        targetComment.markDeleted();
+        insightCommentRepository.save(targetComment);
 
         InsightBaseData baseData = findBaseData(contentType, contentId);
         return buildDetailResponse(contentType, baseData, userId);

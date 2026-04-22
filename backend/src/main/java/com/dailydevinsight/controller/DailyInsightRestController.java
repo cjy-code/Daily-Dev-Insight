@@ -25,7 +25,19 @@ public class DailyInsightRestController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date
     ) {
-        LocalDate targetDate = date != null ? date : LocalDate.now();
+        LocalDate targetDate = clampToToday(date != null ? date : LocalDate.now());
         return dailyInsightService.getInsightsByDate(targetDate);
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 미래 날짜 요청을 방지하기 위해 조회 기준일을 오늘 날짜 이하로 보정합니다.
+     */
+    private LocalDate clampToToday(LocalDate targetDate) {
+        LocalDate today = LocalDate.now();
+        if (targetDate.isAfter(today)) {
+            return today;
+        }
+        return targetDate;
     }
 }

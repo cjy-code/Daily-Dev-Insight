@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -126,6 +128,114 @@ class AdminPageControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void uploadKnowledgeThumbnail_ShouldRedirectToKnowledgePage() throws Exception {
+        MockMultipartFile thumbnailFile = new MockMultipartFile(
+                "thumbnailFile",
+                "thumb.jpg",
+                "image/jpeg",
+                "thumbnail".getBytes()
+        );
+
+        willDoNothing().given(adminManagementService).updateKnowledgeThumbnail(org.mockito.ArgumentMatchers.eq(1L), any());
+
+        mockMvc.perform(multipart("/admin/posts/knowledge/1/thumbnail")
+                        .file(thumbnailFile)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/posts/knowledge"));
+
+        verify(adminManagementService).updateKnowledgeThumbnail(org.mockito.ArgumentMatchers.eq(1L), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deleteKnowledgeThumbnail_ShouldRedirectToKnowledgePage() throws Exception {
+        willDoNothing().given(adminManagementService).deleteKnowledgeThumbnail(1L);
+
+        mockMvc.perform(post("/admin/posts/knowledge/1/thumbnail/delete").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/posts/knowledge"));
+
+        verify(adminManagementService).deleteKnowledgeThumbnail(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void uploadTechNewsThumbnail_ShouldRedirectToNewsPage() throws Exception {
+        MockMultipartFile thumbnailFile = new MockMultipartFile(
+                "thumbnailFile",
+                "thumb.jpg",
+                "image/jpeg",
+                "thumbnail".getBytes()
+        );
+
+        willDoNothing().given(adminManagementService).updateTechNewsThumbnail(org.mockito.ArgumentMatchers.eq(1L), any());
+
+        mockMvc.perform(multipart("/admin/posts/news/1/thumbnail")
+                        .file(thumbnailFile)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/posts/news"));
+
+        verify(adminManagementService).updateTechNewsThumbnail(org.mockito.ArgumentMatchers.eq(1L), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deleteTechNewsThumbnail_ShouldRedirectToNewsPage() throws Exception {
+        willDoNothing().given(adminManagementService).deleteTechNewsThumbnail(1L);
+
+        mockMvc.perform(post("/admin/posts/news/1/thumbnail/delete").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/posts/news"));
+
+        verify(adminManagementService).deleteTechNewsThumbnail(1L);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void uploadKnowledgeThumbnail_ShouldRejectForUserRole() throws Exception {
+        MockMultipartFile thumbnailFile = new MockMultipartFile(
+                "thumbnailFile",
+                "thumb.jpg",
+                "image/jpeg",
+                "thumbnail".getBytes()
+        );
+
+        mockMvc.perform(multipart("/admin/posts/knowledge/1/thumbnail")
+                        .file(thumbnailFile)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/login?adminDenied=true"));
+
+        verifyNoInteractions(adminManagementService);
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc CSRF 토큰 없이 썸네일 업로드 요청 시 기존 관리자 페이지로 csrfError 쿼리와 함께 리다이렉트하는지 검증합니다.
+     */
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void uploadKnowledgeThumbnail_WithoutCsrf_ShouldRedirectToKnowledgePageWithCsrfError() throws Exception {
+        MockMultipartFile thumbnailFile = new MockMultipartFile(
+                "thumbnailFile",
+                "thumb.jpg",
+                "image/jpeg",
+                "thumbnail".getBytes()
+        );
+
+        mockMvc.perform(multipart("/admin/posts/knowledge/1/thumbnail")
+                        .file(thumbnailFile)
+                        .header("Referer", "http://localhost/admin/posts/knowledge"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost/admin/posts/knowledge?csrfError=true"));
+
+        verifyNoInteractions(adminManagementService);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void generationPage_ShouldRenderView() throws Exception {
         PromptTemplate activeTemplate = PromptTemplate.builder()
                 .id(1L)
@@ -192,7 +302,7 @@ class AdminPageControllerTest {
     void dashboard_ShouldReturnForbiddenForUserRole() throws Exception {
         mockMvc.perform(get("/admin/dashboard"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/?adminDenied=true"));
+                .andExpect(redirectedUrl("/admin/login?adminDenied=true"));
     }
 
     @Test

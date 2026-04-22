@@ -16,6 +16,9 @@
     <div class="notice-box notice-success" th:if="${logoutSuccess}">
         로그아웃되었습니다.
     </div>
+    <div class="notice-box notice-success" th:if="${withdrawSuccess}">
+        회원탈퇴가 처리되었습니다.
+    </div>
 
     <form method="post" th:action="@{/login}" class="auth-form" novalidate>
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
