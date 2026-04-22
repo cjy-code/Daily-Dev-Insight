@@ -10,9 +10,12 @@ import com.dailydevinsight.admin.entity.GenerationHistory;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
 import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.repository.GenerationHistoryRepository;
+import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -36,6 +39,12 @@ public class DailyKnowledgeGenerationService {
      * @date 2026-04-16
      * @desc 관리자 수동 요청으로 일일 개발 지식 생성을 실행합니다.
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public GenerationExecutionResult executeManualGeneration(GenerationRequestForm form) {
         validateManualRequest(form);
 
@@ -52,6 +61,12 @@ public class DailyKnowledgeGenerationService {
      * @date 2026-04-16
      * @desc 예약 스케줄 설정값으로 일일 개발 지식 생성을 실행합니다.
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public GenerationExecutionResult executeScheduledGeneration(LocalDate targetDate) {
         GenerationSchedule schedule = generationScheduleService.getOrCreateSchedule();
 
@@ -137,6 +152,12 @@ public class DailyKnowledgeGenerationService {
      * @date 2026-04-16
      * @desc 수동 생성 새창에서 확인된 LLM 결과를 DB에 저장하고 이력을 남깁니다.
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public GenerationExecutionResult saveManualGenerationFromPreview(GenerationSaveRequest request) {
         validateSaveRequest(request);
         PromptTemplate promptTemplate = promptTemplateService.getActiveTemplate();

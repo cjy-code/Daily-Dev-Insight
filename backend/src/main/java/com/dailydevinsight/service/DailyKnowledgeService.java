@@ -45,6 +45,10 @@ public class DailyKnowledgeService {
     public List<DailyKnowledge> findWeeklyHotKnowledgeTop10(LocalDate referenceDate) {
         LocalDate weekStart = referenceDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate weekEnd = weekStart.plusDays(6);
+        LocalDate today = LocalDate.now();
+        if (weekEnd.isAfter(today)) {
+            weekEnd = today;
+        }
         return dailyKnowledgeRepository.findTop10ByKnowledgeDateBetweenOrderByViewCountDescIdDesc(weekStart, weekEnd);
     }
 
@@ -56,6 +60,10 @@ public class DailyKnowledgeService {
     public List<DailyKnowledge> findWeeklyHotKnowledgeTop5(LocalDate referenceDate) {
         LocalDate weekStart = referenceDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate weekEnd = weekStart.plusDays(6);
+        LocalDate today = LocalDate.now();
+        if (weekEnd.isAfter(today)) {
+            weekEnd = today;
+        }
         return dailyKnowledgeRepository.findTop5ByKnowledgeDateBetweenOrderByViewCountDescIdDesc(weekStart, weekEnd);
     }
 }

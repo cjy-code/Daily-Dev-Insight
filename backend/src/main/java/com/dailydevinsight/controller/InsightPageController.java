@@ -50,8 +50,8 @@ public class InsightPageController {
             Model model
     ) {
         LocalDate today = LocalDate.now();
-        LocalDate targetDate = date != null ? date : (endDate != null ? endDate : today);
-        LocalDate resolvedEndDate = endDate != null ? endDate : targetDate;
+        LocalDate targetDate = clampToToday(date != null ? date : (endDate != null ? endDate : today));
+        LocalDate resolvedEndDate = clampToToday(endDate != null ? endDate : targetDate);
         LocalDate resolvedStartDate = startDate != null ? startDate : resolvedEndDate.minusMonths(3);
         if (resolvedStartDate.isAfter(resolvedEndDate)) {
             LocalDate temp = resolvedStartDate;
@@ -80,6 +80,18 @@ public class InsightPageController {
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("searchType", resolvedSearchType);
         return "index";
+    }
+
+    /**
+     * @date 2026-04-22
+     * @desc 미래 날짜 파라미터가 전달되어도 오늘 날짜를 초과하지 않도록 조회 기준일을 보정합니다.
+     */
+    private LocalDate clampToToday(LocalDate targetDate) {
+        LocalDate today = LocalDate.now();
+        if (targetDate.isAfter(today)) {
+            return today;
+        }
+        return targetDate;
     }
 
     /**

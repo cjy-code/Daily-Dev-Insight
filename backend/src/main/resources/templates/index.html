@@ -9,7 +9,7 @@
 <section class="index-page">
     <section class="top-panel">
         <h1>Daily Dev Insight</h1>
-        <p class="subtitle">TOP 10, 오늘의 지식, 오늘의 뉴스를 한 화면에서 확인하세요.</p>
+        <p class="subtitle">TOP 10, 오늘의 지식, 최근 뉴스를 한 화면에서 확인하세요.</p>
 
         <div class="toolbar">
             <form class="toolbar-form" method="get" action="/index">
@@ -180,7 +180,7 @@
 
             <section class="content-section">
                 <div class="section-head">
-                    <h2>오늘의 뉴스</h2>
+                    <h2>최근 뉴스</h2>
                     <p>고정 6개 카드 수동 슬라이드</p>
                 </div>
 
@@ -198,7 +198,7 @@
                                             <img th:if="${item.thumbnailUrl != null and !#strings.isEmpty(item.thumbnailUrl)}"
                                                  th:src="${item.thumbnailUrl}"
                                                  src="/images/default-thumb.svg"
-                                                 alt="오늘의 뉴스 썸네일"
+                                                 alt="최근 뉴스 썸네일"
                                                  loading="lazy"
                                                  onerror="this.onerror=null;this.src='/images/default-thumb.svg';">
                                             <div class="thumb-fallback-title"
@@ -226,7 +226,7 @@
                     <span>/</span>
                     <span th:text="${#lists.size(techNewsChunks)}">1</span>
                 </div>
-                <p class="empty" th:if="${#lists.isEmpty(techNewsChunks)}">오늘의 뉴스 데이터가 없습니다.</p>
+                <p class="empty" th:if="${#lists.isEmpty(techNewsChunks)}">최근 뉴스 데이터가 없습니다.</p>
             </section>
 </section>
 

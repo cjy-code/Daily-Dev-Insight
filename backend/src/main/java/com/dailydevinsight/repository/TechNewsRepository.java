@@ -14,6 +14,8 @@ public interface TechNewsRepository extends JpaRepository<TechNews, Long> {
 
     List<TechNews> findByNewsDateOrderByIdDesc(LocalDate newsDate);
 
+    List<TechNews> findByNewsDateBetweenOrderByNewsDateDescIdDesc(LocalDate startDate, LocalDate endDate);
+
     List<TechNews> findTop30ByOrderByNewsDateDescIdDesc();
 
     Optional<TechNews> findTopByOrderByIdDesc();

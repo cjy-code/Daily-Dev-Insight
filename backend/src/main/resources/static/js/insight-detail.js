@@ -319,6 +319,9 @@
                 if (!commentId) {
                     return;
                 }
+                if (!window.confirm('댓글을 삭제하시겠습니까?')) {
+                    return;
+                }
 
                 try {
                     const state = await requestJson(apiPath + '/comments/' + encodeURIComponent(commentId), {
@@ -326,6 +329,7 @@
                         headers: Object.assign({ 'Content-Type': 'application/json' }, csrfHeaders)
                     });
                     renderFromState(state);
+                    window.alert('댓글이 삭제되었습니다.');
                 } catch (error) {
                     window.alert(error.message);
                 }

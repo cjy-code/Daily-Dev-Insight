@@ -1,6 +1,7 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.repository.GenerationHistoryRepository;
+import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.entity.TechNews;
 import com.dailydevinsight.entity.User;
@@ -9,6 +10,8 @@ import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -89,6 +92,12 @@ public class AdminManagementService {
      * @desc 일일 지식 게시물의 카테고리와 제목을 수정합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void updateKnowledgePost(Long postId, String category, String title) {
         DailyKnowledge originalPost = dailyKnowledgeRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
@@ -113,6 +122,12 @@ public class AdminManagementService {
      * @desc 일일 지식 게시물 썸네일 파일을 저장하고 공개 경로를 반영합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void updateKnowledgeThumbnail(Long postId, MultipartFile thumbnailFile) {
         DailyKnowledge originalPost = dailyKnowledgeRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다."));
@@ -135,6 +150,12 @@ public class AdminManagementService {
      * @desc 일일 지식 게시물의 썸네일 정보를 제거하고 파일 삭제를 시도합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void deleteKnowledgeThumbnail(Long postId) {
         DailyKnowledge originalPost = dailyKnowledgeRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("삭제할 게시물을 찾을 수 없습니다."));
@@ -150,6 +171,12 @@ public class AdminManagementService {
      * @desc 일일 지식 게시물을 삭제합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void deleteKnowledgePost(Long postId) {
         if (!dailyKnowledgeRepository.existsById(postId)) {
             throw new IllegalArgumentException("삭제할 게시물을 찾을 수 없습니다.");
@@ -162,6 +189,12 @@ public class AdminManagementService {
      * @desc 테크 뉴스 게시물의 출처와 제목을 수정합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void updateTechNewsPost(Long newsId, String source, String title) {
         TechNews originalNews = techNewsRepository.findById(newsId)
                 .orElseThrow(() -> new IllegalArgumentException("테크 뉴스를 찾을 수 없습니다."));
@@ -186,6 +219,12 @@ public class AdminManagementService {
      * @desc 테크 뉴스 게시물 썸네일 파일을 저장하고 공개 경로를 반영합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void updateTechNewsThumbnail(Long newsId, MultipartFile thumbnailFile) {
         TechNews originalNews = techNewsRepository.findById(newsId)
                 .orElseThrow(() -> new IllegalArgumentException("테크 뉴스를 찾을 수 없습니다."));
@@ -208,6 +247,12 @@ public class AdminManagementService {
      * @desc 테크 뉴스 게시물의 썸네일 정보를 제거하고 파일 삭제를 시도합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void deleteTechNewsThumbnail(Long newsId) {
         TechNews originalNews = techNewsRepository.findById(newsId)
                 .orElseThrow(() -> new IllegalArgumentException("삭제할 테크 뉴스를 찾을 수 없습니다."));
@@ -223,6 +268,12 @@ public class AdminManagementService {
      * @desc 테크 뉴스 게시물을 삭제합니다.
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+    })
     public void deleteTechNewsPost(Long newsId) {
         if (!techNewsRepository.existsById(newsId)) {
             throw new IllegalArgumentException("삭제할 테크 뉴스를 찾을 수 없습니다.");
