@@ -611,6 +611,7 @@ public class AdminPageController {
     private ScheduleForm toScheduleForm(GenerationSchedule generationSchedule) {
         ScheduleForm form = new ScheduleForm();
         form.setEnabled(generationSchedule.getEnabled());
+        form.setAllowDuplicate(generationSchedule.getAllowDuplicate());
         form.setCronExpression(generationSchedule.getCronExpression());
         form.setCategory(generationSchedule.getCategory());
         form.setTone(generationSchedule.getTone());

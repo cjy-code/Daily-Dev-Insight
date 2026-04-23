@@ -67,6 +67,7 @@ BEGIN
             CREATE TABLE generation_schedule (
                 id NUMBER(19) NOT NULL,
                 is_enabled NUMBER(1) DEFAULT 0 NOT NULL,
+                allow_duplicate NUMBER(1) DEFAULT 0 NOT NULL,
                 cron_expression VARCHAR2(120) NOT NULL,
                 category VARCHAR2(50) NOT NULL,
                 tone VARCHAR2(50) NOT NULL,
@@ -74,7 +75,8 @@ BEGIN
                 last_executed_at TIMESTAMP(6),
                 updated_at TIMESTAMP(6) NOT NULL,
                 CONSTRAINT pk_generation_schedule PRIMARY KEY (id),
-                CONSTRAINT ck_generation_schedule_enabled CHECK (is_enabled IN (0, 1))
+                CONSTRAINT ck_generation_schedule_enabled CHECK (is_enabled IN (0, 1)),
+                CONSTRAINT ck_generation_schedule_allow_duplicate CHECK (allow_duplicate IN (0, 1))
             )';
     END IF;
 END;
@@ -107,7 +109,7 @@ BEGIN
                 created_at TIMESTAMP(6) NOT NULL,
                 CONSTRAINT pk_generation_history PRIMARY KEY (id),
                 CONSTRAINT ck_generation_history_trigger CHECK (trigger_type IN (''MANUAL'', ''SCHEDULED'')),
-                CONSTRAINT ck_generation_history_status CHECK (status IN (''SUCCESS'', ''FAILED''))
+                CONSTRAINT ck_generation_history_status CHECK (status IN (''SUCCESS'', ''FAILED'', ''SKIPPED''))
             )';
     END IF;
 END;
@@ -190,10 +192,11 @@ FROM dual
 WHERE NOT EXISTS (SELECT 1 FROM prompt_template WHERE id = 1);
 
 INSERT INTO generation_schedule (
-    id, is_enabled, cron_expression, category, tone, difficulty, last_executed_at, updated_at
+    id, is_enabled, allow_duplicate, cron_expression, category, tone, difficulty, last_executed_at, updated_at
 )
 SELECT
     1,
+    0,
     0,
     '0 0 9 * * *',
     'Backend',

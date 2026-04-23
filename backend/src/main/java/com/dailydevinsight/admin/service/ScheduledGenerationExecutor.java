@@ -1,5 +1,6 @@
 package com.dailydevinsight.admin.service;
 
+import com.dailydevinsight.admin.dto.GenerationExecutionResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,8 +28,15 @@ public class ScheduledGenerationExecutor {
             return;
         }
 
-        dailyKnowledgeGenerationService.executeScheduledGeneration(LocalDate.now());
-        generationScheduleService.markExecuted(now);
-        log.info("Reserved generation executed at {}", now);
+        GenerationExecutionResult executionResult = dailyKnowledgeGenerationService.executeScheduledGeneration(LocalDate.now());
+        if (executionResult.isSuccess()) {
+            generationScheduleService.markExecuted(now);
+        }
+        log.info(
+                "Reserved generation executed at {} (success={}, errorCode={})",
+                now,
+                executionResult.isSuccess(),
+                executionResult.getErrorCode()
+        );
     }
 }

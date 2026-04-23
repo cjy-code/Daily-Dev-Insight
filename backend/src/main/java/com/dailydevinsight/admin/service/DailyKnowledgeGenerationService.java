@@ -28,6 +28,7 @@ public class DailyKnowledgeGenerationService {
     private static final int MAX_MANUAL_TEXT_LENGTH = 50;
     private static final int MAX_CATEGORY_LENGTH = 50;
     private static final int MAX_TITLE_LENGTH = 255;
+    private static final String ERROR_CODE_ALREADY_EXISTS = "already_exists";
 
     private final PromptTemplateService promptTemplateService;
     private final GenerationScheduleService generationScheduleService;
@@ -53,7 +54,8 @@ public class DailyKnowledgeGenerationService {
                 normalizeRequiredValue(form.getCategory(), "Backend"),
                 normalizeRequiredValue(form.getTone(), "실무형"),
                 normalizeRequiredValue(form.getDifficulty(), "중급"),
-                "MANUAL"
+                "MANUAL",
+                true
         );
     }
 
@@ -69,13 +71,34 @@ public class DailyKnowledgeGenerationService {
     })
     public GenerationExecutionResult executeScheduledGeneration(LocalDate targetDate) {
         GenerationSchedule schedule = generationScheduleService.getOrCreateSchedule();
+        if (!Boolean.TRUE.equals(schedule.getAllowDuplicate())) {
+            DailyKnowledge existingKnowledge = dailyKnowledgeRepository
+                    .findTopByKnowledgeDateOrderByIdDesc(targetDate)
+                    .orElse(null);
+            if (existingKnowledge != null) {
+                saveSkippedHistory(
+                        "SCHEDULED",
+                        targetDate,
+                        existingKnowledge.getId(),
+                        ERROR_CODE_ALREADY_EXISTS,
+                        "동일 대상일 데이터가 이미 존재하여 예약 생성을 건너뜁니다."
+                );
+                return GenerationExecutionResult.builder()
+                        .success(true)
+                        .errorCode(ERROR_CODE_ALREADY_EXISTS)
+                        .message("동일 대상일 데이터가 이미 존재하여 예약 생성을 건너뜁니다.")
+                        .createdKnowledgeId(existingKnowledge.getId())
+                        .build();
+            }
+        }
 
         return generateKnowledgeAndPersist(
                 targetDate,
                 schedule.getCategory(),
                 schedule.getTone(),
                 schedule.getDifficulty(),
-                "SCHEDULED"
+                "SCHEDULED",
+                true
         );
     }
 
@@ -172,7 +195,8 @@ public class DailyKnowledgeGenerationService {
             DailyKnowledge savedKnowledge = saveDailyKnowledge(
                     request.getTargetDate(),
                     request.getCategory(),
-                    generatedKnowledgeResult
+                    generatedKnowledgeResult,
+                    true
             );
             saveSuccessHistory("MANUAL", request.getTargetDate(), promptTemplate, request.getPromptContent(), savedKnowledge);
 
@@ -202,7 +226,8 @@ public class DailyKnowledgeGenerationService {
             String category,
             String tone,
             String difficulty,
-            String triggerType
+            String triggerType,
+            boolean updateExistingKnowledge
     ) {
         PromptTemplate promptTemplate = promptTemplateService.getActiveTemplate();
         // LLM 호출 전에 선택된 템플릿과 요청 필드를 결합해 최종 프롬프트를 생성합니다.
@@ -218,7 +243,7 @@ public class DailyKnowledgeGenerationService {
                     difficulty
             );
 
-            DailyKnowledge savedKnowledge = saveDailyKnowledge(targetDate, category, generatedKnowledgeResult);
+            DailyKnowledge savedKnowledge = saveDailyKnowledge(targetDate, category, generatedKnowledgeResult, updateExistingKnowledge);
             saveSuccessHistory(triggerType, targetDate, promptTemplate, renderedPrompt, savedKnowledge);
 
             return GenerationExecutionResult.builder()
@@ -273,11 +298,15 @@ public class DailyKnowledgeGenerationService {
     private DailyKnowledge saveDailyKnowledge(
             LocalDate targetDate,
             String category,
-            GeneratedKnowledgeResult generatedKnowledgeResult
+            GeneratedKnowledgeResult generatedKnowledgeResult,
+            boolean updateExistingKnowledge
     ) {
-        DailyKnowledge existingKnowledge = dailyKnowledgeRepository
-                .findTopByKnowledgeDateOrderByIdDesc(targetDate)
-                .orElse(null);
+        DailyKnowledge existingKnowledge = null;
+        if (updateExistingKnowledge) {
+            existingKnowledge = dailyKnowledgeRepository
+                    .findTopByKnowledgeDateOrderByIdDesc(targetDate)
+                    .orElse(null);
+        }
 
         DailyKnowledge dailyKnowledge = DailyKnowledge.builder()
                 .id(existingKnowledge == null ? null : existingKnowledge.getId())
@@ -324,6 +353,32 @@ public class DailyKnowledgeGenerationService {
      * @date 2026-04-16
      * @desc 실패 이력을 생성 이력 테이블에 저장합니다.
      */
+    /**
+     * @date 2026-04-23
+     * @desc 예약 생성 스킵 사유를 생성 이력 테이블에 저장합니다.
+     */
+    private void saveSkippedHistory(
+            String triggerType,
+            LocalDate targetDate,
+            Long existingKnowledgeId,
+            String errorCode,
+            String reason
+    ) {
+        GenerationHistory history = GenerationHistory.builder()
+                .triggerType(triggerType)
+                .targetDate(targetDate)
+                .status("SKIPPED")
+                .promptTemplateId(null)
+                .createdKnowledgeId(existingKnowledgeId)
+                .title(null)
+                .promptSnapshot(null)
+                .errorMessage(limitErrorMessage("[" + errorCode + "] " + reason))
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        generationHistoryRepository.save(history);
+    }
+
     private void saveFailureHistory(
             String triggerType,
             LocalDate targetDate,

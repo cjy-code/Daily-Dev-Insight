@@ -285,6 +285,7 @@ class AdminPageControllerTest {
                 GenerationSchedule.builder()
                         .id(1L)
                         .enabled(false)
+                        .allowDuplicate(false)
                         .cronExpression("0 0 9 * * *")
                         .category("Backend")
                         .tone("Practical")
