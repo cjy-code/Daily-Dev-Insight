@@ -188,6 +188,7 @@ public class OracleSchemaMigrationRunner {
                 CREATE TABLE crawl_schedule (
                     id NUMBER(19) NOT NULL,
                     is_enabled NUMBER(1) DEFAULT 0 NOT NULL,
+                    allow_duplicate NUMBER(1) DEFAULT 0 NOT NULL,
                     cron_expression VARCHAR2(120) NOT NULL,
                     source_name VARCHAR2(100) NOT NULL,
                     source_url VARCHAR2(500) NOT NULL,
@@ -213,6 +214,7 @@ public class OracleSchemaMigrationRunner {
      * @desc crawl_schedule ?뺤옣 而щ읆(?ㅼ썙???꾨찓????꾩븘?????꾨씫 ??蹂댁젙?⑸땲??
      */
     private void ensureCrawlScheduleExtensionColumns() {
+        ensureCrawlScheduleColumn(COLUMN_ALLOW_DUPLICATE, "ALTER TABLE crawl_schedule ADD (allow_duplicate NUMBER(1) DEFAULT 0 NOT NULL)");
         ensureCrawlScheduleColumn("KEYWORD_MATCH_TYPE", "ALTER TABLE crawl_schedule ADD (keyword_match_type VARCHAR2(10) DEFAULT 'OR' NOT NULL)");
         ensureCrawlScheduleColumn("INCLUDE_KEYWORDS", "ALTER TABLE crawl_schedule ADD (include_keywords VARCHAR2(2000))");
         ensureCrawlScheduleColumn(COLUMN_INCLUDE_KEYWORD_OPERATORS, "ALTER TABLE crawl_schedule ADD (include_keyword_operators VARCHAR2(2000))");

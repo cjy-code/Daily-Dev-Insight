@@ -180,7 +180,12 @@
             </form>
         </section>
 
-        <section class="admin-panel generation-tab-panel" data-tab-panel="schedule" hidden>
+        <section class="admin-panel generation-tab-panel schedule-status-card"
+                 id="crawlScheduleCard"
+                 data-tab-panel="schedule"
+                 th:classappend="${crawlScheduleForm.enabled} ? ' is-active' : ' is-inactive'"
+                 th:attr="data-schedule-active=${crawlScheduleForm.enabled}"
+                 hidden>
             <h3>예약 설정</h3>
             <form method="post" th:action="@{/admin/crawling/schedule}" class="admin-form" id="crawlScheduleFormSection">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -207,9 +212,37 @@
                     <button type="button" class="secondary" data-crawl-preset-apply data-target-form-id="crawlScheduleFormSection">적용</button>
                 </div>
 
-                <label class="checkbox-label">
-                    <input type="checkbox" name="enabled" value="true" th:checked="${crawlScheduleForm.enabled}">예약 실행 활성화
+                <div class="schedule-state-row">
+                    <label class="toggle-switch" for="crawlScheduleEnabledToggle">
+                        <input type="checkbox"
+                               id="crawlScheduleEnabledToggle"
+                               name="enabled"
+                               value="true"
+                               th:checked="${crawlScheduleForm.enabled}">
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-label-text">예약 실행</span>
+                    </label>
+                    <span id="crawlScheduleStatusBadge"
+                          class="status-badge"
+                          th:classappend="${crawlScheduleForm.enabled} ? ' active' : ' inactive'"
+                          th:text="${crawlScheduleForm.enabled} ? '⚡ ACTIVE' : '⏸ INACTIVE'">⚡ ACTIVE</span>
+                </div>
+
+                <label class="toggle-switch subtle" for="crawlScheduleAllowDuplicateToggle">
+                    <input type="checkbox"
+                           id="crawlScheduleAllowDuplicateToggle"
+                           name="allowDuplicate"
+                           value="true"
+                           th:checked="${crawlScheduleForm.allowDuplicate}">
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                    <span class="toggle-label-text">중복 저장 허용 (동일 URL 저장)</span>
                 </label>
+
+                <p class="schedule-soft-disabled-guide" id="crawlScheduleSoftDisabledGuide" hidden>
+                    현재 비활성화 상태입니다. 입력값은 수정할 수 있지만 실행은 되지 않습니다.
+                </p>
+
+                <div id="crawlScheduleEditableFields" class="schedule-editable-fields">
 
                 <label for="crawlCronExpression">Cron 표현식 (초 분 시 일 월 요일)</label>
                 <input type="text" id="crawlCronExpression" name="cronExpression" th:value="${crawlScheduleForm.cronExpression}" required>
@@ -282,6 +315,7 @@
                 <label for="crawlScheduleRetryCount">재시도 횟수</label>
                 <input type="number" id="crawlScheduleRetryCount" name="retryCount" min="0" max="5"
                        th:value="${crawlScheduleForm.retryCount}" required>
+                </div>
 
                 <button type="submit">예약 저장</button>
             </form>

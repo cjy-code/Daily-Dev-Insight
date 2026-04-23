@@ -307,6 +307,7 @@ class AdminPageControllerTest {
                 CrawlSchedule.builder()
                         .id(1L)
                         .enabled(false)
+                        .allowDuplicate(false)
                         .cronExpression("0 0 8 * * *")
                         .sourceName("Hacker News")
                         .sourceUrl("https://hnrss.org/frontpage")

@@ -647,6 +647,7 @@ public class AdminPageController {
     private CrawlScheduleForm toCrawlScheduleForm(CrawlSchedule crawlSchedule) {
         CrawlScheduleForm form = new CrawlScheduleForm();
         form.setEnabled(crawlSchedule.getEnabled());
+        form.setAllowDuplicate(crawlSchedule.getAllowDuplicate());
         form.setCronExpression(crawlSchedule.getCronExpression());
         form.setSourceName(crawlSchedule.getSourceName());
         form.setSourceUrl(crawlSchedule.getSourceUrl());

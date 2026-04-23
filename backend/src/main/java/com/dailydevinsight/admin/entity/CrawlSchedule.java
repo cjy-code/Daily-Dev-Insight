@@ -26,6 +26,9 @@ public class CrawlSchedule {
     @Column(name = "is_enabled", nullable = false)
     private Boolean enabled;
 
+    @Column(name = "allow_duplicate", nullable = false)
+    private Boolean allowDuplicate;
+
     @Column(name = "cron_expression", nullable = false, length = 120)
     private String cronExpression;
 

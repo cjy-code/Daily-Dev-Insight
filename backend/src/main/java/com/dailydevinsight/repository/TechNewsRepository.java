@@ -24,6 +24,8 @@ public interface TechNewsRepository extends JpaRepository<TechNews, Long> {
 
     boolean existsByUrl(String url);
 
+    List<TechNews> findByUrlIn(List<String> urls);
+
     @Query("select coalesce(sum(n.viewCount), 0) from TechNews n")
     long sumViewCount();
 

@@ -521,6 +521,59 @@
     }
 
     /**
+     * @date 2026-04-23
+     * @desc 크롤링 예약 토글 상태에 따라 카드/배지/입력 영역 표시를 동기화합니다.
+     */
+    function bindCrawlScheduleToggleUi() {
+        const card = document.getElementById('crawlScheduleCard');
+        const scheduleForm = document.getElementById('crawlScheduleFormSection');
+        const enabledToggle = document.getElementById('crawlScheduleEnabledToggle');
+        const allowDuplicateToggle = document.getElementById('crawlScheduleAllowDuplicateToggle');
+        const statusBadge = document.getElementById('crawlScheduleStatusBadge');
+        const editableFields = document.getElementById('crawlScheduleEditableFields');
+        const softDisabledGuide = document.getElementById('crawlScheduleSoftDisabledGuide');
+        if (!card || !scheduleForm || !enabledToggle || !allowDuplicateToggle || !statusBadge || !editableFields || !softDisabledGuide) {
+            return;
+        }
+
+        const controllableFields = editableFields.querySelectorAll('input, select, textarea');
+
+        /**
+         * @date 2026-04-23
+         * @desc 크롤링 예약 활성 상태에 맞춰 UI 상태를 반영합니다.
+         */
+        function applyScheduleUiState(isActive) {
+            card.classList.toggle('is-active', isActive);
+            card.classList.toggle('is-inactive', !isActive);
+            card.dataset.scheduleActive = String(isActive);
+
+            statusBadge.classList.toggle('active', isActive);
+            statusBadge.classList.toggle('inactive', !isActive);
+            statusBadge.textContent = isActive ? '⚡ ACTIVE' : '⏸ INACTIVE';
+
+            editableFields.classList.toggle('is-soft-disabled', !isActive);
+            softDisabledGuide.hidden = isActive;
+            allowDuplicateToggle.disabled = !isActive;
+
+            controllableFields.forEach((field) => {
+                field.setAttribute('aria-disabled', String(!isActive));
+            });
+        }
+
+        applyScheduleUiState(enabledToggle.checked);
+
+        enabledToggle.addEventListener('change', () => {
+            const isActive = enabledToggle.checked;
+            applyScheduleUiState(isActive);
+            if (isActive) {
+                showAdminToast('예약이 활성화되었습니다', 'success');
+                return;
+            }
+            showAdminToast('예약이 비활성화되었습니다', 'success');
+        });
+    }
+
+    /**
      * @date 2026-04-16
      * @desc 기능 설명을 처리합니다.
      */
@@ -1509,6 +1562,7 @@
         bindCrawlPresetModal();
         bindGenerationTabs();
         bindGenerationScheduleToggleUi();
+        bindCrawlScheduleToggleUi();
         bindGenerationActionGuard();
         bindPromptTemplateSaveLimitGuard();
         bindPromptTemplateToggleConfirm();

@@ -10,6 +10,7 @@ import java.util.List;
 public class CrawlScheduleForm {
 
     private Boolean enabled;
+    private Boolean allowDuplicate;
     private String cronExpression;
     private String sourceName;
     private String sourceUrl;
