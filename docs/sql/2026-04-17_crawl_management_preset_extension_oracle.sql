@@ -6,6 +6,19 @@ DECLARE
 BEGIN
     SELECT COUNT(*) INTO v_column_count
     FROM user_tab_columns
+    WHERE table_name = 'CRAWL_SCHEDULE' AND column_name = 'ALLOW_DUPLICATE';
+
+    IF v_column_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE crawl_schedule ADD (allow_duplicate NUMBER(1) DEFAULT 0 NOT NULL)';
+    END IF;
+END;
+/
+
+DECLARE
+    v_column_count NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_column_count
+    FROM user_tab_columns
     WHERE table_name = 'CRAWL_SCHEDULE' AND column_name = 'KEYWORD_MATCH_TYPE';
 
     IF v_column_count = 0 THEN

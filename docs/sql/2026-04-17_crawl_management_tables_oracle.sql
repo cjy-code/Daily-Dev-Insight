@@ -4,6 +4,7 @@
 CREATE TABLE crawl_schedule (
     id NUMBER(19) NOT NULL,
     is_enabled NUMBER(1) DEFAULT 0 NOT NULL,
+    allow_duplicate NUMBER(1) DEFAULT 0 NOT NULL,
     cron_expression VARCHAR2(120) NOT NULL,
     source_name VARCHAR2(100) NOT NULL,
     source_url VARCHAR2(500) NOT NULL,

@@ -8,6 +8,7 @@ import lombok.Setter;
 public class ScheduleForm {
 
     private Boolean enabled;
+    private Boolean allowDuplicate;
     private String cronExpression;
     private String category;
     private String tone;

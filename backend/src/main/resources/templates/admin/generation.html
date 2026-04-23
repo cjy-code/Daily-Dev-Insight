@@ -143,11 +143,47 @@
             </form>
         </section>
 
-        <section class="admin-panel generation-tab-panel" data-tab-panel="schedule" hidden>
+        <section class="admin-panel generation-tab-panel schedule-status-card"
+                 id="generationScheduleCard"
+                 data-tab-panel="schedule"
+                 th:classappend="${scheduleForm.enabled} ? ' is-active' : ' is-inactive'"
+                 th:attr="data-schedule-active=${scheduleForm.enabled}"
+                 hidden>
             <h3>예약 생성</h3>
-            <form method="post" th:action="@{/admin/schedule}" class="admin-form">
+            <form method="post" th:action="@{/admin/schedule}" class="admin-form" id="generationScheduleForm">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <label class="checkbox-label"><input type="checkbox" name="enabled" value="true" th:checked="${scheduleForm.enabled}">예약 실행 활성화</label>
+
+                <div class="schedule-state-row">
+                    <label class="toggle-switch" for="scheduleEnabledToggle">
+                        <input type="checkbox"
+                               id="scheduleEnabledToggle"
+                               name="enabled"
+                               value="true"
+                               th:checked="${scheduleForm.enabled}">
+                        <span class="toggle-slider" aria-hidden="true"></span>
+                        <span class="toggle-label-text">예약 실행</span>
+                    </label>
+                    <span id="scheduleStatusBadge"
+                          class="status-badge"
+                          th:classappend="${scheduleForm.enabled} ? ' active' : ' inactive'"
+                          th:text="${scheduleForm.enabled} ? '⚡ ACTIVE' : '⏸ INACTIVE'">⚡ ACTIVE</span>
+                </div>
+
+                <label class="toggle-switch subtle" for="scheduleAllowDuplicateToggle">
+                    <input type="checkbox"
+                           id="scheduleAllowDuplicateToggle"
+                           name="allowDuplicate"
+                           value="true"
+                           th:checked="${scheduleForm.allowDuplicate}">
+                    <span class="toggle-slider" aria-hidden="true"></span>
+                    <span class="toggle-label-text">중복 허용 (동일 날짜 재생성)</span>
+                </label>
+
+                <p class="schedule-soft-disabled-guide" id="scheduleSoftDisabledGuide" hidden>
+                    현재 비활성화 상태입니다. 입력값은 수정할 수 있지만 실행은 되지 않습니다.
+                </p>
+
+                <div id="scheduleEditableFields" class="schedule-editable-fields">
                 <label for="cronExpression">Cron 표현식 (초 분 시 일 월 요일)</label>
                 <input type="text" id="cronExpression" name="cronExpression" th:value="${scheduleForm.cronExpression}" required>
                 <label for="scheduleCategory">카테고리</label>
@@ -156,6 +192,7 @@
                 <input type="text" id="scheduleTone" name="tone" th:value="${scheduleForm.tone}" required>
                 <label for="scheduleDifficulty">난이도</label>
                 <input type="text" id="scheduleDifficulty" name="difficulty" th:value="${scheduleForm.difficulty}" required>
+                </div>
                 <button type="submit">예약 저장</button>
             </form>
         </section>
@@ -181,7 +218,7 @@
                     <td th:text="${history.targetDate}">-</td>
                     <td>
                         <span class="history-status-badge"
-                              th:classappend="${history.status == 'SUCCESS'} ? ' success' : ' failed'"
+                              th:classappend="${history.status == 'SUCCESS'} ? ' success' : (${history.status == 'SKIPPED'} ? ' skipped' : ' failed')"
                               th:text="${history.status}">SUCCESS</span>
                     </td>
                     <td th:text="${history.createdKnowledgeId}">12</td>

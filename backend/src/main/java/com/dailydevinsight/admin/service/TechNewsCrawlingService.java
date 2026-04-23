@@ -21,8 +21,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -75,6 +77,7 @@ public class TechNewsCrawlingService {
                 normalizeTimeoutSeconds(form.getConnectTimeoutSeconds()),
                 normalizeTimeoutSeconds(form.getReadTimeoutSeconds()),
                 normalizeRetryCount(form.getRetryCount()),
+                false,
                 "MANUAL"
         );
     }
@@ -167,6 +170,7 @@ public class TechNewsCrawlingService {
                 normalizeTimeoutSeconds(schedule.getConnectTimeoutSeconds()),
                 normalizeTimeoutSeconds(schedule.getReadTimeoutSeconds()),
                 normalizeRetryCount(schedule.getRetryCount()),
+                Boolean.TRUE.equals(schedule.getAllowDuplicate()),
                 "SCHEDULED"
         );
     }
@@ -188,6 +192,7 @@ public class TechNewsCrawlingService {
             int connectTimeoutSeconds,
             int readTimeoutSeconds,
             int retryCount,
+            boolean allowDuplicate,
             String triggerType
     ) {
         int normalizedMaxArticles = normalizeMaxArticles(maxArticles);
@@ -221,7 +226,7 @@ public class TechNewsCrawlingService {
                     keywordMatchType,
                     targetDomains
             );
-            List<TechNews> insertTargets = buildInsertTargets(targetDate, sourceName, filteredArticles);
+            List<TechNews> insertTargets = buildInsertTargets(targetDate, sourceName, filteredArticles, allowDuplicate);
             if (!insertTargets.isEmpty()) {
                 techNewsRepository.saveAll(insertTargets);
             }
@@ -399,15 +404,26 @@ public class TechNewsCrawlingService {
      * @date 2026-04-17
      * @desc 신규 기사만 선별하여 DB 저장용 엔티티 목록으로 변환합니다.
      */
-    private List<TechNews> buildInsertTargets(LocalDate targetDate, String sourceName, List<NewsArticleData> collectedArticles) {
+    private List<TechNews> buildInsertTargets(
+            LocalDate targetDate,
+            String sourceName,
+            List<NewsArticleData> collectedArticles,
+            boolean allowDuplicate
+    ) {
         List<TechNews> insertTargets = new ArrayList<>();
+        Set<String> existingUrls = allowDuplicate ? Collections.emptySet() : findExistingUrls(collectedArticles);
+        Set<String> queuedUrls = new HashSet<>();
         long nextId = resolveNextNewsId();
         for (NewsArticleData article : collectedArticles) {
             if (article.getUrl() == null || article.getUrl().isBlank()) {
                 continue;
             }
-            if (techNewsRepository.existsByUrl(article.getUrl().trim())) {
-                continue;
+            String normalizedUrl = article.getUrl().trim();
+            if (!allowDuplicate) {
+                if (existingUrls.contains(normalizedUrl) || queuedUrls.contains(normalizedUrl)) {
+                    continue;
+                }
+                queuedUrls.add(normalizedUrl);
             }
 
             String thumbnailPath = resolveThumbnailPath(article, targetDate);
@@ -416,7 +432,7 @@ public class TechNewsCrawlingService {
                     .newsDate(targetDate)
                     .source(limitLength(defaultIfBlank(article.getSourceName(), sourceName), MAX_SOURCE_TEXT_LENGTH))
                     .title(limitLength(defaultIfBlank(article.getTitle(), "제목 없음"), MAX_TITLE_LENGTH))
-                    .url(limitLength(article.getUrl().trim(), MAX_URL_LENGTH))
+                    .url(limitLength(normalizedUrl, MAX_URL_LENGTH))
                     .attachmentImagePath(normalizeOptionalText(thumbnailPath))
                     .summary(defaultIfBlank(article.getSummary(), "요약 정보가 없습니다."))
                     .viewCount(0L)
@@ -426,6 +442,27 @@ public class TechNewsCrawlingService {
             nextId++;
         }
         return insertTargets;
+    }
+
+    /**
+     * @date 2026-04-23
+     * @desc 수집 기사 URL 목록으로 기존 저장 URL 집합을 조회합니다.
+     */
+    private Set<String> findExistingUrls(List<NewsArticleData> collectedArticles) {
+        List<String> candidateUrls = collectedArticles.stream()
+                .map(NewsArticleData::getUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
+        if (candidateUrls.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return techNewsRepository.findByUrlIn(candidateUrls).stream()
+                .map(TechNews::getUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .map(String::trim)
+                .collect(Collectors.toSet());
     }
 
     /**

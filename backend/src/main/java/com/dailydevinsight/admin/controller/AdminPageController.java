@@ -611,6 +611,7 @@ public class AdminPageController {
     private ScheduleForm toScheduleForm(GenerationSchedule generationSchedule) {
         ScheduleForm form = new ScheduleForm();
         form.setEnabled(generationSchedule.getEnabled());
+        form.setAllowDuplicate(generationSchedule.getAllowDuplicate());
         form.setCronExpression(generationSchedule.getCronExpression());
         form.setCategory(generationSchedule.getCategory());
         form.setTone(generationSchedule.getTone());
@@ -646,6 +647,7 @@ public class AdminPageController {
     private CrawlScheduleForm toCrawlScheduleForm(CrawlSchedule crawlSchedule) {
         CrawlScheduleForm form = new CrawlScheduleForm();
         form.setEnabled(crawlSchedule.getEnabled());
+        form.setAllowDuplicate(crawlSchedule.getAllowDuplicate());
         form.setCronExpression(crawlSchedule.getCronExpression());
         form.setSourceName(crawlSchedule.getSourceName());
         form.setSourceUrl(crawlSchedule.getSourceUrl());
