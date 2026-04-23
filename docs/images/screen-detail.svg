@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8f9fc"/>
+      <stop offset="100%" stop-color="#f2f6fa"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="40" y="30" width="1200" height="70" rx="12" fill="#ffffff" stroke="#d9e2ea"/>
+  <text x="70" y="72" font-family="Segoe UI, Arial, sans-serif" font-size="28" font-weight="700" fill="#1e293b">Insight Detail</text>
+  <rect x="40" y="120" width="1200" height="220" rx="12" fill="#ffffff" stroke="#d9e2ea"/>
+  <text x="70" y="165" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="600" fill="#1e293b">Title / Source / Published Date</text>
+  <text x="70" y="210" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#475569">Summary and content area</text>
+  <rect x="40" y="360" width="360" height="90" rx="12" fill="#ffffff" stroke="#d9e2ea"/>
+  <text x="70" y="415" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#334155">Views</text>
+  <rect x="420" y="360" width="400" height="90" rx="12" fill="#ffffff" stroke="#d9e2ea"/>
+  <text x="450" y="415" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#334155">Like / Bookmark Toggle</text>
+  <rect x="840" y="360" width="400" height="90" rx="12" fill="#ffffff" stroke="#d9e2ea"/>
+  <text x="870" y="415" font-family="Segoe UI, Arial, sans-serif" font-size="21" fill="#334155">Share / Actions</text>
+  <rect x="40" y="470" width="1200" height="210" rx="12" fill="#ffffff" stroke="#d9e2ea"/>
+  <text x="70" y="515" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="600" fill="#1e293b">Comments / Replies</text>
+  <rect x="70" y="535" width="1140" height="45" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="70" y="590" width="1140" height="45" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="40" y="705" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#64748b">README Preview Placeholder - replace with real screenshot</text>
+</svg>
