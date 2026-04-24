@@ -10,6 +10,7 @@ import com.dailydevinsight.entity.DailyKnowledge;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,13 +38,15 @@ class DailyKnowledgeGenerationServiceTest {
         GenerationHistoryRepository generationHistoryRepository = mock(GenerationHistoryRepository.class);
         DailyKnowledgeRepository dailyKnowledgeRepository = mock(DailyKnowledgeRepository.class);
         LlmGenerationClient llmGenerationClient = mock(LlmGenerationClient.class);
+        ObjectProvider<ImageGenerationClient> imageGenerationClientProvider = mock(ObjectProvider.class);
 
         DailyKnowledgeGenerationService service = new DailyKnowledgeGenerationService(
                 promptTemplateService,
                 generationScheduleService,
                 generationHistoryRepository,
                 dailyKnowledgeRepository,
-                llmGenerationClient
+                llmGenerationClient,
+                imageGenerationClientProvider
         );
 
         LocalDate targetDate = LocalDate.of(2026, 4, 23);
@@ -77,13 +80,15 @@ class DailyKnowledgeGenerationServiceTest {
         GenerationHistoryRepository generationHistoryRepository = mock(GenerationHistoryRepository.class);
         DailyKnowledgeRepository dailyKnowledgeRepository = mock(DailyKnowledgeRepository.class);
         LlmGenerationClient llmGenerationClient = mock(LlmGenerationClient.class);
+        ObjectProvider<ImageGenerationClient> imageGenerationClientProvider = mock(ObjectProvider.class);
 
         DailyKnowledgeGenerationService service = new DailyKnowledgeGenerationService(
                 promptTemplateService,
                 generationScheduleService,
                 generationHistoryRepository,
                 dailyKnowledgeRepository,
-                llmGenerationClient
+                llmGenerationClient,
+                imageGenerationClientProvider
         );
 
         LocalDate targetDate = LocalDate.of(2026, 4, 23);

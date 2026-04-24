@@ -6,6 +6,8 @@ import com.dailydevinsight.admin.dto.CrawlPresetForm;
 import com.dailydevinsight.admin.dto.CrawlPreviewResponse;
 import com.dailydevinsight.admin.dto.GenerationRequestForm;
 import com.dailydevinsight.admin.dto.GenerationExecutionResult;
+import com.dailydevinsight.admin.dto.GenerationImageRefreshRequest;
+import com.dailydevinsight.admin.dto.GenerationImageRefreshResponse;
 import com.dailydevinsight.admin.dto.GenerationPreviewRequest;
 import com.dailydevinsight.admin.dto.GenerationPreviewResponse;
 import com.dailydevinsight.admin.dto.GenerationSaveRequest;
@@ -488,6 +490,7 @@ public class AdminPageController {
         model.addAttribute("difficulty", difficulty);
         model.addAttribute("activeTemplate", activeTemplate);
         model.addAttribute("renderedPrompt", renderedPrompt);
+        model.addAttribute("imagePromptTemplate", dailyKnowledgeGenerationService.buildImagePromptTemplateForManual(activeTemplate));
         return "admin/generation-compose";
     }
 
@@ -499,6 +502,16 @@ public class AdminPageController {
     @ResponseBody
     public ResponseEntity<GenerationPreviewResponse> previewManualGeneration(@RequestBody GenerationPreviewRequest request) {
         return ResponseEntity.ok(dailyKnowledgeGenerationService.previewManualGeneration(request));
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 수동 생성 확인 화면에서 LLM 결과 이미지 미리보기를 다시 생성합니다.
+     */
+    @PostMapping("/generate/preview/image-refresh")
+    @ResponseBody
+    public ResponseEntity<GenerationImageRefreshResponse> refreshPreviewImage(@RequestBody GenerationImageRefreshRequest request) {
+        return ResponseEntity.ok(dailyKnowledgeGenerationService.refreshPreviewImage(request));
     }
 
     /**

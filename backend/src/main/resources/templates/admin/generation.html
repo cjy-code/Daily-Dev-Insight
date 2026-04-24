@@ -272,6 +272,35 @@
 
                         <label for="templateContent">프롬프트 본문</label>
                         <textarea id="templateContent" name="templateContent" rows="10" required></textarea>
+
+                        <section class="prompt-template-image-settings" aria-label="이미지 생성 설정">
+                            <h4>이미지 생성 설정</h4>
+                            <label class="toggle-switch subtle" for="templateImageEnabled">
+                                <input type="checkbox" id="templateImageEnabled">
+                                <span class="toggle-slider" aria-hidden="true"></span>
+                                <span class="toggle-label-text">이미지 생성 사용</span>
+                            </label>
+
+                            <div class="prompt-template-image-settings-grid">
+                                <div>
+                                    <label for="templateImageQuality">이미지 품질</label>
+                                    <select id="templateImageQuality">
+                                        <option value="low">low</option>
+                                        <option value="medium">medium</option>
+                                        <option value="high">high</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="templateImageMaxTokens">이미지 최대 토큰 예산</label>
+                                    <input type="number" id="templateImageMaxTokens" min="100" max="8000" step="100" value="1200">
+                                </div>
+                            </div>
+
+                            <label for="templateImagePromptTemplate">이미지 프롬프트 템플릿</label>
+                            <textarea id="templateImagePromptTemplate" rows="4"
+                                      placeholder="예: 제목(${title})과 요약(${summary})을 기반으로 기술 블로그 썸네일 스타일 이미지를 생성"></textarea>
+                            <p class="prompt-template-image-guide">이미지 생성이 OFF이면 아래 프롬프트 템플릿은 사용하지 않습니다.</p>
+                        </section>
                     </div>
                     <footer class="history-error-modal-footer">
                         <button type="button" class="secondary" id="cancelPromptTemplateModalButton">취소</button>

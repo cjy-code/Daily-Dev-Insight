@@ -1,5 +1,142 @@
 ﻿(function () {
     /**
+     * @date 2026-04-24
+     * @desc 이미지 생성 설정 기본값을 반환합니다.
+     */
+    function createDefaultTemplateImageSettings() {
+        return {
+            enabled: false,
+            quality: 'medium',
+            maxTokens: 1200,
+            promptTemplate: ''
+        };
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 이미지 생성 설정 값을 유효한 형태로 정규화합니다.
+     */
+    function normalizeTemplateImageSettings(settings) {
+        const defaultSettings = createDefaultTemplateImageSettings();
+        const quality = String((settings && settings.quality) || defaultSettings.quality).toLowerCase();
+        const parsedMaxTokens = Number((settings && settings.maxTokens) || defaultSettings.maxTokens);
+        return {
+            enabled: Boolean(settings && settings.enabled),
+            quality: ['low', 'medium', 'high'].includes(quality) ? quality : defaultSettings.quality,
+            maxTokens: Number.isFinite(parsedMaxTokens)
+                ? Math.min(8000, Math.max(100, Math.round(parsedMaxTokens)))
+                : defaultSettings.maxTokens,
+            promptTemplate: String((settings && settings.promptTemplate) || '').trim()
+        };
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 저장된 템플릿 문자열을 프롬프트 본문/이미지 설정으로 분리합니다.
+     */
+    function parsePromptTemplateContent(rawContent) {
+        const defaultResult = {
+            promptTemplate: '',
+            imageSettings: createDefaultTemplateImageSettings()
+        };
+        const normalizedRawContent = String(rawContent || '');
+        if (!normalizedRawContent.trim()) {
+            return defaultResult;
+        }
+
+        try {
+            const parsed = JSON.parse(normalizedRawContent);
+            if (parsed && typeof parsed === 'object' && typeof parsed.promptTemplate === 'string') {
+                return {
+                    promptTemplate: parsed.promptTemplate,
+                    imageSettings: normalizeTemplateImageSettings(parsed.imageSettings)
+                };
+            }
+        } catch (error) {
+            // 기존 평문 템플릿 포맷과 호환을 위해 무시하고 계속 진행합니다.
+        }
+
+        return {
+            promptTemplate: normalizedRawContent,
+            imageSettings: createDefaultTemplateImageSettings()
+        };
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 프롬프트 본문/이미지 설정을 저장 문자열로 직렬화합니다.
+     */
+    function serializePromptTemplateContent(promptTemplate, imageSettings) {
+        const payload = {
+            promptTemplate: String(promptTemplate || ''),
+            imageSettings: normalizeTemplateImageSettings(imageSettings)
+        };
+        return JSON.stringify(payload);
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 이미지 생성 설정 입력값을 폼에 반영합니다.
+     */
+    function setTemplateImageSettingsFormValue(settings) {
+        const imageEnabledField = document.getElementById('templateImageEnabled');
+        const imageQualityField = document.getElementById('templateImageQuality');
+        const imageMaxTokensField = document.getElementById('templateImageMaxTokens');
+        const imagePromptTemplateField = document.getElementById('templateImagePromptTemplate');
+        if (!imageEnabledField || !imageQualityField || !imageMaxTokensField || !imagePromptTemplateField) {
+            return;
+        }
+
+        const normalizedSettings = normalizeTemplateImageSettings(settings);
+        imageEnabledField.checked = normalizedSettings.enabled;
+        imageQualityField.value = normalizedSettings.quality;
+        imageMaxTokensField.value = String(normalizedSettings.maxTokens);
+        imagePromptTemplateField.value = normalizedSettings.promptTemplate;
+        syncTemplateImageSettingsEnabledState();
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 폼에서 이미지 생성 설정 입력값을 읽어옵니다.
+     */
+    function getTemplateImageSettingsFormValue() {
+        const imageEnabledField = document.getElementById('templateImageEnabled');
+        const imageQualityField = document.getElementById('templateImageQuality');
+        const imageMaxTokensField = document.getElementById('templateImageMaxTokens');
+        const imagePromptTemplateField = document.getElementById('templateImagePromptTemplate');
+        if (!imageEnabledField || !imageQualityField || !imageMaxTokensField || !imagePromptTemplateField) {
+            return createDefaultTemplateImageSettings();
+        }
+
+        return normalizeTemplateImageSettings({
+            enabled: imageEnabledField.checked,
+            quality: imageQualityField.value,
+            maxTokens: imageMaxTokensField.value,
+            promptTemplate: imagePromptTemplateField.value
+        });
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 이미지 생성 ON/OFF 상태에 따라 입력 활성 상태를 동기화합니다.
+     */
+    function syncTemplateImageSettingsEnabledState() {
+        const imageEnabledField = document.getElementById('templateImageEnabled');
+        const imageQualityField = document.getElementById('templateImageQuality');
+        const imageMaxTokensField = document.getElementById('templateImageMaxTokens');
+        const imagePromptTemplateField = document.getElementById('templateImagePromptTemplate');
+        const imageSettingsContainer = document.querySelector('.prompt-template-image-settings');
+        if (!imageEnabledField || !imageQualityField || !imageMaxTokensField || !imagePromptTemplateField || !imageSettingsContainer) {
+            return;
+        }
+
+        const enabled = imageEnabledField.checked;
+        imageQualityField.disabled = !enabled;
+        imageMaxTokensField.disabled = !enabled;
+        imagePromptTemplateField.disabled = !enabled;
+        imageSettingsContainer.classList.toggle('is-disabled', !enabled);
+    }
+    /**
      * @date 2026-04-15
      * @desc 기능 설명을 처리합니다.
      */
@@ -23,11 +160,13 @@
         const nameField = document.getElementById('promptName');
         const descriptionField = document.getElementById('promptDescription');
         const contentField = document.getElementById('templateContent');
+        const parsedTemplateContent = parsePromptTemplateContent(dataset.content || '');
 
         idField.value = dataset.id || '';
         nameField.value = dataset.name || '';
         descriptionField.value = dataset.description || '';
-        contentField.value = dataset.content || '';
+        contentField.value = parsedTemplateContent.promptTemplate;
+        setTemplateImageSettingsFormValue(parsedTemplateContent.imageSettings);
     }
 
     /**
@@ -42,6 +181,7 @@
         }
         form.reset();
         idField.value = '';
+        setTemplateImageSettingsFormValue(createDefaultTemplateImageSettings());
     }
 
     /**
@@ -59,10 +199,10 @@
         if (mode === 'create') {
             clearPromptTemplateForm();
             title.textContent = '프롬프트 템플릿 신규 등록';
-            saveButton.textContent = 'Save';
+            saveButton.textContent = '저장';
         } else {
             title.textContent = '프롬프트 템플릿 편집';
-            saveButton.textContent = 'Update';
+            saveButton.textContent = '수정';
         }
 
         overlay.classList.add('is-open');
@@ -163,10 +303,10 @@
         if (mode === 'create') {
             clearCrawlPresetModalForm();
             title.textContent = '크롤링 프리셋 신규 등록';
-            saveButton.textContent = 'Save';
+            saveButton.textContent = '저장';
         } else {
             title.textContent = '크롤링 프리셋 편집';
-            saveButton.textContent = 'Update';
+            saveButton.textContent = '수정';
         }
 
         overlay.classList.add('is-open');
@@ -260,6 +400,39 @@
             window.setTimeout(updatePromptTemplateSaveButtonState, 0);
         });
         updatePromptTemplateSaveButtonState();
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 이미지 생성 설정 영역의 활성/비활성 UI를 바인딩합니다.
+     */
+    function bindPromptTemplateImageSettings() {
+        const imageEnabledField = document.getElementById('templateImageEnabled');
+        if (!imageEnabledField) {
+            return;
+        }
+
+        imageEnabledField.addEventListener('change', () => {
+            syncTemplateImageSettingsEnabledState();
+        });
+        syncTemplateImageSettingsEnabledState();
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 프롬프트 템플릿 저장 시 이미지 설정을 함께 직렬화합니다.
+     */
+    function bindPromptTemplateFormSubmitSerializer() {
+        const promptTemplateForm = document.getElementById('promptTemplateForm');
+        const templateContentField = document.getElementById('templateContent');
+        if (!promptTemplateForm || !templateContentField) {
+            return;
+        }
+
+        promptTemplateForm.addEventListener('submit', () => {
+            const imageSettings = getTemplateImageSettingsFormValue();
+            templateContentField.value = serializePromptTemplateContent(templateContentField.value, imageSettings);
+        });
     }
 
     /**
@@ -1559,6 +1732,8 @@
     function initializeAdminPage() {
         bindTemplateLoadButtons();
         bindPromptTemplateModal();
+        bindPromptTemplateImageSettings();
+        bindPromptTemplateFormSubmitSerializer();
         bindCrawlPresetModal();
         bindGenerationTabs();
         bindGenerationScheduleToggleUi();
@@ -1581,4 +1756,3 @@
 
     initializeAdminPage();
 })();
-
