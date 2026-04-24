@@ -17,4 +17,5 @@ public class GenerationSaveRequest {
     private String generatedTitle;
     private String generatedSummary;
     private String generatedDetail;
+    private String generatedImageUrl;
 }

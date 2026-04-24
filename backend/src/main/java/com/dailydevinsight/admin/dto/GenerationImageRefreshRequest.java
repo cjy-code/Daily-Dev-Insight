@@ -7,12 +7,12 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class GenerationPreviewRequest {
+public class GenerationImageRefreshRequest {
 
     private LocalDate targetDate;
     private String category;
-    private String tone;
-    private String difficulty;
-    private String promptContent;
+    private String generatedTitle;
+    private String generatedSummary;
+    private String generatedDetail;
     private String imagePromptTemplate;
 }

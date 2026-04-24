@@ -1,7 +1,11 @@
 package com.dailydevinsight.admin.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
 import com.dailydevinsight.admin.dto.GenerationExecutionResult;
+import com.dailydevinsight.admin.dto.GenerationImageRefreshRequest;
+import com.dailydevinsight.admin.dto.GenerationImageRefreshResponse;
 import com.dailydevinsight.admin.dto.GenerationPreviewRequest;
 import com.dailydevinsight.admin.dto.GenerationPreviewResponse;
 import com.dailydevinsight.admin.dto.GenerationRequestForm;
@@ -16,8 +20,10 @@ import com.dailydevinsight.repository.DailyKnowledgeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -25,6 +31,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class DailyKnowledgeGenerationService {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final int MAX_MANUAL_TEXT_LENGTH = 50;
     private static final int MAX_CATEGORY_LENGTH = 50;
     private static final int MAX_TITLE_LENGTH = 255;
@@ -35,6 +42,7 @@ public class DailyKnowledgeGenerationService {
     private final GenerationHistoryRepository generationHistoryRepository;
     private final DailyKnowledgeRepository dailyKnowledgeRepository;
     private final LlmGenerationClient llmGenerationClient;
+    private final ObjectProvider<ImageGenerationClient> imageGenerationClientProvider;
 
     /**
      * @date 2026-04-16
@@ -112,6 +120,18 @@ public class DailyKnowledgeGenerationService {
     }
 
     /**
+     * @date 2026-04-24
+     * @desc 수동 생성 확인 창에서 기본으로 노출할 이미지 프롬프트 템플릿을 반환합니다.
+     */
+    public String buildImagePromptTemplateForManual(PromptTemplate activeTemplate) {
+        if (activeTemplate == null) {
+            return "";
+        }
+        TemplateImageSettings imageSettings = resolveTemplateImageSettings(activeTemplate.getTemplateContent());
+        return defaultIfBlank(imageSettings.promptTemplate(), "");
+    }
+
+    /**
      * @date 2026-04-16
      * @desc 수동 생성 새창의 LLM 미리보기 결과를 생성하고 이전 결과를 함께 반환합니다.
      */
@@ -129,6 +149,15 @@ public class DailyKnowledgeGenerationService {
             DailyKnowledge previousKnowledge = dailyKnowledgeRepository
                     .findTopByKnowledgeDateOrderByIdDesc(request.getTargetDate())
                     .orElse(null);
+            PromptTemplate activeTemplate = promptTemplateService.getActiveTemplate();
+            TemplateImageSettings imageSettings = resolveTemplateImageSettings(activeTemplate.getTemplateContent());
+            String generatedImageUrl = tryGeneratePreviewImage(
+                    imageSettings,
+                    generatedKnowledge,
+                    request.getTargetDate(),
+                    request.getCategory(),
+                    request.getImagePromptTemplate()
+            );
 
             return GenerationPreviewResponse.builder()
                     .success(true)
@@ -137,10 +166,12 @@ public class DailyKnowledgeGenerationService {
                     .generatedTitle(defaultIfBlank(generatedKnowledge.getTitle(), "제목 없음"))
                     .generatedSummary(defaultIfBlank(generatedKnowledge.getSummary(), "요약 정보가 없습니다."))
                     .generatedDetail(defaultIfBlank(generatedKnowledge.getDetail(), "상세 내용이 없습니다."))
+                    .generatedImageUrl(generatedImageUrl)
                     .hasPreviousResult(previousKnowledge != null)
                     .previousTitle(previousKnowledge == null ? "" : defaultIfBlank(previousKnowledge.getTitle(), ""))
                     .previousSummary(previousKnowledge == null ? "" : defaultIfBlank(previousKnowledge.getSummary(), ""))
                     .previousDetail(previousKnowledge == null ? "" : defaultIfBlank(previousKnowledge.getDetail(), ""))
+                    .previousImageUrl(previousKnowledge == null ? "" : defaultIfBlank(previousKnowledge.getAttachmentImagePath(), ""))
                     .build();
         } catch (LlmClientException llmClientException) {
             return GenerationPreviewResponse.builder()
@@ -150,10 +181,12 @@ public class DailyKnowledgeGenerationService {
                     .generatedTitle("")
                     .generatedSummary("")
                     .generatedDetail("")
+                    .generatedImageUrl("")
                     .hasPreviousResult(false)
                     .previousTitle("")
                     .previousSummary("")
                     .previousDetail("")
+                    .previousImageUrl("")
                     .build();
         } catch (Exception exception) {
             return GenerationPreviewResponse.builder()
@@ -163,10 +196,12 @@ public class DailyKnowledgeGenerationService {
                     .generatedTitle("")
                     .generatedSummary("")
                     .generatedDetail("")
+                    .generatedImageUrl("")
                     .hasPreviousResult(false)
                     .previousTitle("")
                     .previousSummary("")
                     .previousDetail("")
+                    .previousImageUrl("")
                     .build();
         }
     }
@@ -196,6 +231,7 @@ public class DailyKnowledgeGenerationService {
                     request.getTargetDate(),
                     request.getCategory(),
                     generatedKnowledgeResult,
+                    resolveGeneratedImagePath(request.getGeneratedImageUrl()),
                     true
             );
             saveSuccessHistory("MANUAL", request.getTargetDate(), promptTemplate, request.getPromptContent(), savedKnowledge);
@@ -242,8 +278,18 @@ public class DailyKnowledgeGenerationService {
                     tone,
                     difficulty
             );
+            TemplateImageSettings imageSettings = resolveTemplateImageSettings(promptTemplate.getTemplateContent());
+            String generatedImagePath = resolveGeneratedImagePath(
+                    tryGeneratePreviewImage(imageSettings, generatedKnowledgeResult, targetDate, category, "")
+            );
 
-            DailyKnowledge savedKnowledge = saveDailyKnowledge(targetDate, category, generatedKnowledgeResult, updateExistingKnowledge);
+            DailyKnowledge savedKnowledge = saveDailyKnowledge(
+                    targetDate,
+                    category,
+                    generatedKnowledgeResult,
+                    generatedImagePath,
+                    updateExistingKnowledge
+            );
             saveSuccessHistory(triggerType, targetDate, promptTemplate, renderedPrompt, savedKnowledge);
 
             return GenerationExecutionResult.builder()
@@ -284,11 +330,186 @@ public class DailyKnowledgeGenerationService {
             String tone,
             String difficulty
     ) {
-        return template
+        String promptTemplate = resolvePromptTemplateContent(template);
+        return promptTemplate
                 .replace("${date}", targetDate.toString())
                 .replace("${category}", category)
                 .replace("${tone}", tone)
                 .replace("${difficulty}", difficulty);
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 템플릿 본문에서 실제 프롬프트 본문 문자열을 추출합니다.
+     */
+    private String resolvePromptTemplateContent(String templateContent) {
+        if (templateContent == null || templateContent.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode rootNode = OBJECT_MAPPER.readTree(templateContent);
+            JsonNode promptTemplateNode = rootNode.path("promptTemplate");
+            if (promptTemplateNode.isTextual()) {
+                return promptTemplateNode.asText("");
+            }
+        } catch (Exception ignoredException) {
+            // 기존 평문 템플릿과의 호환을 위해 JSON 파싱 실패 시 원문을 그대로 사용합니다.
+        }
+        return templateContent;
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 템플릿 본문에서 이미지 생성 설정값을 추출합니다.
+     */
+    private TemplateImageSettings resolveTemplateImageSettings(String templateContent) {
+        TemplateImageSettings defaultSettings = new TemplateImageSettings(false, "medium", 1200, "");
+        if (templateContent == null || templateContent.isBlank()) {
+            return defaultSettings;
+        }
+        try {
+            JsonNode rootNode = OBJECT_MAPPER.readTree(templateContent);
+            JsonNode imageSettingsNode = rootNode.path("imageSettings");
+            if (!imageSettingsNode.isObject()) {
+                return defaultSettings;
+            }
+            boolean enabled = imageSettingsNode.path("enabled").asBoolean(false);
+            String quality = imageSettingsNode.path("quality").asText("medium");
+            int maxTokens = imageSettingsNode.path("maxTokens").asInt(1200);
+            String promptTemplate = imageSettingsNode.path("promptTemplate").asText("");
+            return new TemplateImageSettings(enabled, quality, maxTokens, promptTemplate);
+        } catch (Exception ignoredException) {
+            return defaultSettings;
+        }
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 수동 생성 확인 화면에서 LLM 결과 이미지 미리보기를 재생성합니다.
+     */
+    public GenerationImageRefreshResponse refreshPreviewImage(GenerationImageRefreshRequest request) {
+        if (request == null || request.getTargetDate() == null) {
+            return GenerationImageRefreshResponse.builder()
+                    .success(false)
+                    .message("대상 날짜 정보가 없어 이미지를 새로고침할 수 없습니다.")
+                    .imageUrl("")
+                    .build();
+        }
+        if (request.getGeneratedTitle() == null || request.getGeneratedTitle().isBlank()) {
+            return GenerationImageRefreshResponse.builder()
+                    .success(false)
+                    .message("이미지 생성에 사용할 제목이 없습니다. 먼저 LLM 생성을 실행해주세요.")
+                    .imageUrl("")
+                    .build();
+        }
+
+        PromptTemplate activeTemplate = promptTemplateService.findActiveTemplate().orElse(null);
+        if (activeTemplate == null) {
+            return GenerationImageRefreshResponse.builder()
+                    .success(false)
+                    .message("활성 프롬프트 템플릿이 없어 이미지를 새로고침할 수 없습니다.")
+                    .imageUrl("")
+                    .build();
+        }
+
+        TemplateImageSettings imageSettings = resolveTemplateImageSettings(activeTemplate.getTemplateContent());
+        if (!imageSettings.enabled()) {
+            return GenerationImageRefreshResponse.builder()
+                    .success(false)
+                    .message("현재 템플릿에서 이미지 생성이 비활성화되어 있습니다.")
+                    .imageUrl("")
+                    .build();
+        }
+
+        GeneratedKnowledgeResult generatedKnowledgeResult = GeneratedKnowledgeResult.builder()
+                .title(defaultIfBlank(request.getGeneratedTitle(), ""))
+                .summary(defaultIfBlank(request.getGeneratedSummary(), ""))
+                .detail(defaultIfBlank(request.getGeneratedDetail(), ""))
+                .build();
+
+        String generatedImageUrl = tryGeneratePreviewImage(
+                imageSettings,
+                generatedKnowledgeResult,
+                request.getTargetDate(),
+                request.getCategory(),
+                request.getImagePromptTemplate()
+        );
+        if (generatedImageUrl.isBlank()) {
+            return GenerationImageRefreshResponse.builder()
+                    .success(false)
+                    .message("이미지 생성에 실패했습니다. API 키/설정값을 확인해주세요.")
+                    .imageUrl("")
+                    .build();
+        }
+
+        return GenerationImageRefreshResponse.builder()
+                .success(true)
+                .message("이미지를 새로고침했습니다.")
+                .imageUrl(generatedImageUrl)
+                .build();
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 이미지 생성 설정과 LLM 결과를 기반으로 미리보기 이미지 생성 URL을 반환합니다.
+     */
+    private String tryGeneratePreviewImage(
+            TemplateImageSettings imageSettings,
+            GeneratedKnowledgeResult generatedKnowledge,
+            LocalDate targetDate,
+            String category,
+            String overridePromptTemplate
+    ) {
+        if (imageSettings == null || !imageSettings.enabled()) {
+            return "";
+        }
+        if (generatedKnowledge == null || targetDate == null) {
+            return "";
+        }
+
+        ImageGenerationClient imageGenerationClient = imageGenerationClientProvider.getIfAvailable();
+        if (imageGenerationClient == null) {
+            return "";
+        }
+
+        String imagePromptTemplate = defaultIfBlank(overridePromptTemplate, imageSettings.promptTemplate());
+        String imagePrompt = resolveImagePrompt(imagePromptTemplate, generatedKnowledge, targetDate, category);
+        if (imagePrompt.isBlank()) {
+            return "";
+        }
+        return defaultIfBlank(
+                imageGenerationClient.generateAndStoreImage(
+                        imagePrompt,
+                        targetDate,
+                        imageSettings.quality(),
+                        imageSettings.maxTokens()
+                ),
+                ""
+        );
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 이미지 프롬프트 템플릿에 동적 값을 치환해 최종 이미지 프롬프트를 생성합니다.
+     */
+    private String resolveImagePrompt(
+            String promptTemplate,
+            GeneratedKnowledgeResult generatedKnowledge,
+            LocalDate targetDate,
+            String category
+    ) {
+        String title = defaultIfBlank(generatedKnowledge.getTitle(), "");
+        String summary = defaultIfBlank(generatedKnowledge.getSummary(), "");
+        String defaultPrompt = "기술 아티클 썸네일 이미지. 제목: " + title + ", 요약: " + summary;
+        if (promptTemplate == null || promptTemplate.isBlank()) {
+            return defaultPrompt;
+        }
+        return promptTemplate
+                .replace("${title}", title)
+                .replace("${summary}", summary)
+                .replace("${category}", defaultIfBlank(category, ""))
+                .replace("${date}", targetDate == null ? "" : targetDate.toString())
+                .trim();
     }
 
     /**
@@ -299,6 +520,7 @@ public class DailyKnowledgeGenerationService {
             LocalDate targetDate,
             String category,
             GeneratedKnowledgeResult generatedKnowledgeResult,
+            String generatedImagePath,
             boolean updateExistingKnowledge
     ) {
         DailyKnowledge existingKnowledge = null;
@@ -317,10 +539,71 @@ public class DailyKnowledgeGenerationService {
                 .detail(defaultIfBlank(generatedKnowledgeResult.getDetail(), "상세 내용이 없습니다."))
                 .viewCount(existingKnowledge == null ? 0L : existingKnowledge.getViewCount())
                 .createdAt(existingKnowledge == null ? LocalDateTime.now() : existingKnowledge.getCreatedAt())
-                .attachmentImagePath(existingKnowledge == null ? null : existingKnowledge.getAttachmentImagePath())
+                .attachmentImagePath(resolveAttachmentImagePath(generatedImagePath, existingKnowledge))
                 .build();
 
         return dailyKnowledgeRepository.save(dailyKnowledge);
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 생성 미리보기 이미지 URL에서 저장 가능한 업로드 경로만 추출합니다.
+     */
+    private String resolveGeneratedImagePath(String generatedImageUrl) {
+        if (generatedImageUrl == null || generatedImageUrl.isBlank()) {
+            return "";
+        }
+        String normalizedImageUrl = generatedImageUrl.trim();
+        try {
+            if (normalizedImageUrl.startsWith("http://") || normalizedImageUrl.startsWith("https://")) {
+                normalizedImageUrl = URI.create(normalizedImageUrl).getPath();
+            }
+        } catch (Exception ignoredException) {
+            return "";
+        }
+        return normalizeUploadPath(normalizedImageUrl);
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 절대/상대 경로를 DB 저장 형식(uploads/...)으로 정규화합니다.
+     */
+    private String normalizeUploadPath(String imagePath) {
+        if (imagePath == null || imagePath.isBlank()) {
+            return "";
+        }
+        String normalizedPath = imagePath.trim().replace('\\', '/');
+        while (normalizedPath.startsWith("./")) {
+            normalizedPath = normalizedPath.substring(2);
+        }
+        if (normalizedPath.startsWith("/")) {
+            normalizedPath = normalizedPath.substring(1);
+        }
+        if (normalizedPath.startsWith("backend/")) {
+            normalizedPath = normalizedPath.substring("backend/".length());
+        }
+        if (!normalizedPath.startsWith("uploads/")) {
+            return "";
+        }
+        return "/" + normalizedPath;
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 신규 이미지 경로가 있으면 우선 적용하고, 없으면 기존 첨부 이미지를 유지합니다.
+     */
+    private String resolveAttachmentImagePath(String generatedImagePath, DailyKnowledge existingKnowledge) {
+        if (generatedImagePath != null && !generatedImagePath.isBlank()) {
+            return generatedImagePath;
+        }
+        if (existingKnowledge == null) {
+            return null;
+        }
+        String existingImagePath = normalizeUploadPath(existingKnowledge.getAttachmentImagePath());
+        if (!existingImagePath.isBlank()) {
+            return existingImagePath;
+        }
+        return existingKnowledge.getAttachmentImagePath();
     }
 
     /**
@@ -437,6 +720,18 @@ public class DailyKnowledgeGenerationService {
             return "unknown_error";
         }
         return errorCode.trim();
+    }
+
+    /**
+     * @date 2026-04-24
+     * @desc 템플릿에 저장된 이미지 생성 설정값을 전달하기 위한 내부 구조체입니다.
+     */
+    private record TemplateImageSettings(
+            boolean enabled,
+            String quality,
+            int maxTokens,
+            String promptTemplate
+    ) {
     }
 
     /**

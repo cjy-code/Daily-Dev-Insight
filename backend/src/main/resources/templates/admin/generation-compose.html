@@ -12,18 +12,25 @@
       th:attr="data-target-date=${targetDate},data-category=${category},data-tone=${tone},data-difficulty=${difficulty}">
     <header class="admin-compose-header">
         <h2>수동 생성 확인 창</h2>
-        <p>프롬프트 확인 후 LLM 결과를 생성하고 저장하세요.</p>
+        <p>프롬프트를 확인하고 LLM 결과를 생성한 뒤 저장하세요.</p>
     </header>
 
     <div class="admin-compose-sections">
         <section class="admin-compose-section">
-            <h3>1. 현재 선택 프롬프트 편집</h3>
+            <h3>1. 현재 선택 프롬프트 확인</h3>
             <p class="admin-compose-subtext"
                th:text="${activeTemplate != null ? '활성 템플릿: ' + activeTemplate.name : '활성 템플릿이 없어 생성할 수 없습니다.'}">
                 활성 템플릿: 기본 템플릿
             </p>
             <label for="composePromptContent">프롬프트 본문</label>
             <textarea id="composePromptContent" rows="12" th:text="${renderedPrompt}" th:disabled="${activeTemplate == null}"></textarea>
+
+            <label for="composeImagePromptTemplate">이미지 프롬프트 템플릿</label>
+            <textarea id="composeImagePromptTemplate"
+                      rows="6"
+                      th:text="${imagePromptTemplate}"
+                      placeholder="예: 제목(${title})과 요약(${summary})을 반영한 고급 기술 아티클 썸네일"
+                      th:disabled="${activeTemplate == null}"></textarea>
         </section>
 
         <section class="admin-compose-section">
@@ -32,6 +39,14 @@
                 <button type="button" id="composeGeneratePreviewButton" th:disabled="${activeTemplate == null}">LLM 생성</button>
             </div>
             <div class="admin-compose-form-grid">
+                <div class="admin-compose-image-preview" id="composeGeneratedImagePreview">
+                    <button type="button" class="image-preview-refresh-btn" id="composeGeneratedImageRefreshButton" aria-label="이미지 새로고침">
+                        ↻
+                    </button>
+                    <img id="composeGeneratedImage" src="" alt="LLM 결과 이미지 미리보기" hidden>
+                    <div class="admin-compose-image-empty" id="composeGeneratedImageEmpty">이미지 미리보기가 없습니다.</div>
+                </div>
+
                 <label for="composeGeneratedTitle">제목</label>
                 <input id="composeGeneratedTitle" type="text" readonly>
 
@@ -47,6 +62,11 @@
         <section class="admin-compose-section" id="composePreviousSection">
             <h3>3. 이전 결과</h3>
             <div class="admin-compose-form-grid">
+                <div class="admin-compose-image-preview" id="composePreviousImagePreview">
+                    <img id="composePreviousImage" src="" alt="이전 결과 이미지 미리보기" hidden>
+                    <div class="admin-compose-image-empty" id="composePreviousImageEmpty">이전 결과 이미지가 없습니다.</div>
+                </div>
+
                 <label for="composePreviousTitle">제목</label>
                 <input id="composePreviousTitle" type="text" readonly disabled>
 

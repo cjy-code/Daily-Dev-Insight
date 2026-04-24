@@ -14,9 +14,11 @@ public class GenerationPreviewResponse {
     private String generatedTitle;
     private String generatedSummary;
     private String generatedDetail;
+    private String generatedImageUrl;
 
     private boolean hasPreviousResult;
     private String previousTitle;
     private String previousSummary;
     private String previousDetail;
+    private String previousImageUrl;
 }
