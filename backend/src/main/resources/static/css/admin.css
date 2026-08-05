@@ -200,6 +200,92 @@
     background: #e8f4f2;
 }
 
+.weekly-ai-insight-admin-panel {
+    gap: 14px;
+}
+
+.weekly-ai-insight-admin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.weekly-ai-insight-admin-header p {
+    margin: 6px 0 0;
+    color: var(--admin-sub);
+}
+
+.weekly-ai-insight-generate-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.weekly-ai-insight-generate-form label {
+    color: var(--admin-sub);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.weekly-ai-insight-generate-form input[type="date"] {
+    height: 38px;
+    border: 1px solid var(--admin-line);
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+.weekly-ai-insight-admin-card {
+    display: grid;
+    gap: 12px;
+    border: 1px solid #dbe8e6;
+    border-radius: 10px;
+    background: #f9fcfb;
+    padding: 14px;
+}
+
+.weekly-ai-insight-admin-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    color: var(--admin-sub);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.weekly-ai-insight-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.weekly-ai-insight-preview-grid section {
+    border: 1px solid #e1e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 12px;
+}
+
+.weekly-ai-insight-preview-grid h4 {
+    margin: 0 0 8px;
+    color: var(--admin-brand-strong);
+}
+
+.weekly-ai-insight-preview-grid p {
+    margin: 0;
+    color: #344054;
+    line-height: 1.6;
+    white-space: pre-line;
+}
+
+.weekly-ai-insight-visible-form {
+    display: flex;
+    justify-content: flex-end;
+}
+
 .admin-content {
     display: grid;
     gap: 14px;
@@ -1246,6 +1332,18 @@
     .admin-side-nav {
         grid-template-columns: repeat(2, minmax(120px, 1fr));
         gap: 8px;
+    }
+
+    .weekly-ai-insight-admin-header {
+        flex-direction: column;
+    }
+
+    .weekly-ai-insight-generate-form {
+        justify-content: flex-start;
+    }
+
+    .weekly-ai-insight-preview-grid {
+        grid-template-columns: 1fr;
     }
 }
 
