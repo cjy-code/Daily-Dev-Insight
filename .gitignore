@@ -31,3 +31,13 @@ backend/build/
 backend/out/
 .idea/material_theme_project_new.xml
 .tmp_sqlnet/
+
+# Runtime-generated content
+backend/uploads/
+
+# Agent/tool local state
+.agents/
+.bkit/
+.bkit-codex/
+.claude/
+.codex/
