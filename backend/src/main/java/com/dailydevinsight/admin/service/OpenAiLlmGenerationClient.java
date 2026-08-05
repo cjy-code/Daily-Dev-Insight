@@ -1,6 +1,7 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
+import com.dailydevinsight.admin.dto.GeneratedWeeklyInsightResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -94,6 +95,40 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
     }
 
     /**
+     * @date 2026-05-08
+     * @desc 최근 7일 크롤링 뉴스 목록을 OpenAI에 전달해 주간 개발 트렌드 분석 결과를 생성합니다.
+     */
+    @Override
+    public GeneratedWeeklyInsightResult generateWeeklyInsight(String prompt, LocalDate weekStartDate, LocalDate weekEndDate) {
+        String resolvedApiKey = validateAndResolveApiKey();
+        try {
+            HttpEntity<Map<String, Object>> httpEntity = createWeeklyInsightRequestEntity(
+                    prompt,
+                    weekStartDate,
+                    weekEndDate,
+                    resolvedApiKey
+            );
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    baseUrl + OPENAI_CHAT_COMPLETIONS_PATH,
+                    HttpMethod.POST,
+                    httpEntity,
+                    String.class
+            );
+            return parseWeeklyInsightResult(responseEntity.getBody());
+        } catch (HttpStatusCodeException exception) {
+            throw toLlmClientException(exception);
+        } catch (ResourceAccessException exception) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "network_error",
+                    0,
+                    "OpenAI 서버 연결에 실패했습니다. 네트워크 상태를 확인해주세요.",
+                    "OpenAI 네트워크 연결 실패: " + exception.getMessage()
+            );
+        }
+    }
+
+    /**
      * @date 2026-04-20
      * @desc 설정값/환경변수/JVM 프로퍼티에서 OpenAI API Key를 조회하고 유효성을 검증합니다.
      */
@@ -150,6 +185,31 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
         body.put("messages", List.of(
                 Map.of("role", "system", "content", buildSystemInstruction()),
                 Map.of("role", "user", "content", buildUserPrompt(prompt, targetDate, category, tone, difficulty))
+        ));
+
+        return new HttpEntity<>(body, headers);
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 주간 AI 인사이트 생성을 위한 OpenAI 요청 헤더와 본문을 구성합니다.
+     */
+    private HttpEntity<Map<String, Object>> createWeeklyInsightRequestEntity(
+            String prompt,
+            LocalDate weekStartDate,
+            LocalDate weekEndDate,
+            String apiKey
+    ) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey.trim());
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("temperature", 0.4);
+        body.put("messages", List.of(
+                Map.of("role", "system", "content", buildWeeklyInsightSystemInstruction()),
+                Map.of("role", "user", "content", buildWeeklyInsightUserPrompt(prompt, weekStartDate, weekEndDate))
         ));
 
         return new HttpEntity<>(body, headers);
@@ -223,6 +283,68 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
                     "OpenAI 응답 파싱 실패: " + exception.getMessage()
             );
         }
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc OpenAI 응답에서 주간 AI 인사이트 JSON을 추출하고 검증합니다.
+     */
+    private GeneratedWeeklyInsightResult parseWeeklyInsightResult(String responseBody) {
+        try {
+            JsonNode responseRoot = objectMapper.readTree(responseBody);
+            JsonNode contentNode = responseRoot.path("choices").path(0).path("message").path("content");
+            if (contentNode.isMissingNode() || contentNode.asText().isBlank()) {
+                throw new LlmClientException(
+                        "OPENAI",
+                        "empty_response",
+                        200,
+                        "OpenAI 응답이 비어 있습니다. 잠시 후 다시 시도해주세요.",
+                        "OpenAI choices.message.content 값이 비어 있습니다."
+                );
+            }
+
+            JsonNode generatedJson = objectMapper.readTree(contentNode.asText());
+            String summary = readRequiredValue(generatedJson, "summary");
+            String trendAnalysis = readRequiredValue(generatedJson, "trendAnalysis");
+            String developerView = readRequiredValue(generatedJson, "developerView");
+
+            return GeneratedWeeklyInsightResult.builder()
+                    .summary(summary)
+                    .trendAnalysis(trendAnalysis)
+                    .developerView(developerView)
+                    .build();
+        } catch (JsonProcessingException exception) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "invalid_response_format",
+                    200,
+                    "OpenAI 응답 형식 파싱에 실패했습니다.",
+                    "OpenAI 주간 인사이트 응답 파싱 실패: " + exception.getMessage()
+            );
+        }
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 모델이 주간 개발 트렌드 분석을 JSON 형식으로 응답하도록 시스템 지시문을 생성합니다.
+     */
+    private String buildWeeklyInsightSystemInstruction() {
+        return "당신은 개발자를 위한 주간 기술 뉴스 분석가입니다. 반드시 JSON 객체로만 응답하세요. "
+                + "필수 키는 summary, trendAnalysis, developerView 입니다. "
+                + "각 값은 한국어로 작성하고 실무 개발자가 바로 이해할 수 있게 구체적으로 설명하세요.";
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 주간 분석 기간과 크롤링 뉴스 목록을 사용자 프롬프트로 구성합니다.
+     */
+    private String buildWeeklyInsightUserPrompt(String prompt, LocalDate weekStartDate, LocalDate weekEndDate) {
+        return "다음 기간의 크롤링 뉴스 목록을 기반으로 주간 개발 트렌드 인사이트를 생성하세요.\n"
+                + "- 분석 기간: " + weekStartDate + " ~ " + weekEndDate + "\n\n"
+                + "뉴스 목록:\n"
+                + prompt + "\n\n"
+                + "응답 JSON 형식:\n"
+                + "{\"summary\":\"...\",\"trendAnalysis\":\"...\",\"developerView\":\"...\"}";
     }
 
     /**

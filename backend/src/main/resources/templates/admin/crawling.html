@@ -24,6 +24,7 @@
             <button type="button" class="admin-tab-btn active" data-tab-target="preset">조건 프리셋</button>
             <button type="button" class="admin-tab-btn" data-tab-target="manual">수동 실행</button>
             <button type="button" class="admin-tab-btn" data-tab-target="schedule">예약 설정</button>
+            <button type="button" class="admin-tab-btn" data-tab-target="weeklyInsight">주간 AI 인사이트</button>
             <button type="button" class="admin-tab-btn" data-tab-target="history">크롤링 이력</button>
         </nav>
 
@@ -319,6 +320,76 @@
 
                 <button type="submit">예약 저장</button>
             </form>
+        </section>
+
+        <section class="admin-panel generation-tab-panel weekly-ai-insight-admin-panel" data-tab-panel="weeklyInsight" hidden>
+            <div class="weekly-ai-insight-admin-header">
+                <div>
+                    <h3>주간 AI 인사이트</h3>
+                    <p>최근 7일간 저장된 테크 뉴스를 기반으로 사용자 메인에 노출할 개발 트렌드를 생성합니다.</p>
+                </div>
+                <form method="post" th:action="@{/admin/weekly-insight/generate}" class="weekly-ai-insight-generate-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <label for="weeklyAiInsightReferenceDate">기준일</label>
+                    <input type="date"
+                           id="weeklyAiInsightReferenceDate"
+                           name="referenceDate"
+                           th:value="${weeklyAiInsightReferenceDate}"
+                           th:max="${T(java.time.LocalDate).now()}">
+                    <button type="submit" th:text="${weeklyAiInsight == null} ? '주간 분석 생성' : '주간 분석 재생성'">주간 분석 생성</button>
+                </form>
+            </div>
+
+            <article class="weekly-ai-insight-admin-card" th:if="${weeklyAiInsight != null}">
+                <div class="weekly-ai-insight-admin-meta">
+                    <span th:text="${weeklyAiInsight.weekStartDate + ' ~ ' + weeklyAiInsight.weekEndDate}">2026-05-02 ~ 2026-05-08</span>
+                    <span th:text="'분석 뉴스 ' + ${weeklyAiInsight.sourceNewsCount} + '건'">분석 뉴스 0건</span>
+                    <span th:classappend="${weeklyAiInsight.visible} ? ' active' : ' inactive'"
+                          class="status-badge"
+                          th:text="${weeklyAiInsight.visible} ? '노출 중' : '숨김'">노출 중</span>
+                </div>
+                <div class="weekly-ai-insight-preview-grid">
+                    <section>
+                        <h4>AI 요약</h4>
+                        <p th:text="${weeklyAiInsight.summary}">요약 내용</p>
+                    </section>
+                    <section>
+                        <h4>트렌드/패턴</h4>
+                        <p th:text="${weeklyAiInsight.trendAnalysis}">트렌드 분석</p>
+                    </section>
+                    <section>
+                        <h4>개발자 관점</h4>
+                        <p th:text="${weeklyAiInsight.developerView}">개발자 관점</p>
+                    </section>
+                </div>
+                <form method="post"
+                      th:action="@{/admin/weekly-insight/{id}/toggle-visible(id=${weeklyAiInsight.id})}"
+                      class="weekly-ai-insight-visible-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit"
+                            class="secondary"
+                            th:text="${weeklyAiInsight.visible} ? '사용자 노출 끄기' : '사용자 노출 켜기'">사용자 노출 끄기</button>
+                </form>
+            </article>
+
+            <p class="empty" th:if="${weeklyAiInsight == null}">아직 생성된 주간 AI 인사이트가 없습니다.</p>
+
+            <table class="admin-table weekly-ai-insight-history-table" th:if="${!#lists.isEmpty(weeklyAiInsightList)}">
+                <thead>
+                <tr>
+                    <th>분석 기간</th>
+                    <th>뉴스 수</th>
+                    <th>노출 상태</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="insight : ${weeklyAiInsightList}">
+                    <td th:text="${insight.weekStartDate + ' ~ ' + insight.weekEndDate}">2026-05-02 ~ 2026-05-08</td>
+                    <td th:text="${insight.sourceNewsCount}">0</td>
+                    <td th:text="${insight.visible} ? '노출 중' : '숨김'">노출 중</td>
+                </tr>
+                </tbody>
+            </table>
         </section>
 
         <section class="admin-panel generation-tab-panel" data-tab-panel="history" hidden>

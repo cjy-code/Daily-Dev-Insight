@@ -17,6 +17,7 @@ import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
 import com.dailydevinsight.admin.service.TechNewsCrawlingService;
+import com.dailydevinsight.admin.service.WeeklyAiInsightService;
 import com.dailydevinsight.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,6 +79,9 @@ class AdminPageControllerTest {
 
     @MockBean
     private TechNewsCrawlingService techNewsCrawlingService;
+
+    @MockBean
+    private WeeklyAiInsightService weeklyAiInsightService;
 
     @MockBean
     private UserDetailsService userDetailsService;

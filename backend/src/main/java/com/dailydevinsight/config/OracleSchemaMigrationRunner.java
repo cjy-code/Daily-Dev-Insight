@@ -28,6 +28,7 @@ public class OracleSchemaMigrationRunner {
     private static final String TABLE_CRAWL_SCHEDULE = "CRAWL_SCHEDULE";
     private static final String TABLE_CRAWL_HISTORY = "CRAWL_HISTORY";
     private static final String TABLE_CRAWL_CONDITION_PRESET = "CRAWL_CONDITION_PRESET";
+    private static final String TABLE_WEEKLY_AI_INSIGHT = "WEEKLY_AI_INSIGHT";
     private static final String COLUMN_ATTACHMENT_IMAGE_PATH = "ATTACHMENT_IMAGE_PATH";
     private static final String COLUMN_ALLOW_DUPLICATE = "ALLOW_DUPLICATE";
     private static final String COLUMN_EXCLUDE_KEYWORDS = "EXCLUDE_KEYWORDS";
@@ -36,13 +37,14 @@ public class OracleSchemaMigrationRunner {
     private static final String SEQUENCE_GENERATION_HISTORY = "SEQ_GENERATION_HISTORY";
     private static final String SEQUENCE_CRAWL_HISTORY = "SEQ_CRAWL_HISTORY";
     private static final String SEQUENCE_CRAWL_CONDITION_PRESET = "SEQ_CRAWL_CONDITION_PRESET";
+    private static final String SEQUENCE_WEEKLY_AI_INSIGHT = "SEQ_WEEKLY_AI_INSIGHT";
     private static final String INDEX_TECH_NEWS_URL = "IDX_TECH_NEWS_URL";
 
     private final JdbcTemplate jdbcTemplate;
 
     /**
      * @date 2026-04-15
-     * @desc ?좏뵆由ъ??댁뀡 ?쒖옉 ??Oracle ?ㅽ궎留덉쓽 ??볤? 而щ읆/?쒖빟/?몃뜳?ㅻ? 蹂댁젙?⑸땲??
+     * @desc 애플리케이션 시작 시 Oracle 스키마에 필요한 컬럼, 제약 조건, 인덱스, 시퀀스를 보정합니다.
      */
     @PostConstruct
     public void ensureOracleSchemaMigrations() {
@@ -65,15 +67,18 @@ public class OracleSchemaMigrationRunner {
         ensureCrawlConditionPresetTable();
         ensureCrawlConditionPresetColumns();
         ensureCrawlConditionPresetSequence();
+        ensureWeeklyAiInsightTable();
+        ensureWeeklyAiInsightSequence();
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_PROMPT_TEMPLATE, TABLE_PROMPT_TEMPLATE);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_GENERATION_HISTORY, TABLE_GENERATION_HISTORY);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_CRAWL_HISTORY, TABLE_CRAWL_HISTORY);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_CRAWL_CONDITION_PRESET, TABLE_CRAWL_CONDITION_PRESET);
+        ensureSequenceAlignedWithTableMaxId(SEQUENCE_WEEKLY_AI_INSIGHT, TABLE_WEEKLY_AI_INSIGHT);
     }
 
     /**
      * @date 2026-04-15
-     * @desc insight_comment.parent_comment_id 而щ읆???놁쑝硫?異붽??⑸땲??
+     * @desc insight_comment.parent_comment_id 컬럼이 없으면 추가합니다.
      */
     private void ensureParentCommentIdColumn() {
         if (existsColumn(TABLE_INSIGHT_COMMENT, COLUMN_PARENT_COMMENT_ID)) {
@@ -85,7 +90,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-15
-     * @desc insight_comment ?먭린李몄“ FK媛 ?놁쑝硫?異붽??⑸땲??
+     * @desc insight_comment 대댓글 부모 참조 FK 제약 조건이 없으면 추가합니다.
      */
     private void ensureParentCommentConstraint() {
         if (existsConstraint(TABLE_INSIGHT_COMMENT, CONSTRAINT_PARENT_COMMENT)) {
@@ -100,7 +105,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-15
-     * @desc parent_comment_id 議고쉶 ?깅뒫???꾪빐 ?몃뜳?ㅺ? ?놁쑝硫??앹꽦?⑸땲??
+     * @desc parent_comment_id 조회 성능을 위한 인덱스가 없으면 생성합니다.
      */
     private void ensureParentCommentIndex() {
         if (existsIndex(INDEX_PARENT_COMMENT)) {
@@ -112,7 +117,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-15
-     * @desc daily_knowledge 泥⑤? ?대?吏 寃쎈줈 而щ읆???놁쑝硫?異붽??⑸땲??
+     * @desc daily_knowledge 첨부 이미지 경로 컬럼이 없으면 추가합니다.
      */
     private void ensureDailyKnowledgeAttachmentImagePathColumn() {
         if (existsColumn(TABLE_DAILY_KNOWLEDGE, COLUMN_ATTACHMENT_IMAGE_PATH)) {
@@ -124,7 +129,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-15
-     * @desc tech_news 泥⑤? ?대?吏 寃쎈줈 而щ읆???놁쑝硫?異붽??⑸땲??
+     * @desc tech_news 첨부 이미지 경로 컬럼이 없으면 추가합니다.
      */
     private void ensureTechNewsAttachmentImagePathColumn() {
         if (existsColumn(TABLE_TECH_NEWS, COLUMN_ATTACHMENT_IMAGE_PATH)) {
@@ -136,7 +141,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-23
-     * @desc generation_schedule 以묐났 ?덉슜 ?ㅼ젙 而щ읆???놁쑝硫?異붽??⑸땲??
+     * @desc generation_schedule 중복 생성 허용 여부 컬럼이 없으면 추가합니다.
      */
     private void ensureGenerationScheduleAllowDuplicateColumn() {
         if (existsColumn(TABLE_GENERATION_SCHEDULE, COLUMN_ALLOW_DUPLICATE)) {
@@ -148,7 +153,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-23
-     * @desc generation_history ?곹깭 ?쒖빟??SKIPPED ?곹깭瑜??ы븿?섎룄濡?蹂댁젙?⑸땲??
+     * @desc generation_history 상태 제약 조건에 SKIPPED 상태를 포함하도록 갱신합니다.
      */
     private void ensureGenerationHistoryStatusConstraint() {
         if (!existsTable(TABLE_GENERATION_HISTORY)) {
@@ -166,7 +171,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc tech_news.url 조회 성능을 위해 인덱스가 없으면 생성합니다.
+     * @desc tech_news.url 조회 성능을 위한 단일 컬럼 인덱스가 없으면 생성합니다.
      */
     private void ensureTechNewsUrlIndex() {
         if (existsIndex(INDEX_TECH_NEWS_URL) || existsSingleColumnIndex(TABLE_TECH_NEWS, "URL")) {
@@ -178,7 +183,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_schedule ?뚯씠釉붿씠 ?놁쑝硫??앹꽦?⑸땲??
+     * @desc crawl_schedule 테이블이 없으면 생성합니다.
      */
     private void ensureCrawlScheduleTable() {
         if (existsTable(TABLE_CRAWL_SCHEDULE)) {
@@ -211,7 +216,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_schedule ?뺤옣 而щ읆(?ㅼ썙???꾨찓????꾩븘?????꾨씫 ??蹂댁젙?⑸땲??
+     * @desc crawl_schedule 확장 컬럼이 없으면 추가합니다.
      */
     private void ensureCrawlScheduleExtensionColumns() {
         ensureCrawlScheduleColumn(COLUMN_ALLOW_DUPLICATE, "ALTER TABLE crawl_schedule ADD (allow_duplicate NUMBER(1) DEFAULT 0 NOT NULL)");
@@ -227,7 +232,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_schedule ?⑥씪 而щ읆 ?꾨씫 ??ALTER瑜??곸슜?⑸땲??
+     * @desc crawl_schedule 단일 컬럼 존재 여부를 확인하고 필요한 ALTER 문을 실행합니다.
      */
     private void ensureCrawlScheduleColumn(String columnName, String alterSql) {
         if (existsColumn(TABLE_CRAWL_SCHEDULE, columnName)) {
@@ -239,7 +244,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_history ?뚯씠釉붿씠 ?놁쑝硫??앹꽦?⑸땲??
+     * @desc crawl_history 테이블이 없으면 생성합니다.
      */
     private void ensureCrawlHistoryTable() {
         if (existsTable(TABLE_CRAWL_HISTORY)) {
@@ -265,7 +270,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_history ID ?쒗?ㅺ? ?놁쑝硫??앹꽦?⑸땲??
+     * @desc crawl_history ID 생성을 위한 시퀀스가 없으면 생성합니다.
      */
     private void ensureCrawlHistorySequence() {
         if (existsSequence(SEQUENCE_CRAWL_HISTORY)) {
@@ -277,7 +282,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_condition_preset ?뚯씠釉붿씠 ?놁쑝硫??앹꽦?⑸땲??
+     * @desc crawl_condition_preset 테이블이 없으면 생성합니다.
      */
     private void ensureCrawlConditionPresetTable() {
         if (existsTable(TABLE_CRAWL_CONDITION_PRESET)) {
@@ -309,7 +314,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_condition_preset ?뺤옣 而щ읆 ?꾨씫 ??蹂댁젙?⑸땲??
+     * @desc crawl_condition_preset 확장 컬럼이 없으면 추가합니다.
      */
     private void ensureCrawlConditionPresetColumns() {
         if (!existsColumn(TABLE_CRAWL_CONDITION_PRESET, COLUMN_INCLUDE_KEYWORD_OPERATORS)) {
@@ -324,7 +329,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc crawl_condition_preset ID ?쒗?ㅺ? ?놁쑝硫??앹꽦?⑸땲??
+     * @desc crawl_condition_preset ID 생성을 위한 시퀀스가 없으면 생성합니다.
      */
     private void ensureCrawlConditionPresetSequence() {
         if (existsSequence(SEQUENCE_CRAWL_CONDITION_PRESET)) {
@@ -335,8 +340,50 @@ public class OracleSchemaMigrationRunner {
     }
 
     /**
+     * @date 2026-05-08
+     * @desc weekly_ai_insight 테이블이 없으면 생성합니다.
+     */
+    private void ensureWeeklyAiInsightTable() {
+        if (existsTable(TABLE_WEEKLY_AI_INSIGHT)) {
+            return;
+        }
+        jdbcTemplate.execute("""
+                CREATE TABLE weekly_ai_insight (
+                    id NUMBER(19) NOT NULL,
+                    week_start_date DATE NOT NULL,
+                    week_end_date DATE NOT NULL,
+                    summary CLOB NOT NULL,
+                    trend_analysis CLOB NOT NULL,
+                    developer_view CLOB NOT NULL,
+                    source_news_count NUMBER(10) NOT NULL,
+                    is_visible NUMBER(1) DEFAULT 1 NOT NULL,
+                    created_at TIMESTAMP(6) NOT NULL,
+                    updated_at TIMESTAMP(6) NOT NULL,
+                    CONSTRAINT pk_weekly_ai_insight PRIMARY KEY (id)
+                )
+                """);
+        jdbcTemplate.execute(
+                "CREATE UNIQUE INDEX ux_weekly_ai_insight_period " +
+                        "ON weekly_ai_insight (week_start_date, week_end_date)"
+        );
+        log.info("Applied schema migration: created table {}", TABLE_WEEKLY_AI_INSIGHT);
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc weekly_ai_insight ID 생성을 위한 시퀀스가 없으면 생성합니다.
+     */
+    private void ensureWeeklyAiInsightSequence() {
+        if (existsSequence(SEQUENCE_WEEKLY_AI_INSIGHT)) {
+            return;
+        }
+        jdbcTemplate.execute("CREATE SEQUENCE seq_weekly_ai_insight START WITH 1 INCREMENT BY 1 NOCACHE");
+        log.info("Applied schema migration: created sequence {}", SEQUENCE_WEEKLY_AI_INSIGHT);
+    }
+
+    /**
      * @date 2026-04-15
-     * @desc ?꾩옱 ?곗씠?곕쿋?댁뒪媛 Oracle?몄? 硫뷀??곗씠?곕줈 ?먮퀎?⑸땲??
+     * @desc 현재 연결된 데이터베이스가 Oracle인지 확인합니다.
      */
     private boolean isOracleDatabase() {
         DataSource dataSource = jdbcTemplate.getDataSource();
@@ -349,13 +396,13 @@ public class OracleSchemaMigrationRunner {
             String productName = metaData.getDatabaseProductName();
             return productName != null && productName.toLowerCase().contains("oracle");
         } catch (SQLException exception) {
-            throw new IllegalStateException("?곗씠?곕쿋?댁뒪 硫뷀??곗씠??議고쉶???ㅽ뙣?덉뒿?덈떎.", exception);
+            throw new IllegalStateException("데이터베이스 제품명 확인 중 오류가 발생했습니다.", exception);
         }
     }
 
     /**
      * @date 2026-04-15
-     * @desc user_tab_columns 湲곗??쇰줈 吏??而щ읆 議댁옱 ?щ?瑜?議고쉶?⑸땲??
+     * @desc user_tab_columns 메타데이터에서 지정한 컬럼 존재 여부를 확인합니다.
      */
     private boolean existsColumn(String tableName, String columnName) {
         Integer count = jdbcTemplate.queryForObject(
@@ -369,7 +416,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc user_tables 湲곗??쇰줈 ????뚯씠釉?議댁옱 ?щ?瑜??뺤씤?⑸땲??
+     * @desc user_tables 메타데이터에서 지정한 테이블 존재 여부를 확인합니다.
      */
     private boolean existsTable(String tableName) {
         Integer count = jdbcTemplate.queryForObject(
@@ -382,7 +429,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-15
-     * @desc user_constraints 湲곗??쇰줈 吏???쒖빟議곌굔 議댁옱 ?щ?瑜?議고쉶?⑸땲??
+     * @desc user_constraints 메타데이터에서 지정한 제약 조건 존재 여부를 확인합니다.
      */
     private boolean existsConstraint(String tableName, String constraintName) {
         Integer count = jdbcTemplate.queryForObject(
@@ -396,7 +443,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-15
-     * @desc user_indexes 湲곗??쇰줈 吏???몃뜳??議댁옱 ?щ?瑜?議고쉶?⑸땲??
+     * @desc user_indexes 메타데이터에서 지정한 인덱스 존재 여부를 확인합니다.
      */
     private boolean existsIndex(String indexName) {
         Integer count = jdbcTemplate.queryForObject(
@@ -409,7 +456,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-17
-     * @desc 吏?뺥븳 ?뚯씠釉?而щ읆?쇰줈 援ъ꽦???⑥씪 而щ읆 ?몃뜳??議댁옱 ?щ?瑜?議고쉶?⑸땲??
+     * @desc 지정한 테이블과 컬럼으로 구성된 단일 컬럼 인덱스 존재 여부를 확인합니다.
      */
     private boolean existsSingleColumnIndex(String tableName, String columnName) {
         Integer count = jdbcTemplate.queryForObject(
@@ -434,7 +481,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-16
-     * @desc ?쒗???ㅼ쓬 媛믪씠 ?뚯씠釉?理쒕? ID蹂대떎 ?묎굅??媛숈쑝硫??쒖옉媛믪쓣 ?먮룞 蹂댁젙?⑸땲??
+     * @desc 시퀀스의 다음 값이 대상 테이블의 최대 ID보다 작거나 같으면 다음 ID 이후로 보정합니다.
      */
     private void ensureSequenceAlignedWithTableMaxId(String sequenceName, String tableName) {
         if (!existsSequence(sequenceName)) {
@@ -466,7 +513,7 @@ public class OracleSchemaMigrationRunner {
 
     /**
      * @date 2026-04-16
-     * @desc user_sequences 湲곗??쇰줈 吏???쒗??議댁옱 ?щ?瑜?議고쉶?⑸땲??
+     * @desc user_sequences 메타데이터에서 지정한 시퀀스 존재 여부를 확인합니다.
      */
     private boolean existsSequence(String sequenceName) {
         Integer count = jdbcTemplate.queryForObject(

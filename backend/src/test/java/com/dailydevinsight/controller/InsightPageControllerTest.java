@@ -1,6 +1,7 @@
 package com.dailydevinsight.controller;
 
 import com.dailydevinsight.config.SecurityConfig;
+import com.dailydevinsight.admin.service.WeeklyAiInsightService;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.dto.InsightDetailResponseDTO;
@@ -47,6 +48,9 @@ public class InsightPageControllerTest {
 
     @MockBean
     private InsightDetailService insightDetailService;
+
+    @MockBean
+    private WeeklyAiInsightService weeklyAiInsightService;
 
     @MockBean
     private UserDetailsService userDetailsService;

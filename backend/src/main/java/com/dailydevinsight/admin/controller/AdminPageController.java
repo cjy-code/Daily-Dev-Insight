@@ -25,6 +25,7 @@ import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
 import com.dailydevinsight.admin.service.TechNewsCrawlingService;
+import com.dailydevinsight.admin.service.WeeklyAiInsightService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -67,6 +68,7 @@ public class AdminPageController {
     private final CrawlHistoryService crawlHistoryService;
     private final CrawlConditionPresetService crawlConditionPresetService;
     private final TechNewsCrawlingService techNewsCrawlingService;
+    private final WeeklyAiInsightService weeklyAiInsightService;
 
     /**
      * @date 2026-04-15
@@ -193,6 +195,9 @@ public class AdminPageController {
         model.addAttribute("crawlRunForm", createDefaultCrawlRunForm(crawlSchedule));
         model.addAttribute("crawlScheduleForm", toCrawlScheduleForm(crawlSchedule));
         model.addAttribute("crawlHistoryList", crawlHistoryService.findRecentHistory());
+        model.addAttribute("weeklyAiInsight", weeklyAiInsightService.findLatestInsightForAdmin());
+        model.addAttribute("weeklyAiInsightList", weeklyAiInsightService.findRecentInsightsForAdmin());
+        model.addAttribute("weeklyAiInsightReferenceDate", LocalDate.now());
         return "admin/crawling";
     }
 
@@ -598,6 +603,51 @@ public class AdminPageController {
         try {
             crawlConditionPresetService.savePreset(crawlPresetForm);
             redirectAttributes.addFlashAttribute("adminMessage", "크롤링 조건 프리셋이 저장되었습니다.");
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/crawling";
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 최근 7일 테크 뉴스 기반 주간 AI 인사이트를 생성하거나 재생성합니다.
+     */
+    @PostMapping("/weekly-insight/generate")
+    public String generateWeeklyAiInsight(
+            @RequestParam(value = "referenceDate", required = false) LocalDate referenceDate,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            var weeklyAiInsight = weeklyAiInsightService.generateWeeklyInsight(referenceDate);
+            redirectAttributes.addFlashAttribute(
+                    "adminMessage",
+                    "주간 AI 인사이트가 생성되었습니다. 분석 기간: "
+                            + weeklyAiInsight.getWeekStartDate() + " ~ " + weeklyAiInsight.getWeekEndDate()
+            );
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        }
+        return "redirect:/admin/crawling";
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 주간 AI 인사이트의 사용자 노출 여부를 변경합니다.
+     */
+    @PostMapping("/weekly-insight/{id}/toggle-visible")
+    public String toggleWeeklyAiInsightVisible(
+            @PathVariable("id") Long insightId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            var weeklyAiInsight = weeklyAiInsightService.toggleVisible(insightId);
+            redirectAttributes.addFlashAttribute(
+                    "adminMessage",
+                    Boolean.TRUE.equals(weeklyAiInsight.getVisible())
+                            ? "주간 AI 인사이트가 사용자 화면에 노출됩니다."
+                            : "주간 AI 인사이트가 사용자 화면에서 숨김 처리되었습니다."
+            );
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         }

@@ -1,5 +1,6 @@
 package com.dailydevinsight.controller;
 
+import com.dailydevinsight.admin.service.WeeklyAiInsightService;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.InsightDetailResponseDTO;
@@ -27,6 +28,7 @@ public class InsightPageController {
     private static final String VIEW_COUNT_SESSION_KEY_PREFIX = "insight:viewed:";
     private final DailyInsightService dailyInsightService;
     private final InsightDetailService insightDetailService;
+    private final WeeklyAiInsightService weeklyAiInsightService;
 
     /**
      * @date 2026-04-13
@@ -79,6 +81,7 @@ public class InsightPageController {
         model.addAttribute("endDate", resolvedEndDate);
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("searchType", resolvedSearchType);
+        model.addAttribute("weeklyAiInsight", weeklyAiInsightService.findLatestVisibleInsight());
         return "index";
     }
 
