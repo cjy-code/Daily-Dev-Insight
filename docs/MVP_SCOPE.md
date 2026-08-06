@@ -92,8 +92,9 @@
 
 ## 4. 문서 부채 (Known Gaps)
 
-- `docs/02-design/`가 비어 있어 참여 기능, 계정/마이페이지, 인증·권한, 관리자, 자동화, AI 생성, 캐시·업로드·마이그레이션까지 **현재 구현 범위 전체**가 사후 설계 문서화 대상 (2.4~2.6에 국한되지 않음). 그중 `WeeklyAiInsightService`가 최우선
-- `docs/01-plan/features/`에는 현재 제품 기능과 직접 관련 없는 문서(`codex-collab-workflow.md`) 한 건뿐이라 Plan 문서도 실제 구현 기능과 대응하지 않음
+- ~~`docs/02-design/`가 비어 있어...`WeeklyAiInsightService`가 최우선~~ **[2026-08-06 갱신] 해소됨** — `docs/01-plan/features/full-documentation-initiative.md`에 따라 전체 17개 unit(참여 기능·계정/마이페이지·인증·관리자·자동화·AI 생성·캐시·DB마이그레이션 포함)을 1차 사이클(compact card, `docs/02-design/features/*.md`)로 전수 문서화 완료. 그중 위험도 높은 3개 unit(인사이트 상세·인증보안체계·AI생성관리)은 Plan+Design+Screen+Analysis+Report 정밀 문서로 2차 승격, Codex 교차검증 반영 완료. `WeeklyAiInsightService`는 별도로 PDCA 전체 사이클(Plan~Report) 완료
+- ~~`docs/01-plan/features/`에는...Plan 문서도 실제 구현 기능과 대응하지 않음~~ **[2026-08-06 갱신] 해소됨** — `weekly-ai-insight.md`, `insight-detail.md`, `auth-security.md`, `admin-ai-generation.md`, `full-documentation-initiative.md` 등 실제 구현 기능에 대응하는 Plan 문서 다수 추가됨
+- 문서화 과정에서 발견된 코드 이슈 26건이 `docs/03-analysis/full-documentation-initiative-code-findings.md`에 백로그로 남아있음 (그중 1건은 사용자 결정 후 수정 완료 — 관리자 세션의 사용자 경로 접근 차단)
 - `docs/API_SPEC.md`는 API 누락뿐 아니라 기존 `GET /api/insights` 계약 자체가 실제 구현과 다름 (뉴스는 정확한 하루가 아닌 최근 2~3일 조회, 응답 필드 확장, 인증 요구·미래 날짜 보정 미기재) — 상세/좋아요/북마크/댓글/관리자 API도 전부 누락
 - 인증/권한 매트릭스 문서 부재. **`SecurityConfig`에서 `NoOpPasswordEncoder` 사용 중 — 문서 문제가 아니라 별도 관리가 필요한 보안 부채**
 - DB 변경 기준선이 `docs/sql`과 `OracleSchemaMigrationRunner` 코드 마이그레이션으로 분산됨. 예: `weekly_ai_insight` 테이블은 코드 마이그레이션에만 존재하고 대응 SQL 문서가 없음

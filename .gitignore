@@ -30,6 +30,10 @@ backend/.gradle/
 backend/build/
 backend/out/
 .idea/material_theme_project_new.xml
+.idea/compiler.xml
+.idea/gradle.xml
+.idea/jarRepositories.xml
+.idea/modules/
 .tmp_sqlnet/
 
 # Runtime-generated content
