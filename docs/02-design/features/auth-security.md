@@ -155,7 +155,7 @@ sequenceDiagram
 `LoginControllerTest`: `/admin/login`의 error/adminDenied/csrfError 쿼리 파라미터별 flash 메시지 분기를 검증하는 테스트 존재.
 **[Codex 검증 정정] `AdminPageControllerTest`에 CSRF 토큰 누락 시 `csrfError=true`로 리다이렉트되는 것을 검증하는 테스트가 존재** — 최초 버전에서 "FR-06 테스트 없음"으로 잘못 기재했던 것을 정정.
 
-**커버 안 된 케이스**: `status=WITHDRAWN` 계정의 로그인 거부(FR-04), 비밀번호 변경/탈퇴 시 현재 비밀번호 검증(FR-05, `UserService` 유닛 테스트 없음), 로그아웃의 실제 세션 무효화 여부(현재는 mock이라 리다이렉트만 검증), 관리자 세션의 사용자 경로 접근 가능 여부.
+**커버 안 된 케이스**: `status=WITHDRAWN` 계정의 로그인 거부(FR-04), 비밀번호 변경/탈퇴 시 현재 비밀번호 검증(FR-05, `UserService` 유닛 테스트 없음), 로그아웃의 실제 세션 무효화 여부(현재는 mock이라 리다이렉트만 검증). ~~관리자 세션의 사용자 경로 접근 가능 여부~~ **[2026-08-06 브라우저 실동작 검증 완료]** `admin01` 로그인 후 `/mypage` 접근 시 403 확인됨(사용자 직접 테스트, F-18 수정 반영 확인).
 
 ---
 

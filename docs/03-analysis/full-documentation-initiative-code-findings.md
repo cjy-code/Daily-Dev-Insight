@@ -120,7 +120,7 @@
 - **내용**: `userSecurityFilterChain`이 `/admin/**`을 제외한 모든 경로에 `authenticated()`만 요구하고 `ROLE_USER`를 강제하지 않음. `ROLE_ADMIN`으로 로그인한 세션도 `/mypage/**` 등 일반 사용자 경로에 그대로 접근 가능
 - **리스크**: "관리자/사용자 경로가 완전히 분리되어 있다"는 암묵적 전제가 성립하지 않음. 관리자 계정으로 일반 사용자 기능(탈퇴 등)을 실행할 수 있다는 뜻이기도 함
 - **권장**: 의도된 설계인지 정책 확인 필요. 의도가 아니라면 `userSecurityFilterChain`에 `hasRole("USER")` 추가 검토
-- **✅ 결정 및 수정 완료 (2026-08-06, 사용자 승인)**: `SecurityConfig.userSecurityFilterChain()`에 `hasRole("USER")` 적용, `/auth/logout`은 공용 엔드포인트라 `authenticated()`로 예외 처리(관리자 로그아웃 회귀 방지). 전체 테스트 14클래스 64건 통과 확인(JDK 21). 상태: **완료**
+- **✅ 결정 및 수정 완료 (2026-08-06, 사용자 승인)**: `SecurityConfig.userSecurityFilterChain()`에 `hasRole("USER")` 적용, `/auth/logout`은 공용 엔드포인트라 `authenticated()`로 예외 처리(관리자 로그아웃 회귀 방지). 전체 테스트 14클래스 64건 통과 확인(JDK 21). **브라우저 실동작 검증 완료(2026-08-06)**: `admin01`로 로그인 후 `/mypage` 접근 시 403 확인(사용자 직접 테스트). 상태: **완료, 검증 완료**
 
 ### F-19. [Medium] CSRF 실패 리다이렉트에 잠재적 오픈 리다이렉트 가능성
 - **출처**: Unit 8 정밀화, Codex 교차검증
