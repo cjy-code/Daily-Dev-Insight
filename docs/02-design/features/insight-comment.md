@@ -32,7 +32,7 @@ Unit 2와 완전히 동일.
 
 ## ⑧ 패턴 특이사항
 
-- **"대댓글까지만 지원"이라는 기획 의도(MVP_SCOPE.md)가 서버 검증으로 강제되지 않음** — `validateParentCommentId`가 부모의 `parentCommentId`가 null인지 확인하지 않아, 이론상 대댓글에 또 대댓글을 다는 게 API 레벨에서는 막히지 않음 (화면 UI가 막고 있을 가능성 있으나 코드 조사 범위 밖 — 착수 시 프론트 JS 확인 필요)
+- **[정정, Unit 2 정밀화 중 확인] "대댓글까지만 지원"이 서버와 프론트 양쪽 모두에서 강제되지 않음** — `validateParentCommentId`가 부모의 `parentCommentId`가 null인지 확인하지 않고, `insight-detail.js`의 `buildCommentHtml()`도 `depth`와 무관하게 모든 댓글(대댓글 포함)에 답글 버튼과 입력 폼을 렌더링함(재귀 호출, depth 제한 없음). **즉 대댓글에 대댓글을 다는 게 UI에서도 실제로 가능** — MVP_SCOPE.md의 "대댓글까지만" 기술은 현재 구현과 다름(문서-코드 불일치, F-05로 findings 문서 갱신 필요)
 - 댓글 목록 조립이 재귀 쿼리가 아니라 전체 로드 후 메모리 트리 구성 — 데이터 양이 커지면 성능 이슈 후보
 
 ## ⑨ 알아둘 점 / 리스크
