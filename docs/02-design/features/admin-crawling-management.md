@@ -28,6 +28,24 @@ RSS 기반 테크 뉴스 크롤링을 수동 실행/예약 실행하고, 크롤�
 
 수동 실행(`/run`)은 `TechNewsCrawlingService`를 즉시 호출해 결과를 이력(`CrawlHistory`)에 남김. 예약 실행(`/schedule`)은 조건만 `CrawlSchedule`에 저장하고 실제 실행은 Unit 7(`ScheduledCrawlingExecutor`)이 매분 폴링해서 처리 — **이 화면 자체는 트리거만 하고 실행 로직은 소유하지 않음**. 상세 조건/중복정책은 기존 화면설계 문서 §5(확인된 제약) 참조.
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["GET /admin/crawling"] --> B["크롤링 이력 + 예약설정 + 프리셋 + 주간AI인사이트 함께 조회"]
+    B --> C["admin/crawling.html 렌더링"]
+
+    D["POST /admin/crawling/run"] --> E["TechNewsCrawlingService 즉시 실행"]
+    E --> F["CrawlHistory 이력 저장"]
+    F --> C
+
+    G["POST /admin/crawling/schedule"] --> H["CrawlSchedule 조건 저장(cron 등)"]
+    H -.실제 실행은.-> I["Unit 7 ScheduledCrawlingExecutor가\n매분 폴링해서 별도 처리"]
+
+    J["POST /admin/weekly-insight/generate"] --> K["WeeklyAiInsightService.generateWeeklyInsight()\n(별도 문서: weekly-ai-insight.md)"]
+    K --> C
+```
+
 ## ⑤~⑦ 데이터/화면
 
 기존 문서(`docs/02-design/screens/admin-crawling.md`) §2~5에 상세 기술됨 — 여기서 재작성하지 않고 참조로 대체.
@@ -49,3 +67,4 @@ RSS 기반 테크 뉴스 크롤링을 수동 실행/예약 실행하고, 크롤�
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card, 화면설계는 기존 문서 참조로 대체) |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

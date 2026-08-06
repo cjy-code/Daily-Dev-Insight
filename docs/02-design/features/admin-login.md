@@ -26,6 +26,26 @@
 2. `POST /admin/login`: admin 전용 필터체인이 인증 → `processRoleBoundLoginSuccess(..., ROLE_ADMIN, ...)`로 `ROLE_ADMIN` 아니면 강제 로그아웃 후 `?error`
 3. 관리자 경로에서의 접근 거부(`AccessDeniedException`)는 `processAdminAccessDenied()`가 CSRF 실패와 단순 권한부족을 구분해서 각각 다른 쿼리파라미터로 리다이렉트 (Unit 8 §④ 참조)
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["POST /admin/login (CSRF 통과)"] --> B["CustomUserDetailsService 인증"]
+    B --> C{"status=ACTIVE?"}
+    C -->|아니오| D["인증 실패 → /admin/login?error"]
+    C -->|예| E["비밀번호 비교"]
+    E -->|불일치| D
+    E -->|일치| F{"role == ROLE_ADMIN?"}
+    F -->|아니오| G["강제 로그아웃 → /admin/login?error"]
+    F -->|예| H["/admin 으로 리다이렉트"]
+
+    I["/admin/** 접근 시 AccessDeniedException"] --> J{"CsrfException?"}
+    J -->|예| K{"Referer에 /admin/posts/ 포함?"}
+    K -->|예| L["해당 Referer로 리다이렉트"]
+    K -->|아니오| M["/admin/login?csrfError=true"]
+    J -->|아니오| N["/admin/login?adminDenied=true"]
+```
+
 ## ⑤ 데이터/외부 연동
 
 Unit 8과 완전히 동일 (`CustomUserDetailsService`, `User.role`/`status`)
@@ -54,3 +74,4 @@ Unit 8 참조. 이 unit 고유 사항 없음.
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

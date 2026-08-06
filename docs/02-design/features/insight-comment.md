@@ -26,6 +26,28 @@ Unit 2 §3 참조 (`POST /comments`, `DELETE /comments/{commentId}`)
 3. 목록 조회 시 전체 댓글을 가져와 **메모리에서** `parentCommentId` 기준 트리 조립(`findCommentDtos`) — DB 재귀 쿼리 아님, 댓글 수가 많아지면 매 요청마다 전체 로드
 4. 삭제는 본인 댓글만 가능(`FORBIDDEN` 403), 물리 삭제 아닌 `markDeleted()` 소프트 삭제
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["POST .../comments"] --> B["내용 trim + 빈값/500자초과 검증"]
+    B -->|실패| C["400 BAD_REQUEST"]
+    B -->|통과| D{"parentCommentId 있음?"}
+    D -->|없음| G["최상위 댓글로 저장"]
+    D -->|있음| E["validateParentCommentId:\n존재/미삭제/동일콘텐츠만 확인\n(부모가 대댓글인지는 미검증)"]
+    E -->|무효| F["400 BAD_REQUEST"]
+    E -->|유효| G2["대댓글로 저장(다단 중첩 허용)"]
+    G --> H["findCommentDtos: 전체 로드 후 메모리 트리 조립"]
+    G2 --> H
+    H --> I["insightEngagement 캐시 무효화 + 응답"]
+
+    J["DELETE .../comments/{id}"] --> K{"본인 댓글?"}
+    K -->|아니오| L["403 FORBIDDEN"]
+    K -->|예| M["markDeleted() 소프트 삭제"]
+    M --> N["부모가 삭제되면 자식은 트리 조립 시 최상위로 승격 표시"]
+    N --> H
+```
+
 ## ⑤~⑥ 데이터/인증/트랜잭션/캐시
 
 Unit 2와 완전히 동일.
@@ -47,3 +69,4 @@ Unit 2와 완전히 동일.
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card, Unit 2 delta) |
+| 0.2 | 2026-08-06 | 다단 대댓글 허용 사실 정정(Unit 2 정밀화 반영), 처리 흐름도(Mermaid) 추가 |

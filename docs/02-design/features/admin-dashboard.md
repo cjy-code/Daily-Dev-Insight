@@ -25,6 +25,28 @@
 
 `getAdminStats()`가 6개 Repository에서 단순 집계 쿼리(count/sum)를 각각 실행해 하나의 `AdminStatsData`로 조합 — 캐싱 없이 매 요청마다 전체 재집계.
 
+### 처리 흐름도
+
+```mermaid
+sequenceDiagram
+    participant U as 관리자
+    participant C as AdminPageController
+    participant S as AdminManagementService
+    participant DB as Repository(6개)
+
+    U->>C: GET /admin/dashboard
+    C->>S: getAdminStats()
+    S->>DB: userRepository.count() / countByStatus
+    S->>DB: dailyKnowledgeRepository.count() / countByKnowledgeDate
+    S->>DB: generationHistoryRepository.countByStatus(SUCCESS/FAILED)
+    S->>DB: dailyKnowledgeRepository.sumViewCount()
+    S->>DB: techNewsRepository.sumViewCount()
+    S->>DB: insightBookmarkRepository.count()
+    DB-->>S: 각 집계 결과
+    S-->>C: AdminStatsData(캐시 없이 매번 재집계)
+    C-->>U: admin/dashboard.html 렌더링
+```
+
 ## ⑤ 데이터/외부 연동
 
 | 지표 | 소스 |
@@ -60,3 +82,4 @@
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

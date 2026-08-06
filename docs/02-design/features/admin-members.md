@@ -24,6 +24,22 @@
 
 목록은 `findRecentUsers()`로 조회(정렬/개수 제한 기준은 정밀화 시 확인). 수정은 `role`/`status` 두 필드만 폼으로 받아 `updateUser(id, role, status)` 호출 — **관리자가 이 화면에서 다른 회원을 강제로 `WITHDRAWN` 처리하거나 `ROLE_ADMIN`으로 승격시키는 것도 가능**(입력값 검증 범위는 `AdminManagementService.updateUser()` 확인 필요, 이번 조사 범위 밖).
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["GET /admin/members"] --> B["findRecentUsers() 목록 조회"]
+    B --> C["admin/members.html 렌더링"]
+
+    D["POST /admin/members/{id}/update\n(role, status 폼 입력)"] --> E["AdminManagementService.updateUser(id, role, status)"]
+    E -->|성공| F["adminMessage flash + redirect"]
+    E -->|실패(Exception)| G["adminError flash + redirect\n(Admin 표준 예외처리 패턴)"]
+    F --> C
+    G --> C
+
+    E -.role 값 검증 없이 저장.-> H["CustomUserDetailsService가 다음 로그인 시\nROLE_+role 그대로 권한 부여(Unit 8 연동)"]
+```
+
 ## ⑤ 데이터/외부 연동
 
 `User` 엔티티의 `role`/`status` 직접 갱신. Unit 8(인증)의 `CustomUserDetailsService`가 이 값을 그대로 읽어 인가에 사용하므로, **여기서 값을 바꾸면 즉시(다음 로그인부터) 권한에 반영됨**.
@@ -53,3 +69,4 @@
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

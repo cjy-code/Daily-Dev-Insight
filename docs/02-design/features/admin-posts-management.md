@@ -34,6 +34,30 @@
 
 지식/뉴스 각각 **update(제한된 필드만: 지식=카테고리+제목, 뉴스=출처+제목 — 본문/요약은 이 화면에서 수정 불가)** → delete(하드 삭제로 추정, soft-delete 필드 확인 안 됨) → thumbnail 업로드(`MultipartFile`)/삭제가 대칭 구조로 반복. 모든 액션이 `try/catch(Exception)` → `adminMessage`/`adminError` flash 후 동일 목록으로 redirect(PRG 패턴).
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["GET /admin/posts/knowledge 또는 /news"] --> B["목록 조회"]
+    B --> C["목록 화면 렌더링"]
+
+    D["POST .../{id}/update"] --> E["AdminManagementService.update*Post()\n(제한된 필드만)"]
+    F["POST .../{id}/delete"] --> G["AdminManagementService.delete*Post()"]
+    H["POST .../{id}/thumbnail"] --> I["MultipartFile 업로드 → uploads/{type}/{date}/ 저장"]
+    J["POST .../{id}/thumbnail/delete"] --> K["썸네일 파일/경로 삭제"]
+
+    E --> L{"성공?"}
+    G --> L
+    I --> L
+    K --> L
+    L -->|예| M["adminMessage flash"]
+    L -->|아니오(Exception)| N["adminError flash"]
+    M --> C
+    N --> C
+
+    L -.캐시 무효화 여부.-> O["미확인 — Unit 1 홈 캐시(insightsByRange 등)\n갱신되는지 정밀화 시 확인 필요"]
+```
+
 ## ⑤ 데이터/외부 연동
 
 - 파일 업로드는 로컬 파일시스템(`uploads/{type}/{date}/`)에 저장 — S3 등 외부 스토리지 연동 없음
@@ -66,3 +90,4 @@
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) — `admin/posts.html` 미사용 최종 확정 |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

@@ -34,6 +34,26 @@
 2. 활동내역: `MyPageService.getMyActivity()` — 북마크/좋아요 각각 최근 30건(`PageRequest.of(0,30)`)을 `createdAt` 내림차순 조회 후, 콘텐츠 타입(NEWS/KNOWLEDGE)에 따라 원본 엔티티를 다시 조회해 DTO 구성 (N+1 가능성 있는 구조 — 활동 30건이면 최대 30번 추가 조회)
 3. 탈퇴 처리(`processWithdraw`): 동의 체크(`agreeWithdraw=Y`) 확인 → `MyPageService.withdraw()` → **북마크·좋아요만 선삭제** 후 `UserService.withdraw()`(비밀번호 검증 포함 추정) → 성공 시 `new SecurityContextLogoutHandler().logout()`을 컨트롤러가 **직접 호출**(Unit 5의 `AuthService.logout()`을 거치지 않음) → `/login?withdraw`로 이동
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["POST /mypage/withdraw"] --> B{"agreeWithdraw=Y?"}
+    B -->|아니오| C["errorMessage flash + redirect"]
+    B -->|예| D["MyPageService.withdraw()"]
+    D --> E["북마크·좋아요 선삭제\n(댓글은 정리 안 함)"]
+    E --> F["UserService.withdraw(): 비밀번호 검증"]
+    F -->|불일치| G["IllegalArgumentException → errorMessage flash"]
+    F -->|일치| H["User.status = WITHDRAWN"]
+    H --> I["컨트롤러가 직접 new SecurityContextLogoutHandler().logout()\n(AuthService 안 거침)"]
+    I --> J["/login?withdraw"]
+
+    K["POST /mypage/profile 또는 /password"] --> L["resolveLoginUserId()"]
+    L --> M["UserService.updateProfile / changePassword"]
+    M -->|실패| N["IllegalArgumentException → errorMessage flash"]
+    M -->|성공| O["successMessage flash + redirect"]
+```
+
 ## ⑤ 데이터/외부 연동
 
 - 외부 연동 없음. `UserService`가 실제 이름/이메일 검증, 비밀번호 확인·변경, 탈퇴 로직을 담당(이번 조사 범위 밖 — 필요 시 별도 확인)
@@ -66,3 +86,4 @@
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) — 탈퇴 시 로그아웃 중복 구현 확인, 댓글 정리 누락 가능성 발견 |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

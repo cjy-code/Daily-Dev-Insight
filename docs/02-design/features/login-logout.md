@@ -29,6 +29,26 @@
 2. `POST /login`: 이 프로젝트 코드가 아니라 `SecurityConfig`가 등록한 Spring Security 필터가 인증 수행 → 성공 시 `processRoleBoundLoginSuccess`가 **로그인한 계정의 권한이 `ROLE_USER`인지 재확인** — ADMIN 계정이 사용자 로그인 폼으로 로그인 성공해도 권한이 안 맞으면 강제 로그아웃 후 `/login?error`로 리다이렉트
 3. 로그아웃: `POST /auth/logout` → `AuthService.logout()`이 세션/인증 컨텍스트 클리어 → 로그인했던 계정의 role에 따라 `/login?logout` 또는 `/admin/login?logout`로 분기 리다이렉트
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["POST /login (CSRF 통과)"] --> B["CustomUserDetailsService.loadUserByUsername()"]
+    B --> C{"status=ACTIVE?"}
+    C -->|아니오| D["인증 실패(비밀번호 비교 전 차단)"]
+    C -->|예| E["비밀번호 비교(NoOpPasswordEncoder)"]
+    E -->|불일치| D
+    E -->|일치| F["세션 재생성 + SecurityContext 저장"]
+    F --> G{"role == ROLE_USER?"}
+    G -->|아니오| H["강제 로그아웃 + /login?error"]
+    G -->|예| I["/ 로 리다이렉트(로그인 성공)"]
+
+    J["POST /auth/logout"] --> K["AuthService.logout() 세션 무효화"]
+    K --> L{"role"}
+    L -->|USER| M["/login?logout"]
+    L -->|ADMIN| N["/admin/login?logout"]
+```
+
 ## ⑤ 데이터/외부 연동
 
 - 외부 연동 없음. 인증은 `UserDetailsService` 구현체(Unit 8에서 확인 예정)가 DB 사용자 조회
@@ -59,3 +79,4 @@
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) — `templates/login.html` 미사용 확정 |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 (계정상태 확인이 비밀번호 비교보다 먼저 수행되는 순서로 Unit 8 정밀화 결과 반영) |

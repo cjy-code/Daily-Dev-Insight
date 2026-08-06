@@ -26,6 +26,28 @@
 - 조회수: 지식/뉴스 각각 `sumViewCount()` 합산 + 콘텐츠 타입별 상위 5개(`mapTopKnowledgeByViewCount`/`mapTopNewsByViewCount`) 조회
 - 북마크: 전체 북마크 수(`count()`) + 북마크를 남긴 고유 사용자 수(`countDistinctUserId()`) + 상위 북마크 콘텐츠(`findTopBookmarkedContents`, `TOP_CONTENT_LIMIT`개)
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["GET /admin/stats"] --> B["redirect /admin/stats/views"]
+
+    C["GET /admin/stats/views"] --> D["getContentViewStats()"]
+    D --> E["지식 sumViewCount + 뉴스 sumViewCount 합산"]
+    D --> F["상위 5개(지식/뉴스 각각)"]
+    E --> G["admin/stats-views.html 렌더링"]
+    F --> G
+
+    H["GET /admin/stats/bookmarks"] --> I["getBookmarkStats()"]
+    I --> J["전체 북마크 수 + 고유 사용자 수"]
+    I --> K["상위 북마크 콘텐츠 TOP_CONTENT_LIMIT개"]
+    J --> L["admin/stats-bookmarks.html 렌더링"]
+    K --> L
+
+    D -.캐시 없음, 매번 재집계.-> D
+    I -.캐시 없음, 매번 재집계.-> I
+```
+
 ## ⑤ 데이터/외부 연동
 
 Unit 1(조회수 필드), Unit 3(북마크 엔티티) 데이터를 그대로 재사용 — 별도 통계 전용 테이블/집계 배치 없이 **매 요청 실시간 집계**.
@@ -55,3 +77,4 @@ Unit 1(조회수 필드), Unit 3(북마크 엔티티) 데이터를 그대로 재
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

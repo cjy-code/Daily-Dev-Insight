@@ -23,6 +23,23 @@ Unit 2 §3 참조 (`/api/insights/{type}/{id}/likes/toggle`, `/bookmarks/toggle`
 
 `findByContentTypeAndContentIdAndUserId` 존재 여부만으로 insert(좋아요/북마크 추가) 또는 delete(해제) — **엔티티 자체가 삭제되는 방식**, 별도 상태 플래그(active/inactive) 없음. 토글 후 `countByContentTypeAndContentId`로 최신 카운트 재조회.
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["POST /api/insights/{type}/{id}/likes(or bookmarks)/toggle"] --> B{"로그인 여부"}
+    B -->|비로그인| C["401 UNAUTHORIZED"]
+    B -->|로그인| D["findByContentTypeAndContentIdAndUserId 조회"]
+    D --> E{"기존 row 존재?"}
+    E -->|있음| F["delete (해제)"]
+    E -->|없음| G["insert (추가)"]
+    F --> H["countByContentTypeAndContentId 재조회"]
+    G --> H
+    H --> I["insightEngagement 캐시 전체 무효화(allEntries=true)"]
+    I --> J["{active, count} 응답"]
+    J --> K["JS: 버튼 상태 + 카운트만 갱신(재조회 없음)"]
+```
+
 ## ⑤~⑥ 데이터/인증/트랜잭션/캐시
 
 Unit 2와 완전히 동일 (같은 서비스 클래스, 같은 캐시 정책).
@@ -43,3 +60,4 @@ Unit 2와 완전히 동일 (같은 서비스 클래스, 같은 캐시 정책).
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card, Unit 2 delta) |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

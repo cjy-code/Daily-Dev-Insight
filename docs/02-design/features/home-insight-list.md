@@ -31,6 +31,24 @@
 4. 지식/뉴스 리스트를 6개 단위로 청크(`chunkBySix`)해 카드 그리드 렌더링용으로 모델에 추가
 5. `WeeklyAiInsightService.findLatestVisibleInsight()`로 주간 AI 인사이트 섹션 데이터 별도 조회 (getInsightsByRange와 무관한 독립 호출)
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["GET / 또는 /index"] --> B["파라미터 파싱 + 날짜 보정(clampToToday)"]
+    B --> C{"startDate 있음?"}
+    C -->|아니오| D["endDate - 3개월을 startDate로"]
+    C -->|예| E["그대로 사용"]
+    D --> F["DailyInsightService.getInsightsByRange()"]
+    E --> F
+    F --> G["캐시 확인(insightsByRange, 5분 TTL)"]
+    G --> H["지식/뉴스/TOP10/TOP5 조합 응답"]
+    H --> I["chunkBySix로 6개 단위 청크"]
+    B --> J["WeeklyAiInsightService.findLatestVisibleInsight()\n(독립 호출, 별도 캐시 없음)"]
+    I --> K[index.html 렌더링]
+    J --> K
+```
+
 ## ⑤ 데이터/외부 연동
 
 - `DailyKnowledge`, `TechNews` 엔티티 조회 (검색은 지식에만 적용, 뉴스는 검색 대상 아님)
@@ -67,3 +85,4 @@
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
+| 0.2 | 2026-08-06 | Top10 캐시 오류 정정, 처리 흐름도(Mermaid) 추가 |

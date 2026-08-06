@@ -23,6 +23,26 @@ Oracle 스키마에 필요한 컬럼/제약조건/인덱스/시퀀스를 애플�
 3. 다루는 대상: `insight_comment`(대댓글 컬럼/FK/인덱스), `daily_knowledge`/`tech_news`(첨부이미지 컬럼), `generation_schedule`/`generation_history`, `crawl_schedule`/`crawl_history`/`crawl_condition_preset`(테이블+컬럼+시퀀스 전체 신규), `weekly_ai_insight`(테이블+시퀀스 전체 신규)
 4. 마지막에 4개 시퀀스를 테이블의 현재 최대 ID와 정렬(`ensureSequenceAlignedWithTableMaxId`) — 시퀀스가 테이블 데이터보다 뒤처지는 상황 보정용으로 추정
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["@PostConstruct 애플리케이션 기동"] --> B{"isOracleDatabase()?"}
+    B -->|아니오| C["전체 스킵(no-op)"]
+    B -->|예| D["19개 ensure*() 순차 실행\n(컬럼/제약/인덱스/테이블/시퀀스)"]
+    D --> E{"각 단계: 이미 존재?"}
+    E -->|예| F["skip"]
+    E -->|아니오| G["조건부 DDL 실행(개별 autocommit)"]
+    F --> H["다음 단계로"]
+    G --> H
+    H --> I{"19개 전부 완료?"}
+    I -->|아니오| D
+    I -->|예| J["4개 시퀀스를 테이블 최대ID로 정렬"]
+    J --> K["기동 계속"]
+
+    G -.실패 시.-> L["예외 전파, 이전 단계까지는 이미 반영된 채 남음\n(전체 롤백 없음)"]
+```
+
 ## ⑤ 데이터/외부 연동
 
 - `JdbcTemplate`으로 직접 DDL 실행 (JPA/Hibernate 자동 스키마 생성 아님)
@@ -56,3 +76,4 @@ Oracle 스키마에 필요한 컬럼/제약조건/인덱스/시퀀스를 애플�
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |

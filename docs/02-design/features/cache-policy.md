@@ -20,6 +20,21 @@ Redis 기반 캐시 매니저와 캐시별 TTL 정책을 정의하는 횡단 관
 
 `@Cacheable`/`@CacheEvict` 어노테이션이 붙은 서비스 메서드가 Spring AOP를 통해 자동으로 이 `CacheManager`를 거침. 직접 호출 흐름은 없고 선언적으로 동작.
 
+### 처리 흐름도
+
+```mermaid
+flowchart TD
+    A["@Cacheable 메서드 호출"] --> B{"Redis에 키 존재?"}
+    B -->|HIT| C["캐시된 값 반환(메서드 본문 실행 안 함)"]
+    B -->|MISS| D["메서드 본문 실행"]
+    D --> E{"결과가 null?"}
+    E -->|예| F["disableCachingNullValues → 캐시 저장 안 함"]
+    E -->|아니오| G["Redis에 TTL과 함께 저장 후 반환"]
+
+    H["@CacheEvict(allEntries=true) 메서드 호출"] --> I["메서드 본문 실행"]
+    I --> J["해당 캐시명의 모든 엔트리 삭제\n(콘텐츠/사용자별 개별 삭제 아님)"]
+```
+
 ## ⑤ 데이터/외부 연동
 
 - Redis 서버 연동 (`RedisConnectionFactory` 필요, `docker-compose.yml`에 Redis 컨테이너 정의 여부는 별도 확인 필요)
@@ -61,3 +76,4 @@ Redis 기반 캐시 매니저와 캐시별 TTL 정책을 정의하는 횡단 관
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) — Unit 1의 "Top10 캐시 미적용" 오류를 발견해 정정 |
+| 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |
