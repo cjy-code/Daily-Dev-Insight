@@ -13,5 +13,14 @@ services:
     volumes:
       - oracle_data:/opt/oracle/oradata
 
+  redis:
+    image: redis:7-alpine
+    container_name: daily-dev-insight-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   oracle_data:
+  redis_data:

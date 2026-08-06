@@ -120,9 +120,9 @@ docker compose up -d
 
 `backend/src/main/resources/application.yml` 기준 주요 환경 변수:
 
-- `DB_URL` (default: `jdbc:oracle:thin:@//localhost:1521/ORCLPDB`)
-- `DB_USERNAME` (default: `daily`)
-- `DB_PASSWORD` (default: `1234`)
+- `DB_URL` (default: `jdbc:oracle:thin:@//localhost:1521/xepdb1`) — `gvenzl/oracle-xe` 이미지의 PDB 서비스명은 `xepdb1`입니다(`ORCLPDB` 아님)
+- `DB_USERNAME` (default: `dailydev`, `docker-compose.yml`의 `APP_USER`와 동일)
+- `DB_PASSWORD` (default: `password`, `docker-compose.yml`의 `APP_USER_PASSWORD`와 동일)
 - `DB_DRIVER` (default: `oracle.jdbc.OracleDriver`)
 - `REDIS_HOST` (default: `127.0.0.1`)
 - `REDIS_PORT` (default: `6379`)
