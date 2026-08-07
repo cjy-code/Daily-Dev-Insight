@@ -2,6 +2,7 @@ package com.dailydevinsight.repository;
 
 import com.dailydevinsight.entity.InsightBookmark;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -14,7 +15,7 @@ public interface InsightBookmarkRepository extends JpaRepository<InsightBookmark
 
     long countByContentTypeAndContentId(String contentType, Long contentId);
 
-    List<InsightBookmark> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+    Page<InsightBookmark> findByUserIdOrderByCreatedAtDescIdDesc(Long userId, Pageable pageable);
 
     @Query("""
             select b.contentType as contentType, b.contentId as contentId, count(b.id) as bookmarkCount

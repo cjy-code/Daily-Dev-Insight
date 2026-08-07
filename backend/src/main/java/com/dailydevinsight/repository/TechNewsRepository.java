@@ -1,6 +1,8 @@
 package com.dailydevinsight.repository;
 
 import com.dailydevinsight.entity.TechNews;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,7 +18,7 @@ public interface TechNewsRepository extends JpaRepository<TechNews, Long> {
 
     List<TechNews> findByNewsDateBetweenOrderByNewsDateDescIdDesc(LocalDate startDate, LocalDate endDate);
 
-    List<TechNews> findTop30ByOrderByNewsDateDescIdDesc();
+    Page<TechNews> findAllByOrderByNewsDateDescIdDesc(Pageable pageable);
 
     List<TechNews> findTop5ByOrderByViewCountDescIdDesc();
 

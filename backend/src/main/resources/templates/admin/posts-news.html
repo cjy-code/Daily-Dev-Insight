@@ -34,7 +34,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="post : ${techNewsPostList}">
+                <tr th:each="post : ${techNewsPostPage.content}">
                     <td th:text="${post.id}">1</td>
                     <td th:text="${post.newsDate}">2026-04-15</td>
                     <td>
@@ -95,11 +95,12 @@
                         </form>
                     </td>
                 </tr>
-                <tr th:if="${#lists.isEmpty(techNewsPostList)}">
+                <tr th:if="${#lists.isEmpty(techNewsPostPage.content)}">
                     <td colspan="7">게시물이 없습니다.</td>
                 </tr>
                 </tbody>
             </table>
+            <div th:replace="~{fragments/pagination :: pagination(${techNewsPostPage}, '/admin/posts/news')}"></div>
         </section>
     </section>
 </section>

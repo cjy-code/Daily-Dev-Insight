@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--/* @date 2026-08-06 */-->
+<!--/* @desc 목록 화면 공통 페이지네이션(이전/다음) 프래그먼트. page는 Spring Data Page, baseUrl은 현재 목록 경로. */-->
+<nav th:fragment="pagination(page, baseUrl)" class="pagination" th:if="${page.totalPages > 1}">
+    <a th:if="${page.hasPrevious()}" th:href="@{${baseUrl}(page=${page.number - 1})}" class="page-link">이전</a>
+    <span th:unless="${page.hasPrevious()}" class="page-link disabled">이전</span>
+    <span class="page-info" th:text="${(page.number + 1) + ' / ' + page.totalPages}">1 / 1</span>
+    <a th:if="${page.hasNext()}" th:href="@{${baseUrl}(page=${page.number + 1})}" class="page-link">다음</a>
+    <span th:unless="${page.hasNext()}" class="page-link disabled">다음</span>
+</nav>
+</body>
+</html>

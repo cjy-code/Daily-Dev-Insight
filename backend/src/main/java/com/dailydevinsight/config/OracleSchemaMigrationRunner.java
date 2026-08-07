@@ -20,6 +20,7 @@ public class OracleSchemaMigrationRunner {
     private static final String COLUMN_PARENT_COMMENT_ID = "PARENT_COMMENT_ID";
     private static final String CONSTRAINT_PARENT_COMMENT = "FK_INSIGHT_COMMENT_PARENT";
     private static final String INDEX_PARENT_COMMENT = "IDX_INSIGHT_COMMENT_PARENT";
+    private static final String INDEX_INSIGHT_COMMENT_CONTENT_LOOKUP = "IDX_INSIGHT_COMMENT_CONTENT";
     private static final String TABLE_TECH_NEWS = "TECH_NEWS";
     private static final String TABLE_DAILY_KNOWLEDGE = "DAILY_KNOWLEDGE";
     private static final String TABLE_PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
@@ -55,6 +56,7 @@ public class OracleSchemaMigrationRunner {
         ensureParentCommentIdColumn();
         ensureParentCommentConstraint();
         ensureParentCommentIndex();
+        ensureInsightCommentContentLookupIndex();
         ensureDailyKnowledgeAttachmentImagePathColumn();
         ensureTechNewsAttachmentImagePathColumn();
         ensureGenerationScheduleAllowDuplicateColumn();
@@ -113,6 +115,20 @@ public class OracleSchemaMigrationRunner {
         }
         jdbcTemplate.execute("CREATE INDEX idx_insight_comment_parent ON insight_comment (parent_comment_id)");
         log.info("Applied schema migration: added index {}", INDEX_PARENT_COMMENT);
+    }
+
+    /**
+     * @date 2026-08-06
+     * @desc 댓글 트리 조회(content_type/content_id/is_deleted 필터 + created_at 정렬) 성능을 위한 복합 인덱스가 없으면 생성합니다.
+     */
+    private void ensureInsightCommentContentLookupIndex() {
+        if (existsIndex(INDEX_INSIGHT_COMMENT_CONTENT_LOOKUP)) {
+            return;
+        }
+        jdbcTemplate.execute(
+                "CREATE INDEX idx_insight_comment_content ON insight_comment (content_type, content_id, is_deleted, created_at)"
+        );
+        log.info("Applied schema migration: added index {}", INDEX_INSIGHT_COMMENT_CONTENT_LOOKUP);
     }
 
     /**

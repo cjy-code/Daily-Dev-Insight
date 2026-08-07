@@ -1,5 +1,6 @@
 package com.dailydevinsight.service;
 
+import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.dto.MyPageActivityDTO;
 import com.dailydevinsight.dto.MyPageActivityItemDTO;
 import com.dailydevinsight.entity.DailyKnowledge;
@@ -12,12 +13,14 @@ import com.dailydevinsight.repository.InsightBookmarkRepository;
 import com.dailydevinsight.repository.InsightLikeRepository;
 import com.dailydevinsight.repository.TechNewsRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -25,7 +28,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class MyPageService {
 
-    private static final int DEFAULT_ACTIVITY_LIMIT = 30;
+    private static final int DEFAULT_ACTIVITY_PAGE_SIZE = 20;
 
     private final UserService userService;
     private final InsightBookmarkRepository insightBookmarkRepository;
@@ -42,20 +45,27 @@ public class MyPageService {
     }
 
     /**
-     * @date 2026-04-20
-     * @desc 북마크/좋아요 활동 목록을 조회합니다.
+     * @date 2026-08-06
+     * @desc 북마크/좋아요 활동 목록을 각각 페이지 단위로 조회합니다.
      */
-    public MyPageActivityDTO getMyActivity(String loginUserId) {
+    public MyPageActivityDTO getMyActivity(String loginUserId, int bookmarkPageNumber, int likePageNumber) {
         User user = userService.findRequiredByUserId(loginUserId);
-        PageRequest activityPage = PageRequest.of(0, DEFAULT_ACTIVITY_LIMIT);
 
-        List<InsightBookmark> bookmarkList = insightBookmarkRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), activityPage);
-        List<InsightLike> likeList = insightLikeRepository.findByUserIdOrderByCreatedAtDesc(user.getId(), activityPage);
+        Page<InsightBookmark> bookmarkPage = insightBookmarkRepository.findByUserIdOrderByCreatedAtDescIdDesc(user.getId(), toPageable(bookmarkPageNumber));
+        Page<InsightLike> likePage = insightLikeRepository.findByUserIdOrderByCreatedAtDescIdDesc(user.getId(), toPageable(likePageNumber));
 
         return MyPageActivityDTO.builder()
-                .bookmarkItems(toBookmarkActivityItems(bookmarkList))
-                .likeItems(toLikeActivityItems(likeList))
+                .bookmarkPage(toBookmarkActivityPage(bookmarkPage))
+                .likePage(toLikeActivityPage(likePage))
                 .build();
+    }
+
+    /**
+     * @date 2026-08-06
+     * @desc 0 미만의 요청 페이지 번호를 보정하여 고정 크기의 Pageable을 생성합니다.
+     */
+    private Pageable toPageable(int pageNumber) {
+        return PageRequest.of(Math.max(pageNumber, 0), DEFAULT_ACTIVITY_PAGE_SIZE);
     }
 
     /**
@@ -81,6 +91,7 @@ public class MyPageService {
      * @desc 회원 탈퇴를 처리하고 사용자 활동 데이터를 정리합니다.
      */
     @Transactional
+    @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true)
     public void withdraw(String loginUserId, String currentPassword) {
         User user = userService.findRequiredByUserId(loginUserId);
         insightBookmarkRepository.deleteByUserId(user.getId());
@@ -89,49 +100,27 @@ public class MyPageService {
     }
 
     /**
-     * @date 2026-04-20
-     * @desc 북마크 엔티티 목록을 화면 표시용 DTO 목록으로 변환합니다.
+     * @date 2026-08-06
+     * @desc 북마크 엔티티 페이지를 화면 표시용 DTO 페이지로 변환합니다.
      */
-    private List<MyPageActivityItemDTO> toBookmarkActivityItems(List<InsightBookmark> bookmarkList) {
-        if (bookmarkList == null || bookmarkList.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<MyPageActivityItemDTO> activityItemList = new ArrayList<>();
-        for (InsightBookmark bookmark : bookmarkList) {
-            MyPageActivityItemDTO activityItem = toActivityItem(
-                    bookmark.getContentType(),
-                    bookmark.getContentId(),
-                    bookmark.getCreatedAt()
-            );
-            if (activityItem != null) {
-                activityItemList.add(activityItem);
-            }
-        }
-        return activityItemList;
+    private Page<MyPageActivityItemDTO> toBookmarkActivityPage(Page<InsightBookmark> bookmarkPage) {
+        List<MyPageActivityItemDTO> activityItemList = bookmarkPage.getContent().stream()
+                .map(bookmark -> toActivityItem(bookmark.getContentType(), bookmark.getContentId(), bookmark.getCreatedAt()))
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        return new PageImpl<>(activityItemList, bookmarkPage.getPageable(), bookmarkPage.getTotalElements());
     }
 
     /**
-     * @date 2026-04-20
-     * @desc 좋아요 엔티티 목록을 화면 표시용 DTO 목록으로 변환합니다.
+     * @date 2026-08-06
+     * @desc 좋아요 엔티티 페이지를 화면 표시용 DTO 페이지로 변환합니다.
      */
-    private List<MyPageActivityItemDTO> toLikeActivityItems(List<InsightLike> likeList) {
-        if (likeList == null || likeList.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<MyPageActivityItemDTO> activityItemList = new ArrayList<>();
-        for (InsightLike like : likeList) {
-            MyPageActivityItemDTO activityItem = toActivityItem(
-                    like.getContentType(),
-                    like.getContentId(),
-                    like.getCreatedAt()
-            );
-            if (activityItem != null) {
-                activityItemList.add(activityItem);
-            }
-        }
-        return activityItemList;
+    private Page<MyPageActivityItemDTO> toLikeActivityPage(Page<InsightLike> likePage) {
+        List<MyPageActivityItemDTO> activityItemList = likePage.getContent().stream()
+                .map(like -> toActivityItem(like.getContentType(), like.getContentId(), like.getCreatedAt()))
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        return new PageImpl<>(activityItemList, likePage.getPageable(), likePage.getTotalElements());
     }
 
     /**

@@ -60,7 +60,8 @@ public class TechNewsCrawlingService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true)
     })
     public CrawlExecutionResult executeManualCrawling(CrawlRunForm form) {
         validateRunForm(form);
@@ -154,7 +155,8 @@ public class TechNewsCrawlingService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true)
     })
     public CrawlExecutionResult executeScheduledCrawling(LocalDate targetDate, CrawlSchedule schedule) {
         return executeCrawling(

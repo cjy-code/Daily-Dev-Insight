@@ -1398,3 +1398,34 @@
         grid-template-columns: 1fr;
     }
 }
+
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.pagination .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    border: 1px solid var(--admin-line);
+    border-radius: 8px;
+    color: var(--admin-brand-strong);
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.pagination .page-link.disabled {
+    color: var(--admin-sub);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.pagination .page-info {
+    font-size: 13px;
+    color: var(--admin-sub);
+}

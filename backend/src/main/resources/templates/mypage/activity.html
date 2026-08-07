@@ -12,33 +12,55 @@
     <section class="mypage-content">
         <header class="mypage-head">
             <h2>북마크/좋아요</h2>
-            <p>최근 활동 30건을 확인할 수 있습니다.</p>
+            <p>전체 활동 내역을 페이지별로 확인할 수 있습니다.</p>
         </header>
 
         <section class="mypage-panel">
             <h3>북마크</h3>
-            <ul class="activity-list" th:if="${!#lists.isEmpty(activity.bookmarkItems)}">
-                <li class="activity-item" th:each="item : ${activity.bookmarkItems}">
+            <ul class="activity-list" th:if="${!#lists.isEmpty(activity.bookmarkPage.content)}">
+                <li class="activity-item" th:each="item : ${activity.bookmarkPage.content}">
                     <a th:href="@{/insights/{type}/{id}(type=${item.detailTypePath}, id=${item.contentId})}" class="activity-link">
                         <strong th:text="${item.title}">제목</strong>
                         <span th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</span>
                     </a>
                 </li>
             </ul>
-            <p class="empty" th:if="${#lists.isEmpty(activity.bookmarkItems)}">북마크한 콘텐츠가 없습니다.</p>
+            <p class="empty" th:if="${#lists.isEmpty(activity.bookmarkPage.content)}">북마크한 콘텐츠가 없습니다.</p>
+            <nav class="pagination" th:if="${activity.bookmarkPage.totalPages > 1}">
+                <a th:if="${activity.bookmarkPage.hasPrevious()}"
+                   th:href="@{/mypage/activity(bookmarkPage=${activity.bookmarkPage.number - 1}, likePage=${activity.likePage.number})}"
+                   class="page-link">이전</a>
+                <span th:unless="${activity.bookmarkPage.hasPrevious()}" class="page-link disabled">이전</span>
+                <span class="page-info" th:text="${(activity.bookmarkPage.number + 1) + ' / ' + activity.bookmarkPage.totalPages}">1 / 1</span>
+                <a th:if="${activity.bookmarkPage.hasNext()}"
+                   th:href="@{/mypage/activity(bookmarkPage=${activity.bookmarkPage.number + 1}, likePage=${activity.likePage.number})}"
+                   class="page-link">다음</a>
+                <span th:unless="${activity.bookmarkPage.hasNext()}" class="page-link disabled">다음</span>
+            </nav>
         </section>
 
         <section class="mypage-panel">
             <h3>좋아요</h3>
-            <ul class="activity-list" th:if="${!#lists.isEmpty(activity.likeItems)}">
-                <li class="activity-item" th:each="item : ${activity.likeItems}">
+            <ul class="activity-list" th:if="${!#lists.isEmpty(activity.likePage.content)}">
+                <li class="activity-item" th:each="item : ${activity.likePage.content}">
                     <a th:href="@{/insights/{type}/{id}(type=${item.detailTypePath}, id=${item.contentId})}" class="activity-link">
                         <strong th:text="${item.title}">제목</strong>
                         <span th:text="${item.source + ' | ' + item.publishedAt}">출처 | 날짜</span>
                     </a>
                 </li>
             </ul>
-            <p class="empty" th:if="${#lists.isEmpty(activity.likeItems)}">좋아요한 콘텐츠가 없습니다.</p>
+            <p class="empty" th:if="${#lists.isEmpty(activity.likePage.content)}">좋아요한 콘텐츠가 없습니다.</p>
+            <nav class="pagination" th:if="${activity.likePage.totalPages > 1}">
+                <a th:if="${activity.likePage.hasPrevious()}"
+                   th:href="@{/mypage/activity(bookmarkPage=${activity.bookmarkPage.number}, likePage=${activity.likePage.number - 1})}"
+                   class="page-link">이전</a>
+                <span th:unless="${activity.likePage.hasPrevious()}" class="page-link disabled">이전</span>
+                <span class="page-info" th:text="${(activity.likePage.number + 1) + ' / ' + activity.likePage.totalPages}">1 / 1</span>
+                <a th:if="${activity.likePage.hasNext()}"
+                   th:href="@{/mypage/activity(bookmarkPage=${activity.bookmarkPage.number}, likePage=${activity.likePage.number + 1})}"
+                   class="page-link">다음</a>
+                <span th:unless="${activity.likePage.hasNext()}" class="page-link disabled">다음</span>
+            </nav>
         </section>
     </section>
 </section>

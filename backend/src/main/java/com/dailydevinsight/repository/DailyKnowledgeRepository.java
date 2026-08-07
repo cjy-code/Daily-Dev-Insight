@@ -1,6 +1,8 @@
 package com.dailydevinsight.repository;
 
 import com.dailydevinsight.entity.DailyKnowledge;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -22,7 +24,7 @@ public interface DailyKnowledgeRepository extends JpaRepository<DailyKnowledge, 
 
     List<DailyKnowledge> findTop5ByKnowledgeDateBetweenOrderByViewCountDescIdDesc(LocalDate startDate, LocalDate endDate);
 
-    List<DailyKnowledge> findTop30ByOrderByKnowledgeDateDescIdDesc();
+    Page<DailyKnowledge> findAllByOrderByKnowledgeDateDescIdDesc(Pageable pageable);
 
     List<DailyKnowledge> findTop5ByOrderByViewCountDescIdDesc();
 

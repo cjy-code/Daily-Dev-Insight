@@ -2,35 +2,28 @@ package com.dailydevinsight.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
 
 @Getter
 @Builder
 public class MyPageActivityDTO {
 
-    private List<MyPageActivityItemDTO> bookmarkItems;
-    private List<MyPageActivityItemDTO> likeItems;
+    private Page<MyPageActivityItemDTO> bookmarkPage;
+    private Page<MyPageActivityItemDTO> likePage;
 
     /**
-     * @date 2026-04-20
-     * @desc 북마크 목록 개수를 반환합니다.
+     * @date 2026-08-06
+     * @desc 북마크 총 개수를 반환합니다.
      */
-    public int getBookmarkCount() {
-        if (bookmarkItems == null) {
-            return 0;
-        }
-        return bookmarkItems.size();
+    public long getBookmarkCount() {
+        return bookmarkPage == null ? 0L : bookmarkPage.getTotalElements();
     }
 
     /**
-     * @date 2026-04-20
-     * @desc 좋아요 목록 개수를 반환합니다.
+     * @date 2026-08-06
+     * @desc 좋아요 총 개수를 반환합니다.
      */
-    public int getLikeCount() {
-        if (likeItems == null) {
-            return 0;
-        }
-        return likeItems.size();
+    public long getLikeCount() {
+        return likePage == null ? 0L : likePage.getTotalElements();
     }
 }
