@@ -7,54 +7,71 @@
         <h3>Admin Console</h3>
     </div>
     <nav class="admin-side-nav" aria-label="관리자 메뉴">
-        <a th:href="@{/admin/dashboard}" th:classappend="${currentMenu == 'dashboard'} ? ' active' : ''">대시보드</a>
+        <a th:href="@{/admin/dashboard}"
+           th:classappend="${currentMenu == 'dashboard'} ? ' active' : ''"
+           th:attr="aria-current=${currentMenu == 'dashboard'} ? 'page' : null">대시보드</a>
         <section class="admin-side-nav-group"
-                 th:classappend="${currentMenu == 'stats-views' or currentMenu == 'stats-bookmarks'} ? ' has-active-child' : ''"
-                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'stats-views' or currentMenu == 'stats-bookmarks'},data-accordion-storage-key='admin-side-stats-group'">
+                 th:classappend="${currentMenu == 'stats-views' or currentMenu == 'stats-bookmarks'} ? ' has-active-child' : ' is-collapsed'"
+                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'stats-views' or currentMenu == 'stats-bookmarks'}">
             <button type="button"
                     class="admin-side-nav-group-toggle"
-                    aria-expanded="false"
+                    th:attr="aria-expanded=${currentMenu == 'stats-views' or currentMenu == 'stats-bookmarks'}"
                     aria-controls="adminStatsGroupItems">
                 <span class="admin-side-nav-group-title">통계 분석</span>
-                <span class="admin-side-nav-group-icon" aria-hidden="true">▾</span>
+                <span class="admin-side-nav-group-icon" aria-hidden="true"></span>
             </button>
             <div id="adminStatsGroupItems" class="admin-side-nav-group-items">
-                <a th:href="@{/admin/stats/views}" th:classappend="${currentMenu == 'stats-views'} ? ' active' : ''">조회수</a>
-                <a th:href="@{/admin/stats/bookmarks}" th:classappend="${currentMenu == 'stats-bookmarks'} ? ' active' : ''">관심/북마크</a>
+                <a th:href="@{/admin/stats/views}"
+                   th:classappend="${currentMenu == 'stats-views'} ? ' active' : ''"
+                   th:attr="aria-current=${currentMenu == 'stats-views'} ? 'page' : null">조회수</a>
+                <a th:href="@{/admin/stats/bookmarks}"
+                   th:classappend="${currentMenu == 'stats-bookmarks'} ? ' active' : ''"
+                   th:attr="aria-current=${currentMenu == 'stats-bookmarks'} ? 'page' : null">관심/북마크</a>
             </div>
         </section>
         <section class="admin-side-nav-group"
-                 th:classappend="${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'} ? ' has-active-child' : ''"
-                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'},data-accordion-storage-key='admin-side-posts-group'">
+                 th:classappend="${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'} ? ' has-active-child' : ' is-collapsed'"
+                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'}">
             <button type="button"
                     class="admin-side-nav-group-toggle"
-                    aria-expanded="false"
+                    th:attr="aria-expanded=${currentMenu == 'posts-knowledge' or currentMenu == 'posts-news'}"
                     aria-controls="adminPostsGroupItems">
                 <span class="admin-side-nav-group-title">게시물 관리</span>
-                <span class="admin-side-nav-group-icon" aria-hidden="true">▾</span>
+                <span class="admin-side-nav-group-icon" aria-hidden="true"></span>
             </button>
             <div id="adminPostsGroupItems" class="admin-side-nav-group-items">
-                <a th:href="@{/admin/posts/knowledge}" th:classappend="${currentMenu == 'posts-knowledge'} ? ' active' : ''">일일 지식</a>
-                <a th:href="@{/admin/posts/news}" th:classappend="${currentMenu == 'posts-news'} ? ' active' : ''">테크 뉴스</a>
+                <a th:href="@{/admin/posts/knowledge}"
+                   th:classappend="${currentMenu == 'posts-knowledge'} ? ' active' : ''"
+                   th:attr="aria-current=${currentMenu == 'posts-knowledge'} ? 'page' : null">일일 지식</a>
+                <a th:href="@{/admin/posts/news}"
+                   th:classappend="${currentMenu == 'posts-news'} ? ' active' : ''"
+                   th:attr="aria-current=${currentMenu == 'posts-news'} ? 'page' : null">테크 뉴스</a>
             </div>
         </section>
-        <a th:href="@{/admin/members}" th:classappend="${currentMenu == 'members'} ? ' active' : ''">회원 관리</a>
+        <a th:href="@{/admin/members}"
+           th:classappend="${currentMenu == 'members'} ? ' active' : ''"
+           th:attr="aria-current=${currentMenu == 'members'} ? 'page' : null">회원 관리</a>
         <section class="admin-side-nav-group"
-                 th:classappend="${currentMenu == 'generation' or currentMenu == 'crawling'} ? ' has-active-child' : ''"
-                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'generation' or currentMenu == 'crawling'},data-accordion-storage-key='admin-side-generation-group'">
+                 th:classappend="${currentMenu == 'generation' or currentMenu == 'crawling'} ? ' has-active-child' : ' is-collapsed'"
+                 th:attr="data-accordion-group=true,data-accordion-default-open=${currentMenu == 'generation' or currentMenu == 'crawling'}">
             <button type="button"
                     class="admin-side-nav-group-toggle"
-                    aria-expanded="false"
+                    th:attr="aria-expanded=${currentMenu == 'generation' or currentMenu == 'crawling'}"
                     aria-controls="adminGenerationGroupItems">
                 <span class="admin-side-nav-group-title">생성 관리</span>
-                <span class="admin-side-nav-group-icon" aria-hidden="true">▾</span>
+                <span class="admin-side-nav-group-icon" aria-hidden="true"></span>
             </button>
             <div id="adminGenerationGroupItems" class="admin-side-nav-group-items">
-                <a th:href="@{/admin/generation}" th:classappend="${currentMenu == 'generation'} ? ' active' : ''">일일 지식</a>
-                <a th:href="@{/admin/crawling}" th:classappend="${currentMenu == 'crawling'} ? ' active' : ''">크롤링 관리</a>
+                <a th:href="@{/admin/generation}"
+                   th:classappend="${currentMenu == 'generation'} ? ' active' : ''"
+                   th:attr="aria-current=${currentMenu == 'generation'} ? 'page' : null">일일 지식 생성</a>
+                <a th:href="@{/admin/crawling}"
+                   th:classappend="${currentMenu == 'crawling'} ? ' active' : ''"
+                   th:attr="aria-current=${currentMenu == 'crawling'} ? 'page' : null">크롤링 관리</a>
             </div>
         </section>
     </nav>
+    <script th:src="@{/js/admin-nav.js}" src="/js/admin-nav.js" defer></script>
 </aside>
 </body>
 </html>

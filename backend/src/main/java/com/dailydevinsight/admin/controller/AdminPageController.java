@@ -25,6 +25,7 @@ import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
 import com.dailydevinsight.admin.service.TechNewsCrawlingService;
+import com.dailydevinsight.admin.service.WeeklyAiInsightService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -67,6 +68,7 @@ public class AdminPageController {
     private final CrawlHistoryService crawlHistoryService;
     private final CrawlConditionPresetService crawlConditionPresetService;
     private final TechNewsCrawlingService techNewsCrawlingService;
+    private final WeeklyAiInsightService weeklyAiInsightService;
 
     /**
      * @date 2026-04-15
@@ -129,35 +131,35 @@ public class AdminPageController {
     }
 
     /**
-     * @date 2026-04-17
-     * @desc 일일 지식 게시물 관리 페이지를 렌더링합니다.
+     * @date 2026-08-06
+     * @desc 일일 지식 게시물 관리 페이지를 페이지 단위로 렌더링합니다.
      */
     @GetMapping("/posts/knowledge")
-    public String postsKnowledgePage(Model model) {
+    public String postsKnowledgePage(@RequestParam(value = "page", defaultValue = "0") int page, Model model) {
         model.addAttribute("currentMenu", MENU_POSTS_KNOWLEDGE);
-        model.addAttribute("knowledgePostList", adminManagementService.findRecentKnowledgePosts());
+        model.addAttribute("knowledgePostPage", adminManagementService.findKnowledgePosts(page));
         return "admin/posts-knowledge";
     }
 
     /**
-     * @date 2026-04-17
-     * @desc 테크 뉴스 게시물 관리 페이지를 렌더링합니다.
+     * @date 2026-08-06
+     * @desc 테크 뉴스 게시물 관리 페이지를 페이지 단위로 렌더링합니다.
      */
     @GetMapping("/posts/news")
-    public String postsNewsPage(Model model) {
+    public String postsNewsPage(@RequestParam(value = "page", defaultValue = "0") int page, Model model) {
         model.addAttribute("currentMenu", MENU_POSTS_NEWS);
-        model.addAttribute("techNewsPostList", adminManagementService.findRecentTechNewsPosts());
+        model.addAttribute("techNewsPostPage", adminManagementService.findTechNewsPosts(page));
         return "admin/posts-news";
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 관리자 회원 관리 페이지를 렌더링합니다.
+     * @date 2026-08-06
+     * @desc 관리자 회원 관리 페이지를 페이지 단위로 렌더링합니다.
      */
     @GetMapping("/members")
-    public String membersPage(Model model) {
+    public String membersPage(@RequestParam(value = "page", defaultValue = "0") int page, Model model) {
         model.addAttribute("currentMenu", MENU_MEMBERS);
-        model.addAttribute("memberList", adminManagementService.findRecentUsers());
+        model.addAttribute("memberPage", adminManagementService.findUsers(page));
         return "admin/members";
     }
 
@@ -193,6 +195,9 @@ public class AdminPageController {
         model.addAttribute("crawlRunForm", createDefaultCrawlRunForm(crawlSchedule));
         model.addAttribute("crawlScheduleForm", toCrawlScheduleForm(crawlSchedule));
         model.addAttribute("crawlHistoryList", crawlHistoryService.findRecentHistory());
+        model.addAttribute("weeklyAiInsight", weeklyAiInsightService.findLatestInsightForAdmin());
+        model.addAttribute("weeklyAiInsightList", weeklyAiInsightService.findRecentInsightsForAdmin());
+        model.addAttribute("weeklyAiInsightReferenceDate", LocalDate.now());
         return "admin/crawling";
     }
 
@@ -207,13 +212,12 @@ public class AdminPageController {
             @RequestParam("title") String title,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.updateKnowledgePost(postId, category, title);
-            redirectAttributes.addFlashAttribute("adminMessage", "게시물 정보가 수정되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/knowledge";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/knowledge",
+                "게시물 정보가 수정되었습니다.",
+                () -> adminManagementService.updateKnowledgePost(postId, category, title)
+        );
     }
 
     /**
@@ -225,13 +229,12 @@ public class AdminPageController {
             @PathVariable("id") Long postId,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.deleteKnowledgePost(postId);
-            redirectAttributes.addFlashAttribute("adminMessage", "게시물이 삭제되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/knowledge";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/knowledge",
+                "게시물이 삭제되었습니다.",
+                () -> adminManagementService.deleteKnowledgePost(postId)
+        );
     }
 
     /**
@@ -244,13 +247,12 @@ public class AdminPageController {
             @RequestParam("thumbnailFile") MultipartFile thumbnailFile,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.updateKnowledgeThumbnail(postId, thumbnailFile);
-            redirectAttributes.addFlashAttribute("adminMessage", "일일 지식 썸네일이 업로드되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/knowledge";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/knowledge",
+                "일일 지식 썸네일이 업로드되었습니다.",
+                () -> adminManagementService.updateKnowledgeThumbnail(postId, thumbnailFile)
+        );
     }
 
     /**
@@ -262,13 +264,12 @@ public class AdminPageController {
             @PathVariable("id") Long postId,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.deleteKnowledgeThumbnail(postId);
-            redirectAttributes.addFlashAttribute("adminMessage", "일일 지식 썸네일이 삭제되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/knowledge";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/knowledge",
+                "일일 지식 썸네일이 삭제되었습니다.",
+                () -> adminManagementService.deleteKnowledgeThumbnail(postId)
+        );
     }
 
     /**
@@ -282,13 +283,12 @@ public class AdminPageController {
             @RequestParam("title") String title,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.updateTechNewsPost(newsId, source, title);
-            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 정보가 수정되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/news";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/news",
+                "테크 뉴스 정보가 수정되었습니다.",
+                () -> adminManagementService.updateTechNewsPost(newsId, source, title)
+        );
     }
 
     /**
@@ -300,13 +300,12 @@ public class AdminPageController {
             @PathVariable("id") Long newsId,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.deleteTechNewsPost(newsId);
-            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 게시물이 삭제되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/news";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/news",
+                "테크 뉴스 게시물이 삭제되었습니다.",
+                () -> adminManagementService.deleteTechNewsPost(newsId)
+        );
     }
 
     /**
@@ -319,13 +318,12 @@ public class AdminPageController {
             @RequestParam("thumbnailFile") MultipartFile thumbnailFile,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.updateTechNewsThumbnail(newsId, thumbnailFile);
-            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 썸네일이 업로드되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/news";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/news",
+                "테크 뉴스 썸네일이 업로드되었습니다.",
+                () -> adminManagementService.updateTechNewsThumbnail(newsId, thumbnailFile)
+        );
     }
 
     /**
@@ -337,13 +335,12 @@ public class AdminPageController {
             @PathVariable("id") Long newsId,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.deleteTechNewsThumbnail(newsId);
-            redirectAttributes.addFlashAttribute("adminMessage", "테크 뉴스 썸네일이 삭제되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/posts/news";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/posts/news",
+                "테크 뉴스 썸네일이 삭제되었습니다.",
+                () -> adminManagementService.deleteTechNewsThumbnail(newsId)
+        );
     }
 
     /**
@@ -357,13 +354,12 @@ public class AdminPageController {
             @RequestParam("status") String status,
             RedirectAttributes redirectAttributes
     ) {
-        try {
-            adminManagementService.updateUser(userPrimaryKey, role, status);
-            redirectAttributes.addFlashAttribute("adminMessage", "회원 정보가 수정되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/members";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/members",
+                "회원 정보가 수정되었습니다.",
+                () -> adminManagementService.updateUser(userPrimaryKey, role, status)
+        );
     }
 
     /**
@@ -372,13 +368,12 @@ public class AdminPageController {
      */
     @PostMapping("/prompts")
     public String savePromptTemplate(PromptTemplateForm promptTemplateForm, RedirectAttributes redirectAttributes) {
-        try {
-            promptTemplateService.saveTemplate(promptTemplateForm);
-            redirectAttributes.addFlashAttribute("adminMessage", "프롬프트 템플릿이 저장되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/generation";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/generation",
+                "프롬프트 템플릿이 저장되었습니다.",
+                () -> promptTemplateService.saveTemplate(promptTemplateForm)
+        );
     }
 
     /**
@@ -387,13 +382,12 @@ public class AdminPageController {
      */
     @PostMapping("/prompts/{id}/activate")
     public String activatePromptTemplate(@PathVariable("id") Long templateId, RedirectAttributes redirectAttributes) {
-        try {
-            promptTemplateService.activateTemplate(templateId);
-            redirectAttributes.addFlashAttribute("adminMessage", "활성 프롬프트가 변경되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/generation";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/generation",
+                "활성 프롬프트가 변경되었습니다.",
+                () -> promptTemplateService.activateTemplate(templateId)
+        );
     }
 
     /**
@@ -402,13 +396,12 @@ public class AdminPageController {
      */
     @PostMapping("/prompts/{id}/toggle-active")
     public String togglePromptTemplateActive(@PathVariable("id") Long templateId, RedirectAttributes redirectAttributes) {
-        try {
-            promptTemplateService.toggleTemplateActive(templateId);
-            redirectAttributes.addFlashAttribute("adminMessage", "프롬프트 활성 상태가 변경되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/generation";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/generation",
+                "프롬프트 활성 상태가 변경되었습니다.",
+                () -> promptTemplateService.toggleTemplateActive(templateId)
+        );
     }
 
     /**
@@ -417,13 +410,12 @@ public class AdminPageController {
      */
     @PostMapping("/prompts/{id}/delete")
     public String deletePromptTemplate(@PathVariable("id") Long templateId, RedirectAttributes redirectAttributes) {
-        try {
-            promptTemplateService.deleteTemplate(templateId);
-            redirectAttributes.addFlashAttribute("adminMessage", "프롬프트 템플릿이 삭제되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/generation";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/generation",
+                "프롬프트 템플릿이 삭제되었습니다.",
+                () -> promptTemplateService.deleteTemplate(templateId)
+        );
     }
 
     /**
@@ -442,7 +434,7 @@ public class AdminPageController {
             return "redirect:/admin/generation";
         }
 
-        try {
+        return executeAdminAction(redirectAttributes, "/admin/generation", null, () -> {
             var executionResult = dailyKnowledgeGenerationService.executeManualGeneration(generationRequestForm);
             if (executionResult.isSuccess()) {
                 redirectAttributes.addFlashAttribute(
@@ -455,10 +447,7 @@ public class AdminPageController {
                 }
                 redirectAttributes.addFlashAttribute("adminError", executionResult.getMessage());
             }
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/generation";
+        });
     }
 
     /**
@@ -530,13 +519,12 @@ public class AdminPageController {
      */
     @PostMapping("/schedule")
     public String updateSchedule(ScheduleForm scheduleForm, RedirectAttributes redirectAttributes) {
-        try {
-            generationScheduleService.updateSchedule(scheduleForm);
-            redirectAttributes.addFlashAttribute("adminMessage", "예약 생성 설정이 저장되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/generation";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/generation",
+                "예약 생성 설정이 저장되었습니다.",
+                () -> generationScheduleService.updateSchedule(scheduleForm)
+        );
     }
 
     /**
@@ -545,7 +533,7 @@ public class AdminPageController {
      */
     @PostMapping("/crawling/run")
     public String runManualCrawling(CrawlRunForm crawlRunForm, RedirectAttributes redirectAttributes) {
-        try {
+        return executeAdminAction(redirectAttributes, "/admin/crawling", null, () -> {
             var executionResult = techNewsCrawlingService.executeManualCrawling(crawlRunForm);
             if (executionResult.isSuccess()) {
                 redirectAttributes.addFlashAttribute(
@@ -558,10 +546,7 @@ public class AdminPageController {
                 }
                 redirectAttributes.addFlashAttribute("adminError", executionResult.getMessage());
             }
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/crawling";
+        });
     }
 
     /**
@@ -570,13 +555,12 @@ public class AdminPageController {
      */
     @PostMapping("/crawling/schedule")
     public String updateCrawlSchedule(CrawlScheduleForm crawlScheduleForm, RedirectAttributes redirectAttributes) {
-        try {
-            crawlScheduleService.updateSchedule(crawlScheduleForm);
-            redirectAttributes.addFlashAttribute("adminMessage", "크롤링 예약 설정이 저장되었습니다.");
-        } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
-        }
-        return "redirect:/admin/crawling";
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/crawling",
+                "크롤링 예약 설정이 저장되었습니다.",
+                () -> crawlScheduleService.updateSchedule(crawlScheduleForm)
+        );
     }
 
     /**
@@ -595,13 +579,84 @@ public class AdminPageController {
      */
     @PostMapping("/crawling/presets")
     public String saveCrawlPreset(CrawlPresetForm crawlPresetForm, RedirectAttributes redirectAttributes) {
+        return executeAdminAction(
+                redirectAttributes,
+                "/admin/crawling",
+                "크롤링 조건 프리셋이 저장되었습니다.",
+                () -> crawlConditionPresetService.savePreset(crawlPresetForm)
+        );
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 최근 7일 테크 뉴스 기반 주간 AI 인사이트를 생성하거나 재생성합니다.
+     */
+    @PostMapping("/weekly-insight/generate")
+    public String generateWeeklyAiInsight(
+            @RequestParam(value = "referenceDate", required = false) LocalDate referenceDate,
+            RedirectAttributes redirectAttributes
+    ) {
+        return executeAdminAction(redirectAttributes, "/admin/crawling", null, () -> {
+            var weeklyAiInsight = weeklyAiInsightService.generateWeeklyInsight(referenceDate);
+            redirectAttributes.addFlashAttribute(
+                    "adminMessage",
+                    "주간 AI 인사이트가 생성되었습니다. 분석 기간: "
+                            + weeklyAiInsight.getWeekStartDate() + " ~ " + weeklyAiInsight.getWeekEndDate()
+            );
+        });
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 주간 AI 인사이트의 사용자 노출 여부를 변경합니다.
+     */
+    @PostMapping("/weekly-insight/{id}/toggle-visible")
+    public String toggleWeeklyAiInsightVisible(
+            @PathVariable("id") Long insightId,
+            RedirectAttributes redirectAttributes
+    ) {
+        return executeAdminAction(redirectAttributes, "/admin/crawling", null, () -> {
+            var weeklyAiInsight = weeklyAiInsightService.toggleVisible(insightId);
+            redirectAttributes.addFlashAttribute(
+                    "adminMessage",
+                    Boolean.TRUE.equals(weeklyAiInsight.getVisible())
+                            ? "주간 AI 인사이트가 사용자 화면에 노출됩니다."
+                            : "주간 AI 인사이트가 사용자 화면에서 숨김 처리되었습니다."
+            );
+        });
+    }
+
+    /**
+     * @date 2026-08-07
+     * @desc 관리자 작업을 실행하고 성공 또는 오류 메시지와 리다이렉트 경로를 일관되게 처리합니다.
+     */
+    private String executeAdminAction(
+            RedirectAttributes redirectAttributes,
+            String redirectView,
+            String successMessage,
+            AdminAction action
+    ) {
         try {
-            crawlConditionPresetService.savePreset(crawlPresetForm);
-            redirectAttributes.addFlashAttribute("adminMessage", "크롤링 조건 프리셋이 저장되었습니다.");
-        } catch (Exception exception) {
+            action.run();
+            if (successMessage != null) {
+                redirectAttributes.addFlashAttribute("adminMessage", successMessage);
+            }
+        } catch (IllegalArgumentException exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("adminError", "작업 처리 중 오류가 발생했습니다.");
         }
-        return "redirect:/admin/crawling";
+        return "redirect:" + redirectView;
+    }
+
+    @FunctionalInterface
+    private interface AdminAction {
+
+        /**
+         * @date 2026-08-07
+         * @desc 관리자 작업을 실행하며 checked exception을 호출자에게 전달합니다.
+         */
+        void run() throws Exception;
     }
 
     /**

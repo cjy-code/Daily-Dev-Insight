@@ -45,7 +45,10 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class InsightDetailService {
 
     private static final int COMMENT_ACTIVE = 0;
+    private static final int COMMENT_DELETED = 1;
     private static final int MAX_COMMENT_LENGTH = 500;
+    private static final String DELETED_COMMENT_CONTENT = "삭제된 댓글입니다.";
+    private static final String DELETED_COMMENT_AUTHOR_NAME = "삭제된 사용자";
 
     private final DailyKnowledgeRepository dailyKnowledgeRepository;
     private final TechNewsRepository techNewsRepository;
@@ -298,8 +301,8 @@ public class InsightDetailService {
         return normalizedContent;
     }
     /**
-     * @date 2026-04-15
-     * @desc 대댓글 등록 시 부모 댓글 유효성(존재/삭제 여부/동일 콘텐츠)을 검증합니다.
+     * @date 2026-08-07
+     * @desc 대댓글 등록 시 삭제 여부와 관계없이 부모 댓글의 존재 여부와 동일 콘텐츠 여부를 검증합니다.
      */
     private Long validateParentCommentId(InsightContentType contentType, Long contentId, Long parentCommentId) {
         if (parentCommentId == null) {
@@ -308,7 +311,8 @@ public class InsightDetailService {
 
         String contentTypeKey = toContentTypeKey(contentType);
         InsightComment parentComment = insightCommentRepository
-                .findByIdAndContentTypeAndContentIdAndIsDeleted(parentCommentId, contentTypeKey, contentId, COMMENT_ACTIVE)
+                .findById(parentCommentId)
+                .filter(comment -> contentTypeKey.equals(comment.getContentType()) && contentId.equals(comment.getContentId()))
                 .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "유효하지 않은 부모 댓글입니다."));
 
         return parentComment.getId();
@@ -354,29 +358,34 @@ public class InsightDetailService {
     }
 
     /**
-     * @date 2026-04-14
-     * @desc ?蹂? 筌뤴뫖以됪??臾믨쉐?癒?구??野껉퀬鍮??뤿연 ?臾먮뼗 DTO 筌뤴뫖以??곗쨮 癰궰??묐???덈뼄.
+     * @date 2026-08-07
+     * @desc 삭제된 댓글을 placeholder로 치환하고 전체 댓글을 계층형 DTO 목록으로 변환합니다.
      */
     private List<InsightCommentDTO> findCommentDtos(String contentTypeKey, Long contentId, Long loginUserId) {
         List<InsightComment> commentList = insightCommentRepository
-                .findByContentTypeAndContentIdAndIsDeletedOrderByCreatedAtAsc(contentTypeKey, contentId, COMMENT_ACTIVE);
+                .findByContentTypeAndContentIdOrderByCreatedAtAsc(contentTypeKey, contentId);
         if (commentList.isEmpty()) {
             return List.of();
         }
 
-        Set<Long> commentWriterIds = commentList.stream().map(InsightComment::getUserId).collect(Collectors.toSet());
+        Set<Long> commentWriterIds = commentList.stream()
+                .filter(comment -> !isDeletedComment(comment))
+                .map(InsightComment::getUserId)
+                .collect(Collectors.toSet());
         Map<Long, String> userNameById = userRepository.findAllById(commentWriterIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getName));
         Map<Long, InsightCommentDTO> commentDtoById = new LinkedHashMap<>();
 
         for (InsightComment comment : commentList) {
+            boolean deleted = isDeletedComment(comment);
             commentDtoById.put(comment.getId(), InsightCommentDTO.builder()
                     .id(comment.getId())
                     .parentCommentId(comment.getParentCommentId())
-                    .authorName(userNameById.getOrDefault(comment.getUserId(), "??????곸벉"))
-                    .content(comment.getContent())
+                    .authorName(deleted ? DELETED_COMMENT_AUTHOR_NAME : userNameById.getOrDefault(comment.getUserId(), "??????곸벉"))
+                    .content(deleted ? DELETED_COMMENT_CONTENT : comment.getContent())
                     .createdAt(comment.getCreatedAt())
-                    .mine(loginUserId.equals(comment.getUserId()))
+                    .mine(!deleted && loginUserId.equals(comment.getUserId()))
+                    .deleted(deleted)
                     .replies(new ArrayList<>())
                     .build());
         }
@@ -395,6 +404,14 @@ public class InsightDetailService {
         }
 
         return rootComments;
+    }
+
+    /**
+     * @date 2026-08-07
+     * @desc 댓글 엔티티가 소프트 삭제 상태인지 확인합니다.
+     */
+    private boolean isDeletedComment(InsightComment comment) {
+        return Integer.valueOf(COMMENT_DELETED).equals(comment.getIsDeleted());
     }
 
     /**

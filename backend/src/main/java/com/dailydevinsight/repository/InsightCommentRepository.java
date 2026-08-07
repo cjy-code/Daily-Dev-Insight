@@ -10,6 +10,7 @@ public interface InsightCommentRepository extends JpaRepository<InsightComment, 
 
     List<InsightComment> findByContentTypeAndContentIdAndIsDeletedOrderByCreatedAtDesc(String contentType, Long contentId, Integer isDeleted);
     List<InsightComment> findByContentTypeAndContentIdAndIsDeletedOrderByCreatedAtAsc(String contentType, Long contentId, Integer isDeleted);
+    List<InsightComment> findByContentTypeAndContentIdOrderByCreatedAtAsc(String contentType, Long contentId);
 
     long countByContentTypeAndContentIdAndIsDeleted(String contentType, Long contentId, Integer isDeleted);
 

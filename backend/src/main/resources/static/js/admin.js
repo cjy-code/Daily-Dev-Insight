@@ -1678,7 +1678,7 @@
 
     /**
      * @date 2026-04-17
-     * @desc 기능 설명을 처리합니다.
+     * @desc 관리자 사이드 메뉴 아코디언의 열림 상태와 접근성 속성을 적용합니다.
      */
     function bindSideNavAccordion() {
         const groups = document.querySelectorAll('.admin-side-nav-group[data-accordion-group="true"]');
@@ -1686,41 +1686,50 @@
             return;
         }
 
-        groups.forEach((group, index) => {
+        groups.forEach((group) => {
+            if (group.dataset.accordionInitialized === 'true') {
+                return;
+            }
+
+            group.dataset.accordionInitialized = 'true';
             const toggleButton = group.querySelector('.admin-side-nav-group-toggle');
             if (!toggleButton) {
                 return;
             }
 
             const defaultOpen = group.dataset.accordionDefaultOpen === 'true';
-            const storageKey = group.dataset.accordionStorageKey || ('admin-side-nav-accordion-' + index);
-            let savedState = null;
-            try {
-                savedState = window.localStorage.getItem(storageKey);
-            } catch (error) {
-                savedState = null;
-            }
-            const isOpen = savedState === null ? defaultOpen : savedState === 'open';
 
             /**
              * @date 2026-04-17
-             * @desc 기능 설명을 처리합니다.
+             * @desc 관리자 사이드 메뉴 단일 그룹의 열림 상태를 변경합니다.
              */
             function applyAccordionState(open) {
                 group.classList.toggle('is-collapsed', !open);
                 toggleButton.setAttribute('aria-expanded', String(open));
+                const itemArea = group.querySelector('.admin-side-nav-group-items');
+                if (itemArea) {
+                    itemArea.hidden = !open;
+                }
             }
 
-            applyAccordionState(isOpen);
+            applyAccordionState(defaultOpen);
 
             toggleButton.addEventListener('click', () => {
                 const willOpen = group.classList.contains('is-collapsed');
+                groups.forEach((otherGroup) => {
+                    if (otherGroup !== group) {
+                        otherGroup.classList.add('is-collapsed');
+                        const otherToggleButton = otherGroup.querySelector('.admin-side-nav-group-toggle');
+                        const otherItemArea = otherGroup.querySelector('.admin-side-nav-group-items');
+                        if (otherToggleButton) {
+                            otherToggleButton.setAttribute('aria-expanded', 'false');
+                        }
+                        if (otherItemArea) {
+                            otherItemArea.hidden = true;
+                        }
+                    }
+                });
                 applyAccordionState(willOpen);
-                try {
-                    window.localStorage.setItem(storageKey, willOpen ? 'open' : 'collapsed');
-                } catch (error) {
-                    // localStorage를 사용할 수 없는 환경에서는 메모리 상태만 유지합니다.
-                }
             });
         });
     }

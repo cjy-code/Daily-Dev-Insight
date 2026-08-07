@@ -48,6 +48,30 @@
         </div>
     </section>
 
+            <section class="content-section weekly-ai-insight-section" th:if="${weeklyAiInsight != null}">
+                <div class="section-head">
+                    <h2>이번 주 개발 <span class="insight-word">Trend</span></h2>
+                    <p th:text="${weeklyAiInsight.weekStartDate + ' ~ ' + weeklyAiInsight.weekEndDate + ' | 분석 뉴스 ' + weeklyAiInsight.sourceNewsCount + '건'}">
+                        2026-05-02 ~ 2026-05-08 | 분석 뉴스 0건
+                    </p>
+                </div>
+
+                <div class="weekly-ai-insight-card">
+                    <article class="weekly-ai-insight-block summary">
+                        <span class="weekly-ai-insight-label">AI 요약</span>
+                        <p th:text="${weeklyAiInsight.summary}">이번 주 개발 뉴스 요약</p>
+                    </article>
+                    <article class="weekly-ai-insight-block trend">
+                        <span class="weekly-ai-insight-label">트렌드/패턴</span>
+                        <p th:text="${weeklyAiInsight.trendAnalysis}">이번 주 트렌드 분석</p>
+                    </article>
+                    <article class="weekly-ai-insight-block dev-view">
+                        <span class="weekly-ai-insight-label">개발자 관점</span>
+                        <p th:text="${weeklyAiInsight.developerView}">개발자 관점 해석</p>
+                    </article>
+                </div>
+            </section>
+
             <section class="content-section">
                 <div class="section-head">
                     <h2>Daily <span class="hot-word">HOT</span></h2>

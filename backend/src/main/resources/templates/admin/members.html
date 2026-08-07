@@ -31,7 +31,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="member : ${memberList}">
+                <tr th:each="member : ${memberPage.content}">
                     <td th:text="${member.id}">1</td>
                     <td th:text="${member.userId}">user01</td>
                     <td th:text="${member.email}">user01@daily.com</td>
@@ -55,11 +55,12 @@
                         </form>
                     </td>
                 </tr>
-                <tr th:if="${#lists.isEmpty(memberList)}">
+                <tr th:if="${#lists.isEmpty(memberPage.content)}">
                     <td colspan="7">회원 데이터가 없습니다.</td>
                 </tr>
                 </tbody>
             </table>
+            <div th:replace="~{fragments/pagination :: pagination(${memberPage}, '/admin/members')}"></div>
         </section>
     </section>
 </section>

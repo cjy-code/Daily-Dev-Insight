@@ -10,10 +10,12 @@ import com.dailydevinsight.repository.InsightBookmarkRepository;
 import com.dailydevinsight.repository.TechNewsRepository;
 import com.dailydevinsight.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +59,7 @@ public class AdminManagementService {
     private static final String CONTENT_TYPE_KNOWLEDGE = "KNOWLEDGE";
     private static final String CONTENT_TYPE_NEWS = "NEWS";
     private static final int TOP_CONTENT_LIMIT = 5;
+    private static final int ADMIN_LIST_PAGE_SIZE = 20;
 
     private final DailyKnowledgeRepository dailyKnowledgeRepository;
     private final TechNewsRepository techNewsRepository;
@@ -68,30 +71,39 @@ public class AdminManagementService {
     private String thumbnailUploadDirectory;
 
     /**
-     * @date 2026-04-15
-     * @desc 관리자 일일 지식 관리 화면에 출력할 최근 게시물 목록을 조회합니다.
+     * @date 2026-08-06
+     * @desc 관리자 일일 지식 관리 화면에 출력할 게시물 목록을 페이지 단위로 조회합니다.
      */
     @Transactional(readOnly = true)
-    public List<DailyKnowledge> findRecentKnowledgePosts() {
-        return dailyKnowledgeRepository.findTop30ByOrderByKnowledgeDateDescIdDesc();
+    public Page<DailyKnowledge> findKnowledgePosts(int pageNumber) {
+        return dailyKnowledgeRepository.findAllByOrderByKnowledgeDateDescIdDesc(toPageable(pageNumber));
     }
 
     /**
-     * @date 2026-04-17
-     * @desc 관리자 테크 뉴스 관리 화면에 출력할 최근 게시물 목록을 조회합니다.
+     * @date 2026-08-06
+     * @desc 관리자 테크 뉴스 관리 화면에 출력할 게시물 목록을 페이지 단위로 조회합니다.
      */
     @Transactional(readOnly = true)
-    public List<TechNews> findRecentTechNewsPosts() {
-        return techNewsRepository.findTop30ByOrderByNewsDateDescIdDesc();
+    public Page<TechNews> findTechNewsPosts(int pageNumber) {
+        return techNewsRepository.findAllByOrderByNewsDateDescIdDesc(toPageable(pageNumber));
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 관리자 회원 관리 화면에 출력할 최근 회원 목록을 조회합니다.
+     * @date 2026-08-06
+     * @desc 관리자 회원 관리 화면에 출력할 회원 목록을 페이지 단위로 조회합니다.
      */
     @Transactional(readOnly = true)
-    public List<User> findRecentUsers() {
-        return userRepository.findTop30ByOrderByCreatedAtDesc();
+    public Page<User> findUsers(int pageNumber) {
+        return userRepository.findAllByOrderByCreatedAtDescIdDesc(toPageable(pageNumber));
+    }
+
+    /**
+     * @date 2026-08-06
+     * @desc 0 미만의 요청 페이지 번호를 보정하여 고정 크기의 Pageable을 생성합니다.
+     */
+    private Pageable toPageable(int pageNumber) {
+        int normalizedPageNumber = Math.max(pageNumber, 0);
+        return PageRequest.of(normalizedPageNumber, ADMIN_LIST_PAGE_SIZE);
     }
 
     /**
@@ -103,7 +115,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void updateKnowledgePost(Long postId, String category, String title) {
         DailyKnowledge originalPost = dailyKnowledgeRepository.findById(postId)
@@ -133,7 +148,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void updateKnowledgeThumbnail(Long postId, MultipartFile thumbnailFile) {
         DailyKnowledge originalPost = dailyKnowledgeRepository.findById(postId)
@@ -161,7 +179,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void deleteKnowledgeThumbnail(Long postId) {
         DailyKnowledge originalPost = dailyKnowledgeRepository.findById(postId)
@@ -182,7 +203,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void deleteKnowledgePost(Long postId) {
         if (!dailyKnowledgeRepository.existsById(postId)) {
@@ -200,7 +224,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void updateTechNewsPost(Long newsId, String source, String title) {
         TechNews originalNews = techNewsRepository.findById(newsId)
@@ -230,7 +257,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void updateTechNewsThumbnail(Long newsId, MultipartFile thumbnailFile) {
         TechNews originalNews = techNewsRepository.findById(newsId)
@@ -258,7 +288,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void deleteTechNewsThumbnail(Long newsId) {
         TechNews originalNews = techNewsRepository.findById(newsId)
@@ -279,7 +312,10 @@ public class AdminManagementService {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true)
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true),
+            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS, allEntries = true)
     })
     public void deleteTechNewsPost(Long newsId) {
         if (!techNewsRepository.existsById(newsId)) {
@@ -293,6 +329,7 @@ public class AdminManagementService {
      * @desc 회원의 권한과 상태를 수정합니다.
      */
     @Transactional
+    @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true)
     public void updateUser(Long userPrimaryKey, String role, String status) {
         User originalUser = userRepository.findById(userPrimaryKey)
                 .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
@@ -320,6 +357,7 @@ public class AdminManagementService {
      * @desc 관리자 대시보드 통계 지표를 계산합니다.
      */
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS)
     public AdminStatsData getAdminStats() {
         long totalUsers = userRepository.count();
         long activeUsers = userRepository.countByStatusIgnoreCase("ACTIVE");
@@ -349,6 +387,7 @@ public class AdminManagementService {
      * @desc 조회수 통계 상세 화면용 집계 데이터(총합/콘텐츠별/상위 콘텐츠)를 계산합니다.
      */
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS)
     public AdminContentViewStatsData getContentViewStats() {
         long knowledgeViewCount = dailyKnowledgeRepository.sumViewCount();
         long newsViewCount = techNewsRepository.sumViewCount();
@@ -367,6 +406,7 @@ public class AdminManagementService {
      * @desc 북마크 통계 상세 화면용 집계 데이터(총 북마크/참여 사용자/상위 콘텐츠)를 계산합니다.
      */
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS)
     public AdminBookmarkStatsData getBookmarkStats() {
         Pageable topContentPage = PageRequest.of(0, TOP_CONTENT_LIMIT);
         var topBookmarkedRows = insightBookmarkRepository.findTopBookmarkedContents(topContentPage);

@@ -1,6 +1,7 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
+import com.dailydevinsight.admin.dto.GeneratedWeeklyInsightResult;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +32,19 @@ public class MockLlmGenerationClient implements LlmGenerationClient {
                 .title(title)
                 .summary(summary)
                 .detail(detail)
+                .build();
+    }
+
+    /**
+     * @date 2026-05-08
+     * @desc 로컬 개발 환경에서 사용할 주간 AI 인사이트 Mock 결과를 생성합니다.
+     */
+    @Override
+    public GeneratedWeeklyInsightResult generateWeeklyInsight(String prompt, LocalDate weekStartDate, LocalDate weekEndDate) {
+        return GeneratedWeeklyInsightResult.builder()
+                .summary("이번 주 크롤링 뉴스에서는 AI 개발 도구, 백엔드 성능 개선, 보안 업데이트 흐름이 두드러졌습니다.")
+                .trendAnalysis("반복적으로 등장한 패턴은 자동화 도구 확산, 인프라 비용 최적화, 데이터 처리 안정성 강화입니다.")
+                .developerView("개발자는 새 도구 도입보다 운영 안정성, 검증 가능한 자동화, 장애 대응 전략을 우선 점검하는 것이 좋습니다.")
                 .build();
     }
 

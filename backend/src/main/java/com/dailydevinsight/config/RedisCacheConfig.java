@@ -28,6 +28,9 @@ public class RedisCacheConfig {
     public static final String CACHE_INSIGHTS_BY_DATE = "insightsByDate";
     public static final String CACHE_INSIGHTS_BY_RANGE = "insightsByRange";
     public static final String CACHE_INSIGHT_ENGAGEMENT = "insightEngagement";
+    public static final String CACHE_ADMIN_STATS = "adminStats";
+    public static final String CACHE_ADMIN_CONTENT_VIEW_STATS = "adminContentViewStats";
+    public static final String CACHE_ADMIN_BOOKMARK_STATS = "adminBookmarkStats";
 
     /**
      * @date 2026-04-15
@@ -78,6 +81,9 @@ public class RedisCacheConfig {
         cacheConfigurations.put(CACHE_INSIGHTS_BY_DATE, createDefaultRedisCacheConfiguration(Duration.ofMinutes(10)));
         cacheConfigurations.put(CACHE_INSIGHTS_BY_RANGE, createDefaultRedisCacheConfiguration(Duration.ofMinutes(5)));
         cacheConfigurations.put(CACHE_INSIGHT_ENGAGEMENT, createDefaultRedisCacheConfiguration(Duration.ofSeconds(90)));
+        cacheConfigurations.put(CACHE_ADMIN_STATS, createDefaultRedisCacheConfiguration(Duration.ofMinutes(5)));
+        cacheConfigurations.put(CACHE_ADMIN_CONTENT_VIEW_STATS, createDefaultRedisCacheConfiguration(Duration.ofMinutes(5)));
+        cacheConfigurations.put(CACHE_ADMIN_BOOKMARK_STATS, createDefaultRedisCacheConfiguration(Duration.ofMinutes(5)));
         return cacheConfigurations;
     }
 }

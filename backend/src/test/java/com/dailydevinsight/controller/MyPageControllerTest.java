@@ -9,18 +9,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Collections;
 
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -46,7 +50,7 @@ class MyPageControllerTest {
     @WithMockUser(username = "user01", roles = "USER")
     void myPageMain_WithAuthenticatedUser_ShouldRenderMainView() throws Exception {
         given(myPageService.getMyProfile(anyString())).willReturn(createUser());
-        given(myPageService.getMyActivity(anyString())).willReturn(createActivity());
+        given(myPageService.getMyActivity(anyString(), anyInt(), anyInt())).willReturn(createActivity());
 
         mockMvc.perform(get("/mypage"))
                 .andExpect(status().isOk())
@@ -62,6 +66,19 @@ class MyPageControllerTest {
         mockMvc.perform(get("/mypage"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    /**
+     * @date 2026-08-07
+     * @desc 마이페이지 GET 흐름에서 로그인 사용자 정보가 없으면 오류 메시지와 함께 로그인 화면으로 이동하는지 검증합니다.
+     */
+    @Test
+    @WithMockUser(username = " ", roles = "USER")
+    void myPageMain_WithBlankAuthenticationName_ShouldRedirectToLoginWithErrorMessage() throws Exception {
+        mockMvc.perform(get("/mypage"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login"))
+                .andExpect(flash().attribute("errorMessage", "로그인 사용자 정보가 없습니다."));
     }
 
     /**
@@ -120,9 +137,11 @@ class MyPageControllerTest {
      * @desc 테스트용 활동 DTO를 생성합니다.
      */
     private MyPageActivityDTO createActivity() {
+        Page<com.dailydevinsight.dto.MyPageActivityItemDTO> emptyPage =
+                new org.springframework.data.domain.PageImpl<>(Collections.emptyList(), PageRequest.of(0, 20), 0);
         return MyPageActivityDTO.builder()
-                .bookmarkItems(Collections.emptyList())
-                .likeItems(Collections.emptyList())
+                .bookmarkPage(emptyPage)
+                .likePage(emptyPage)
                 .build();
     }
 }

@@ -34,7 +34,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="post : ${knowledgePostList}">
+                <tr th:each="post : ${knowledgePostPage.content}">
                     <td th:text="${post.id}">1</td>
                     <td th:text="${post.knowledgeDate}">2026-04-15</td>
                     <td>
@@ -95,11 +95,12 @@
                         </form>
                     </td>
                 </tr>
-                <tr th:if="${#lists.isEmpty(knowledgePostList)}">
+                <tr th:if="${#lists.isEmpty(knowledgePostPage.content)}">
                     <td colspan="7">게시물이 없습니다.</td>
                 </tr>
                 </tbody>
             </table>
+            <div th:replace="~{fragments/pagination :: pagination(${knowledgePostPage}, '/admin/posts/knowledge')}"></div>
         </section>
     </section>
 </section>

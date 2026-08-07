@@ -20,5 +20,6 @@ public class InsightCommentDTO {
     private String content;
     private LocalDateTime createdAt;
     private boolean mine;
+    private boolean deleted;
     private List<InsightCommentDTO> replies;
 }

@@ -30,6 +30,7 @@ public class SecurityConfig {
     private static final String ADMIN_SUCCESS_PATH = "/admin";
     private static final String ADMIN_DENIED_PATH = "/admin/login?adminDenied=true";
     private static final String ADMIN_CSRF_ERROR_PATH = "/admin/login?csrfError=true";
+    private static final String LOGOUT_PATH = "/auth/logout";
 
     /**
      * @date 2026-04-15
@@ -76,7 +77,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(USER_LOGIN_PATH, ADMIN_LOGIN_PATH, "/error", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers(LOGOUT_PATH).authenticated()
+                        .anyRequest().hasRole("USER")
                 )
                 .formLogin(form -> form
                         .loginPage(USER_LOGIN_PATH)

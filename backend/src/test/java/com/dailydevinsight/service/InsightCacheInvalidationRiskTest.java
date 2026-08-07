@@ -143,7 +143,10 @@ class InsightCacheInvalidationRiskTest {
                     RedisCacheConfig.CACHE_INSIGHTS_BY_DATE,
                     RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE,
                     RedisCacheConfig.CACHE_WEEKLY_TOP10,
-                    RedisCacheConfig.CACHE_WEEKLY_TOP5
+                    RedisCacheConfig.CACHE_WEEKLY_TOP5,
+                    RedisCacheConfig.CACHE_ADMIN_STATS,
+                    RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS,
+                    RedisCacheConfig.CACHE_ADMIN_BOOKMARK_STATS
             );
         }
 
