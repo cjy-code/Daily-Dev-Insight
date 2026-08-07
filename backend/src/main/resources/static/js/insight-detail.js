@@ -1,4 +1,8 @@
 ﻿(function () {
+    const MAX_COMMENT_DEPTH = 4;
+    const DELETED_COMMENT_CONTENT = '삭제된 댓글입니다.';
+    const DELETED_COMMENT_AUTHOR_NAME = '삭제된 사용자';
+
     /**
      * @date 2026-04-15
      * @desc JSON 요청 공통 처리와 에러 메시지 변환을 수행합니다.
@@ -83,12 +87,16 @@
     }
 
     /**
-     * @date 2026-04-15
-     * @desc 댓글 1건을 계층형 HTML 문자열로 렌더링합니다.
+     * @date 2026-08-07
+     * @desc 삭제 상태와 최대 시각 깊이를 반영하여 댓글 1건을 계층형 HTML 문자열로 렌더링합니다.
      */
     function buildCommentHtml(comment, depth) {
+        const cappedDepth = Math.min(Math.max(depth, 0), MAX_COMMENT_DEPTH);
+        const deleted = comment.deleted === true;
         const createdAt = comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : '';
-        const deleteButton = comment.mine
+        const authorName = deleted ? DELETED_COMMENT_AUTHOR_NAME : (comment.authorName || '');
+        const content = deleted ? DELETED_COMMENT_CONTENT : (comment.content || '');
+        const deleteButton = !deleted && comment.mine
             ? '<button type="button" class="delete-button" data-comment-delete>삭제</button>'
             : '';
         const replyButton = '<button type="button" class="reply-button" data-comment-reply>답글</button>';
@@ -100,12 +108,14 @@
             : '';
 
         return [
-            '<li class="comment-item' + (depth > 0 ? ' comment-item-reply' : '') + '" data-comment-id="' + comment.id + '">',
+            '<li class="comment-item' + (depth > 0 ? ' comment-item-reply' : '')
+                + ' depth-' + cappedDepth + (deleted ? ' comment-item-deleted' : '')
+                + '" data-comment-id="' + comment.id + '">',
             '<div class="comment-meta">',
-            '<strong>' + escapeHtml(comment.authorName || '') + '</strong>',
+            '<strong>' + escapeHtml(authorName) + '</strong>',
             '<span>' + escapeHtml(createdAt) + '</span>',
             '</div>',
-            '<p>' + escapeHtml(comment.content || '') + '</p>',
+            '<p>' + escapeHtml(content) + '</p>',
             '<div class="comment-actions">',
             replyButton,
             deleteButton,

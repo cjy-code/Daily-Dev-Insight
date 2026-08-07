@@ -4,9 +4,13 @@ import com.dailydevinsight.config.SecurityConfig;
 import com.dailydevinsight.admin.service.WeeklyAiInsightService;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
+import com.dailydevinsight.dto.InsightCommentDTO;
 import com.dailydevinsight.dto.InsightDetailResponseDTO;
 import com.dailydevinsight.service.DailyInsightService;
 import com.dailydevinsight.service.InsightDetailService;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +21,17 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -149,6 +159,62 @@ public class InsightPageControllerTest {
     }
 
     /**
+     * @date 2026-08-07
+     * @desc SSR 댓글 재귀 구조에 삭제 placeholder와 depth cap 클래스가 반영되는지 검증합니다.
+     */
+    @Test
+    void insightDetail_ShouldRenderRecursiveCommentTree() throws Exception {
+        InsightCommentDTO commentTree = buildCommentTree(0, 5);
+        InsightDetailResponseDTO detail = InsightDetailResponseDTO.builder()
+                .type("knowledge")
+                .id(1L)
+                .title("detail title")
+                .summary("summary")
+                .detail("content")
+                .source("category")
+                .publishedAt(LocalDate.of(2026, 4, 13))
+                .viewCount(100L)
+                .likeCount(10L)
+                .bookmarkCount(3L)
+                .comments(List.of(commentTree))
+                .build();
+
+        given(insightDetailService.getInsightDetail(anyString(), anyLong(), anyString(), anyBoolean())).willReturn(detail);
+
+        MvcResult result = mockMvc.perform(get("/insights/knowledge/1"))
+                .andExpect(status().isOk())
+                .andReturn();
+        Document document = Jsoup.parse(result.getResponse().getContentAsString());
+        Element deletedRoot = document.selectFirst("li[data-comment-id=100]");
+
+        assertNotNull(deletedRoot);
+        assertTrue(deletedRoot.hasClass("depth-0"));
+        assertTrue(deletedRoot.hasClass("comment-item-deleted"));
+        Element deletedMeta = deletedRoot.children().stream()
+                .filter(element -> element.hasClass("comment-meta"))
+                .findFirst()
+                .orElse(null);
+        Element deletedContent = deletedRoot.children().stream()
+                .filter(element -> "p".equals(element.tagName()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(deletedMeta);
+        assertNotNull(deletedContent);
+        assertEquals("삭제된 사용자", deletedMeta.selectFirst("strong").text());
+        assertEquals("삭제된 댓글입니다.", deletedContent.text());
+
+        Element deletedActions = deletedRoot.children().stream()
+                .filter(element -> element.hasClass("comment-actions"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(deletedActions);
+        assertNotNull(deletedActions.selectFirst("[data-comment-reply]"));
+        assertNull(deletedActions.selectFirst("[data-comment-delete]"));
+        assertEquals(2, document.select("li.depth-4").size());
+        assertEquals(1, document.select("[data-comment-list] > li.comment-item").size());
+    }
+
+    /**
      * @date 2026-04-17
      * @desc ??⑤㈇????瑜곷턄嶺뚯솘? ?브퀗??????브퀗????嶺뚯빘鍮? ????뗥윜諛멥늾? ??疫?true???熬곣뫀堉??濡ル츎嶺뚯솘? ?롪틵?嶺뚯빘鍮쒒뜮????덈펲.
      */
@@ -183,5 +249,27 @@ public class InsightPageControllerTest {
                 .getInsightDetail(anyString(), anyLong(), anyString(), increaseFlagCaptor.capture());
         org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, increaseFlagCaptor.getAllValues().get(0));
         org.junit.jupiter.api.Assertions.assertEquals(Boolean.FALSE, increaseFlagCaptor.getAllValues().get(1));
+    }
+
+    /**
+     * @date 2026-08-07
+     * @desc 지정 깊이까지 연결된 SSR 검증용 댓글 DTO 트리를 생성합니다.
+     */
+    private InsightCommentDTO buildCommentTree(int depth, int maxDepth) {
+        boolean deleted = depth == 0;
+        List<InsightCommentDTO> replies = depth < maxDepth
+                ? List.of(buildCommentTree(depth + 1, maxDepth))
+                : List.of();
+
+        return InsightCommentDTO.builder()
+                .id(100L + depth)
+                .parentCommentId(depth == 0 ? null : 99L + depth)
+                .authorName(deleted ? "삭제된 사용자" : "작성자 " + depth)
+                .content(deleted ? "삭제된 댓글입니다." : "댓글 " + depth)
+                .createdAt(LocalDateTime.of(2026, 8, 7, 10, depth))
+                .mine(!deleted)
+                .deleted(deleted)
+                .replies(replies)
+                .build();
     }
 }

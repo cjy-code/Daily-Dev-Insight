@@ -65,7 +65,17 @@
         </form>
 
         <ul class="comment-list" data-comment-list>
-            <li class="comment-item" th:each="comment : ${detail.comments}" th:attr="data-comment-id=${comment.id}">
+            <li class="comment-empty" th:if="${#lists.isEmpty(detail.comments)}">등록된 댓글이 없습니다.</li>
+            <th:block th:each="rootComment : ${detail.comments}">
+                <li th:replace="~{::commentItem(comment=${rootComment}, depth=0)}"></li>
+            </th:block>
+
+            <li th:fragment="commentItem(comment, depth)"
+                th:if="${comment != null}"
+                th:class="${'comment-item' + (depth > 0 ? ' comment-item-reply' : '')
+                    + ' depth-' + (depth > 4 ? 4 : depth)
+                    + (comment.deleted ? ' comment-item-deleted' : '')}"
+                th:attr="data-comment-id=${comment.id}">
                 <div class="comment-meta">
                     <strong th:text="${comment.authorName}">작성자</strong>
                     <span th:text="${#temporals.format(comment.createdAt, 'yyyy-MM-dd HH:mm')}">2026-04-13 10:00</span>
@@ -73,9 +83,15 @@
                 <p th:text="${comment.content}">댓글 내용</p>
                 <div class="comment-actions">
                     <button type="button" class="reply-button" data-comment-reply>답글</button>
-                    <button type="button" class="delete-button" data-comment-delete th:if="${comment.mine}">삭제</button>
+                    <button type="button" class="delete-button" data-comment-delete
+                            th:if="${not comment.deleted and comment.mine}">삭제</button>
                 </div>
                 <div class="reply-form-slot" data-reply-slot></div>
+                <ul class="comment-reply-list" th:if="${not #lists.isEmpty(comment.replies)}">
+                    <th:block th:each="reply : ${comment.replies}">
+                        <li th:replace="~{::commentItem(comment=${reply}, depth=${depth + 1})}"></li>
+                    </th:block>
+                </ul>
             </li>
         </ul>
     </section>
