@@ -24,6 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,12 +38,14 @@ import java.util.Collections;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -143,7 +148,9 @@ class AdminPageControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void postsKnowledgePage_ShouldRenderView() throws Exception {
-        given(adminManagementService.findRecentKnowledgePosts()).willReturn(Collections.emptyList());
+        Page<com.dailydevinsight.entity.DailyKnowledge> emptyPage =
+                new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 20), 0);
+        given(adminManagementService.findKnowledgePosts(0)).willReturn(emptyPage);
 
         mockMvc.perform(get("/admin/posts/knowledge"))
                 .andExpect(status().isOk())
@@ -153,11 +160,45 @@ class AdminPageControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void postsNewsPage_ShouldRenderView() throws Exception {
-        given(adminManagementService.findRecentTechNewsPosts()).willReturn(Collections.emptyList());
+        Page<com.dailydevinsight.entity.TechNews> emptyPage =
+                new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 20), 0);
+        given(adminManagementService.findTechNewsPosts(0)).willReturn(emptyPage);
 
         mockMvc.perform(get("/admin/posts/news"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/posts-news"));
+    }
+
+    /**
+     * @date 2026-08-07
+     * @desc 관리자 작업의 검증 예외 메시지가 기존처럼 사용자에게 전달되는지 검증합니다.
+     */
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deleteKnowledgePost_WithIllegalArgumentException_ShouldExposeValidationMessage() throws Exception {
+        willThrow(new IllegalArgumentException("삭제할 게시물이 없습니다."))
+                .given(adminManagementService).deleteKnowledgePost(1L);
+
+        mockMvc.perform(post("/admin/posts/knowledge/1/delete").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/posts/knowledge"))
+                .andExpect(flash().attribute("adminError", "삭제할 게시물이 없습니다."));
+    }
+
+    /**
+     * @date 2026-08-07
+     * @desc 관리자 작업의 예기치 못한 예외 원문이 고정 오류 문구로 은폐되는지 검증합니다.
+     */
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deleteKnowledgePost_WithRuntimeException_ShouldHideOriginalMessage() throws Exception {
+        willThrow(new RuntimeException("내부 데이터베이스 연결 정보"))
+                .given(adminManagementService).deleteKnowledgePost(1L);
+
+        mockMvc.perform(post("/admin/posts/knowledge/1/delete").with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/posts/knowledge"))
+                .andExpect(flash().attribute("adminError", "작업 처리 중 오류가 발생했습니다."));
     }
 
     @Test

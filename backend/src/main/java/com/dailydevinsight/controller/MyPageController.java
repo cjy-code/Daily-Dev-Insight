@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,14 +25,14 @@ public class MyPageController {
     private final MyPageService myPageService;
 
     /**
-     * @date 2026-04-20
+     * @date 2026-08-06
      * @desc 마이페이지 메인 화면을 렌더링합니다.
      */
     @GetMapping
     public String myPageMain(Authentication authentication, Model model) {
         String loginUserId = resolveLoginUserId(authentication);
         User profile = myPageService.getMyProfile(loginUserId);
-        MyPageActivityDTO activity = myPageService.getMyActivity(loginUserId);
+        MyPageActivityDTO activity = myPageService.getMyActivity(loginUserId, 0, 0);
 
         model.addAttribute("profile", profile);
         model.addAttribute("activity", activity);
@@ -67,14 +68,19 @@ public class MyPageController {
     }
 
     /**
-     * @date 2026-04-20
-     * @desc 북마크/좋아요 활동 화면을 렌더링합니다.
+     * @date 2026-08-06
+     * @desc 북마크/좋아요 활동 화면을 페이지 단위로 렌더링합니다.
      */
     @GetMapping("/activity")
-    public String activity(Authentication authentication, Model model) {
+    public String activity(
+            Authentication authentication,
+            @RequestParam(value = "bookmarkPage", defaultValue = "0") int bookmarkPage,
+            @RequestParam(value = "likePage", defaultValue = "0") int likePage,
+            Model model
+    ) {
         String loginUserId = resolveLoginUserId(authentication);
         User profile = myPageService.getMyProfile(loginUserId);
-        MyPageActivityDTO activity = myPageService.getMyActivity(loginUserId);
+        MyPageActivityDTO activity = myPageService.getMyActivity(loginUserId, bookmarkPage, likePage);
 
         model.addAttribute("profile", profile);
         model.addAttribute("activity", activity);
@@ -167,6 +173,19 @@ public class MyPageController {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
             return "redirect:/mypage/withdraw";
         }
+    }
+
+    /**
+     * @date 2026-08-07
+     * @desc 마이페이지 GET 흐름의 미인증 접근 예외를 로그인 화면 리다이렉트로 처리합니다.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public String handleUnauthenticatedAccess(
+            IllegalArgumentException exception,
+            RedirectAttributes redirectAttributes
+    ) {
+        redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        return "redirect:/login";
     }
 
     /**
