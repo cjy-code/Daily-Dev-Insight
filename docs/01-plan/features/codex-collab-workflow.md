@@ -116,10 +116,47 @@ Claude Code와 Codex CLI가 각자의 강점(Claude: 대화형 요구사항 정�
 
 ## 6. Next Steps
 
-1. [ ] 파일럿 기능 선정 (기존 MVP_SCOPE 중 미구현 항목 또는 소규모 개선 1건)
-2. [ ] 해당 기능의 설계 문서를 `docs/02-design/`에 작성
-3. [ ] `codex exec`로 구현 위임 후 결과 검증
-4. [ ] 결과를 바탕으로 워크플로우 보완 및 `CLAUDE.md`/`AGENTS.md` 갱신
+1. [x] 파일럿 기능 선정 — Phase 2 UX 개선(F-05/F-15/F-17), `docs/02-design/features/insight-comment.md` §⑩ (2026-08-07)
+2. [x] 해당 기능의 설계 문서를 `docs/02-design/`에 작성 — 완료 (2026-08-07)
+3. [x] `codex exec`로 구현 위임 후 결과 검증 — **첫 파일럿 실행, 실패로 종료(2026-08-07)**. 아래 §7 참조
+4. [x] `CLAUDE.md`/`AGENTS.md` 갱신 여부 — **결정: 지금은 하지 않음 (2026-08-07, 사용자 결정)**. `danger-full-access`를 프로젝트 기본 운영 방식으로 문서화하면 "기본은 안전(workspace-write), 확장은 예외 승인" 원칙이 사실상 폐기되고 앞으로의 모든 세션에 영구 적용되는 정책 변경이라 보류. 매 실행마다 개별 승인을 받는 현재 방식을 유지한다. §7.3에 결정 배경 기록
+
+---
+
+## 7. 첫 파일럿 실행 결과 (2026-08-07)
+
+- **명령**: `codex exec -s workspace-write "docs/02-design/features/insight-comment.md ⑩ 섹션 기준 구현"`
+- **결과**: 구현 실패, 코드 변경 0건. `git status`/`git diff`로 대상 6개 파일 무변경 확인
+- **원인**: `codex doctor`는 `filesystem sandbox: restricted`(workspace-write 정상 선언)로 보고하지만, 실제 하위 프로세스가 파일 쓰기 시도 시 전부 `Access denied`(`apply_patch`, `git apply`, 직접 `WriteAllText` 모두 동일 실패). 대상 파일 ACL은 `Authenticated Users:(M)` 쓰기 권한 보유 확인됨(Claude/사용자 계정은 정상 쓰기 가능) — Codex 샌드박스 하위 프로세스가 제한된 토큰으로 실행되어 해당 권한을 상속받지 못하는 것으로 추정(Windows 샌드박스 구현 이슈로 추정, 미확정)
+- **Codex의 대응은 적절했음**: 실패를 숨기거나 거짓 성공 보고 없이 정확히 보고, `git add/commit/push` 등 부작용 없음 확인
+- **시사점**: `1.2 Background`의 "read-only exec 테스트 성공" 확인만으로는 부족했음 — write 경로(workspace-write)는 별도 검증이 필요했음. 이 프로젝트에서 Windows 환경의 Codex `workspace-write` 샌드박스는 **아직 실사용 가능 여부 미검증 상태**로 재분류
+- **미결 사항**: `danger-full-access` 전환 여부는 사용자 승인 필요(§3.2 Safety NFR과 상충하는 확장이므로 임의 실행하지 않음)
+
+### 7.1 재시도 결과 (2026-08-07, 사용자 승인 후 `danger-full-access`)
+
+- **명령**: `codex exec -s danger-full-access "..."` (동일 설계 문서, git add/commit/push 금지 명시)
+- **결과**: **성공.** 대상 6개 파일(`InsightCommentRepository.java`, `InsightDetailService.java`, `InsightCommentDTO.java`, `insight-detail.html`, `insight-detail.js`, `insight-detail.css`) + 테스트 2개(`InsightDetailServiceTest.java` 신규, `InsightPageControllerTest.java` 수정) 변경. `git add/commit/push` 미실행 확인, 리포 밖 파일 미변경 확인
+- **Claude 독립 검증**: `git diff` 전체 리뷰 완료 + `./gradlew test --rerun` 직접 실행(Codex 자체 보고를 그대로 신뢰하지 않음) — **68 tests, 0 failures, 0 errors**, Codex 자체 보고(68건 통과)와 일치
+  - 첫 검증 시도는 `BUILD FAILED`(1초 만에 실패) — 원인은 코드 문제가 아니라 기본 `JAVA_HOME`이 Java 8이라 Spring Boot 3.2 플러그인 해석 실패. `JAVA_HOME`을 JDK 21로 지정 후 재실행하여 정상 확인(Codex도 동일 문제를 겪고 스스로 JDK 21로 전환했다고 보고함 — 이 환경의 알려진 특성으로 별도 기록)
+- **설계 문서(`insight-comment.md` §⑩) 수용 기준 7개 전부 충족 확인**(코드 diff 직접 대조)
+- **결론**: `codex-collab-workflow.md` 파이프라인(Claude 설계 → Codex 구현 → Claude 검증) 첫 성공 사례. 단, Windows 환경에서는 `workspace-write`가 아니라 `danger-full-access`가 필요했다는 점이 이 프로젝트의 기본 운영 방식으로 굳어질지는 별도 결정 필요(§7의 원인 미확정 문제와 연결 — 근본 원인 조사 없이 `danger-full-access`를 기본값으로 굳히면 안전장치 없이 운영하는 셈)
+
+### 7.2 두 번째 파일럿 (2026-08-07, F-03 예외 처리 표준화)
+
+- **명령**: `codex exec -s danger-full-access "docs/02-design/features/exception-handling-policy.md 기준 구현"`
+- **대상**: `AdminPageController.java`(POST 21곳을 `executeAdminAction` 헬퍼로 통합), `MyPageController.java`(로컬 `@ExceptionHandler` 추가) — 사전에 `git diff`로 baseline을 떠서 이미 존재하던 무관한 수정사항과 Codex의 신규 변경을 구분함
+- **결과**: 성공. 설계 문서 수용 기준 6개 전부 충족(코드 diff 직접 대조), 71 tests 통과(Claude 독립 재실행 확인). 설계에 없던 4개 호출부(조건부 성공 메시지)를 Codex가 합리적으로 확장 처리 — 검토 후 승인
+- **시사점**: 두 번째 파일럿도 `danger-full-access` 필요, `workspace-write` 문제가 일회성이 아니라 이 환경의 일관된 특성임을 재확인. baseline diff 기록 방식이 "이미 더러운 워킹 디렉토리에서 Codex 변경분만 분리 검증"하는 데 유효함을 확인(향후 파일럿에도 재사용 권장)
+
+### 7.3 `danger-full-access` 기본값 전환 여부 — 보류 결정 (2026-08-07)
+
+- **논의 배경**: 2회 연속 파일럿이 전부 `danger-full-access`로만 성공해, 매번 개별 승인받는 대신 `CLAUDE.md`/`AGENTS.md`에 "이 프로젝트에서 Codex는 `danger-full-access`로 실행한다"고 기본값을 못박을지 사용자에게 확인함
+- **결정: 지금은 하지 않는다.** 이유:
+  - `workspace-write`(기본 안전) → `danger-full-access`(제한 없음)로의 전환은 **일회성 승인이 아니라 앞으로의 모든 세션에 영구 적용되는 안전 정책 변경**이라, 매번의 실행 승인과는 무게가 다름
+  - 지금까지의 안전장치는 "OS가 강제하는 workspace-write 경계"였는데, `danger-full-access`에서는 프롬프트 내 지시("git commit/push 금지" 등)에만 의존하게 됨 — Codex가 지시를 잘 따른 것은 맞지만, 이것이 구조적 안전장치를 대체할 근거는 아님
+  - `workspace-write`가 왜 이 Windows 환경에서 막히는지 근본 원인이 아직 미확정(§7 참조) — 원인 규명 없이 우회를 기본값으로 굳히면 향후 원인이 해결되어도 다시 안전한 기본값으로 돌아갈 유인이 사라짐
+- **당분간 운영 방식**: 매 `codex exec` 실행마다 개별적으로 사용자 승인을 받고, baseline diff 기록(§7.2 시사점)으로 변경 범위를 분리 검증하는 현재 절차를 유지한다
+- **재검토 트리거**: (1) `workspace-write` 실패의 근본 원인이 파악되거나, (2) Codex 파일럿 빈도가 늘어 매번 승인받는 비용이 커지면 재논의
 
 ---
 
@@ -128,3 +165,7 @@ Claude Code와 Codex CLI가 각자의 강점(Claude: 대화형 요구사항 정�
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
 | 0.1 | 2026-08-03 | 초안 작성 | Claude (대화 기반) |
+| 0.2 | 2026-08-07 | 첫 파일럿 실행(Feature A: insight-comment §⑩) — Windows 샌드박스 쓰기 차단으로 실패, 원인·시사점 §7에 기록. Next Steps 갱신 | Claude (파일럿 진행·검증) |
+| 0.3 | 2026-08-07 | `danger-full-access` 재시도 성공(§7.1) — 6개 대상 파일 구현 완료, Claude 독립 검증(`git diff`+`gradlew test`)으로 68건 전부 통과 확인. 파이프라인 첫 성공 사례로 기록. JDK 8/21 혼재 환경 특성 기록 | Claude (검증) |
+| 0.4 | 2026-08-07 | 두 번째 파일럿 성공(§7.2, exception-handling-policy) — Admin 21개 호출부 통합 + 마이페이지 방어 핸들러, 71 tests 통과 확인. `danger-full-access` 필요성이 일회성이 아님을 재확인. `CLAUDE.md`/`AGENTS.md` 갱신 여부는 사용자 결정 대기로 Next Steps #4 갱신 | Claude (파일럿 진행·검증) |
+| 0.5 | 2026-08-07 | §7.3 추가 — `danger-full-access` 기본값 전환 여부 논의 결과 **보류 결정** 기록(영구 정책 변경이라 근본 원인 규명 전까지 매 실행 개별 승인 유지). Next Steps #4 완료 처리(결정 자체는 완료, 실행은 보류) | Claude (결정 기록) |

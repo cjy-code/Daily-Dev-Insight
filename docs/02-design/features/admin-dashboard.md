@@ -23,7 +23,7 @@
 
 ## ④ 핵심 호출 흐름
 
-`getAdminStats()`가 6개 Repository에서 단순 집계 쿼리(count/sum)를 각각 실행해 하나의 `AdminStatsData`로 조합 — 캐싱 없이 매 요청마다 전체 재집계.
+`getAdminStats()`가 6개 Repository에서 단순 집계 쿼리(count/sum)를 각각 실행해 하나의 `AdminStatsData`로 조합. **[2026-08-06 갱신] `@Cacheable(cacheNames = "adminStats")`로 캐시 적용됨(TTL 5분)** — 매 요청 재집계가 아니라 캐시 미스 시에만 재집계.
 
 ### 처리 흐름도
 
@@ -42,8 +42,8 @@ sequenceDiagram
     S->>DB: dailyKnowledgeRepository.sumViewCount()
     S->>DB: techNewsRepository.sumViewCount()
     S->>DB: insightBookmarkRepository.count()
-    DB-->>S: 각 집계 결과
-    S-->>C: AdminStatsData(캐시 없이 매번 재집계)
+    DB-->>S: 각 집계 결과(캐시 미스 시에만 실행, TTL 5분)
+    S-->>C: AdminStatsData
     C-->>U: admin/dashboard.html 렌더링
 ```
 
@@ -60,7 +60,8 @@ sequenceDiagram
 ## ⑥ 인증·트랜잭션·캐시
 
 - 인증: `/admin/**`이므로 관리자 권한 필요 (Unit 8 참조)
-- 트랜잭션/캐시: `AdminManagementService`에 별도 명시 없어 보임(정밀화 시 클래스 레벨 어노테이션 확인 필요) — 캐시는 없는 것으로 보임(매 요청 재집계)
+- 트랜잭션: `@Transactional(readOnly = true)`
+- **[2026-08-06 갱신] 캐시: `adminStats`(Redis, TTL 5분) 적용.** 게시물/회원 관련 admin 쓰기 작업(`AdminManagementService`의 게시물 수정/삭제/`updateUser`, 지식 생성/뉴스 크롤링 실행)에서 `@CacheEvict(allEntries=true)`로 함께 무효화되어 관리자가 직접 콘텐츠를 변경한 직후에는 최신값이 반영됨. 조회수 증가(공개 페이지 뷰) 등 매우 잦은 이벤트는 evict 대상에서 제외 — TTL(5분) 내 최신성 지연은 허용
 
 ## ⑦ 화면 요약
 
@@ -73,7 +74,7 @@ sequenceDiagram
 
 ## ⑨ 알아둘 점 / 리스크
 
-- 통계가 매 요청마다 6개 쿼리를 실시간 집계 — 데이터 양이 커지면(특히 `sumViewCount`, 전체 스캔성 집계) 대시보드 응답이 느려질 수 있음, 캐시 적용 후보
+- **[2026-08-06 해결, F-12 반영]** 통계가 매 요청마다 6개 쿼리를 실시간 집계하던 문제를 `adminStats` 캐시(TTL 5분) 적용으로 완화. Phase 1(P1-1) 작업 결과
 
 ---
 
@@ -83,3 +84,4 @@ sequenceDiagram
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
 | 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |
+| 0.3 | 2026-08-06 | Phase 1(P1-1) 반영 — `getAdminStats()`에 `adminStats` 캐시(TTL 5분) 적용, 관련 admin 쓰기 작업에 evict 연결 |

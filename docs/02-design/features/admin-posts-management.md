@@ -55,7 +55,7 @@ flowchart TD
     M --> C
     N --> C
 
-    L -.캐시 무효화 여부.-> O["미확인 — Unit 1 홈 캐시(insightsByRange 등)\n갱신되는지 정밀화 시 확인 필요"]
+    L -.캐시 무효화.-> O["Unit 1 홈 캐시 4종 + Phase 1에서 추가된\nadmin 통계 캐시 3종 evict 확인됨"]
 ```
 
 ## ⑤ 데이터/외부 연동
@@ -67,7 +67,8 @@ flowchart TD
 
 - 인증: 관리자 권한 필요
 - 예외 처리: Admin 표준 패턴(광범위 catch + flash) — Unit 14와 동일
-- 캐시: 게시물 수정/삭제가 Unit 1의 홈 캐시(`insightsByRange` 등)에 영향을 줄 수 있는데 이 컨트롤러 메서드들에 `@CacheEvict`가 있는지는 미확인 — **정밀화 시 우선 확인 대상** (없다면 게시물 수정 후 홈 화면에 최대 5분(캐시 TTL) 동안 구 데이터가 노출될 수 있음)
+- **[2026-08-06 확인, F-04 반영]** 캐시: `AdminManagementService`의 update/delete/thumbnail 메서드 전부에 `@Caching(evict = {...})`으로 `insightsByDate`/`insightsByRange`/`weeklyHotTop10`/`weeklyHotTop5` 4개 캐시가 이미 `allEntries=true`로 무효화되고 있음이 코드 확인됨(F-04 우려와 달리 실제로는 누락 아님). 여기에 Phase 1(P1-1)에서 `adminStats`/`adminContentViewStats`/`adminBookmarkStats` 3개 캐시 무효화도 함께 추가됨
+- 목록 조회: **[2026-08-06 갱신, P1-2]** "최근 30건 고정" → 페이지네이션(페이지당 20건) 전환. `AdminManagementService.findKnowledgePosts(page)`/`findTechNewsPosts(page)`가 `Page<T>` 반환, `/admin/posts/knowledge`, `/admin/posts/news`에 `?page=` 쿼리 파라미터 지원
 
 ## ⑦ 화면 요약
 
@@ -80,8 +81,8 @@ flowchart TD
 
 ## ⑨ 알아둘 점 / 리스크
 
-- **캐시 무효화 여부 미확인** — 정밀화 우선순위 후보
-- 삭제가 하드 삭제인지, 삭제된 게시물을 참조하는 좋아요/북마크/댓글/조회 이력이 고아 데이터로 남는지 확인 안 됨
+- **[2026-08-06 해결]** 캐시 무효화 여부 미확인이었던 부분을 코드로 재확인 — 이미 4개 캐시 evict가 구현돼 있었고, Phase 1에서 admin 통계 캐시 evict도 추가됨
+- 삭제가 하드 삭제인지, 삭제된 게시물을 참조하는 좋아요/북마크/댓글/조회 이력이 고아 데이터로 남는지 확인 안 됨(Phase 1 범위 밖, 백로그 유지)
 
 ---
 
@@ -91,3 +92,4 @@ flowchart TD
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) — `admin/posts.html` 미사용 최종 확정 |
 | 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |
+| 0.3 | 2026-08-06 | Phase 1(P1-2, P1-3) 반영 — 목록 페이지네이션(20건) 전환, 캐시 evict 실제 상태 확인 및 admin 통계 캐시 evict 추가 |

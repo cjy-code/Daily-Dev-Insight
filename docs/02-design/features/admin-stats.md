@@ -44,8 +44,8 @@ flowchart TD
     J --> L["admin/stats-bookmarks.html 렌더링"]
     K --> L
 
-    D -.캐시 없음, 매번 재집계.-> D
-    I -.캐시 없음, 매번 재집계.-> I
+    D -.adminContentViewStats 캐시(TTL 5분).-> D
+    I -.adminBookmarkStats 캐시(TTL 5분).-> I
 ```
 
 ## ⑤ 데이터/외부 연동
@@ -55,7 +55,7 @@ Unit 1(조회수 필드), Unit 3(북마크 엔티티) 데이터를 그대로 재
 ## ⑥ 인증·트랜잭션·캐시
 
 - 인증: 관리자 권한 필요
-- 캐시 없음 — Unit 11(대시보드)과 마찬가지로 실시간 집계, 데이터 많아지면 성능 이슈 후보
+- **[2026-08-06 갱신] 캐시 적용**: `getContentViewStats()` → `adminContentViewStats`, `getBookmarkStats()` → `adminBookmarkStats` (각 Redis, TTL 5분). Unit 11(대시보드)의 `adminStats`와 별도 캐시 엔트리이므로 완전히 동일한 쿼리를 공유하지는 않지만, 각 화면 자체의 반복 조회는 캐시로 흡수됨
 
 ## ⑦ 화면 요약
 
@@ -64,11 +64,11 @@ Unit 1(조회수 필드), Unit 3(북마크 엔티티) 데이터를 그대로 재
 
 ## ⑧ 패턴 특이사항
 
-- Unit 11(대시보드)의 요약 수치와 이 unit의 상세 수치가 **부분적으로 같은 소스**(`sumViewCount`, `insightBookmarkRepository.count()`)를 각각 별도로 재조회 — 대시보드 진입 후 상세 통계로 이동하면 사실상 같은 쿼리가 한 번 더 실행됨(공유 캐시나 단일 조회 재사용 없음)
+- **[2026-08-06 갱신]** Unit 11(대시보드)의 요약 수치와 이 unit의 상세 수치가 **부분적으로 같은 소스**(`sumViewCount`, `insightBookmarkRepository.count()`)를 각각 별도 캐시 엔트리로 캐시함 — 각 메서드가 독립적으로 `@Cacheable`이 적용되어 있어 완전한 단일 조회 재사용(같은 캐시 키 공유)은 아니지만, 두 화면 모두 반복 요청 시 재집계가 발생하지 않음(각 TTL 5분)
 
 ## ⑨ 알아둘 점 / 리스크
 
-- Unit 11과 동일하게 실시간 전체 집계라 데이터 규모 증가 시 캐시 적용 후보 1순위(대시보드+통계 두 곳 모두)
+- **[2026-08-06 해결, F-12 반영]** Unit 11과 동일하게 캐시 없이 실시간 전체 집계하던 문제를 `adminContentViewStats`/`adminBookmarkStats` 캐시(TTL 5분) 적용으로 완화. Phase 1(P1-1) 작업 결과
 
 ---
 
@@ -78,3 +78,4 @@ Unit 1(조회수 필드), Unit 3(북마크 엔티티) 데이터를 그대로 재
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) |
 | 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |
+| 0.3 | 2026-08-06 | Phase 1(P1-1) 반영 — `getContentViewStats()`/`getBookmarkStats()`에 캐시(TTL 5분) 적용 |

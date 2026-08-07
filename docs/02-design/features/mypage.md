@@ -31,7 +31,7 @@
 ## ④ 핵심 호출 흐름
 
 1. 모든 GET 핸들러가 공통으로 `resolveLoginUserId()`로 인증 사용자 식별 (없으면 `IllegalArgumentException`)
-2. 활동내역: `MyPageService.getMyActivity()` — 북마크/좋아요 각각 최근 30건(`PageRequest.of(0,30)`)을 `createdAt` 내림차순 조회 후, 콘텐츠 타입(NEWS/KNOWLEDGE)에 따라 원본 엔티티를 다시 조회해 DTO 구성 (N+1 가능성 있는 구조 — 활동 30건이면 최대 30번 추가 조회)
+2. 활동내역: `MyPageService.getMyActivity(loginUserId, bookmarkPage, likePage)` — **[2026-08-06 갱신, P1-2]** 북마크/좋아요 각각 페이지당 20건(`PageRequest.of(page, 20)`)으로 페이지네이션 전환("최근 30건 고정" 해소), `createdAt` 내림차순 조회 후 콘텐츠 타입(NEWS/KNOWLEDGE)에 따라 원본 엔티티를 다시 조회해 DTO 구성 (N+1 가능성 있는 구조는 여전함 — 페이지당 최대 20번 추가 조회, 페이지 크기 축소로 완화는 됐으나 근본 해결은 아님)
 3. 탈퇴 처리(`processWithdraw`): 동의 체크(`agreeWithdraw=Y`) 확인 → `MyPageService.withdraw()` → **북마크·좋아요만 선삭제** 후 `UserService.withdraw()`(비밀번호 검증 포함 추정) → 성공 시 `new SecurityContextLogoutHandler().logout()`을 컨트롤러가 **직접 호출**(Unit 5의 `AuthService.logout()`을 거치지 않음) → `/login?withdraw`로 이동
 
 ### 처리 흐름도
@@ -76,8 +76,8 @@ flowchart TD
 
 ## ⑨ 알아둘 점 / 리스크
 
-- **탈퇴 시 댓글(`InsightComment`) 데이터는 정리 로직에 없음** — 북마크·좋아요만 선삭제하고 댓글은 그대로 남는 것으로 보임(작성자 `userId`가 탈퇴 후에도 유효한 FK로 남는지, 화면에 어떻게 노출되는지는 `UserService.withdraw()` 및 댓글 렌더링 로직 확인 필요 — 정밀화 시 우선 확인 대상)
-- 활동내역 최근 30건 고정, 페이지네이션 없음 — `MVP_SCOPE.md`에 언급 없는 제약
+- **탈퇴 시 댓글(`InsightComment`) 데이터는 정리 로직에 없음** — 북마크·좋아요만 선삭제하고 댓글은 그대로 남는 것으로 보임(작성자 `userId`가 탈퇴 후에도 유효한 FK로 남는지, 화면에 어떻게 노출되는지는 `UserService.withdraw()` 및 댓글 렌더링 로직 확인 필요 — 정밀화 시 우선 확인 대상, Phase 3 정책 결정 대상)
+- **[2026-08-06 해결]** 활동내역 최근 30건 고정 문제를 페이지네이션(페이지당 20건, 이전/다음 이동)으로 해소. `MyPageActivityDTO.getBookmarkCount()`/`getLikeCount()`도 현재 페이지 항목 수가 아닌 전체 개수(`Page.getTotalElements()`)를 반환하도록 함께 정정(마이페이지 메인 화면 요약 수치 정확도 개선)
 
 ---
 
@@ -87,3 +87,4 @@ flowchart TD
 |---|---|---|
 | 0.1 | 2026-08-05 | 최초 작성 (1차 사이클 compact card) — 탈퇴 시 로그아웃 중복 구현 확인, 댓글 정리 누락 가능성 발견 |
 | 0.2 | 2026-08-06 | 처리 흐름도(Mermaid) 추가 |
+| 0.3 | 2026-08-06 | Phase 1(P1-2) 반영 — 활동내역 페이지네이션(20건) 전환, 요약 카운트를 전체 개수 기준으로 정정 |

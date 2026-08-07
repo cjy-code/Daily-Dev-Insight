@@ -37,6 +37,7 @@
   3. 마이페이지 인증 실패(Unit 6): `IllegalArgumentException` 미포착, 그대로 흘림
 - **리스크**: 같은 "사용자 액션 실패" 상황이 화면마다 다르게 처리되어 일관성 없는 UX, 신규 기능 추가 시 어느 패턴을 따라야 할지 판단 근거 없음
 - **권장**: 정밀화(2차 사이클) 대상 unit부터 표준 예외 처리 정책 수립 검토
+- **✅ 결정 및 구현 완료 (2026-08-07, 사용자 승인)**: **전면 통일** 확정. REST는 이미 정상 동작이라 변경 없음, Admin은 `executeAdminAction` 헬퍼로 21개 호출부 통합(비검증 예외 원문 노출도 함께 차단), 마이페이지는 GET 5곳 방어용 로컬 `@ExceptionHandler` 추가. Claude 독립 검증(71 tests 통과). 상세: `docs/02-design/features/exception-handling-policy.md`, `service-quality-roadmap.md` P3-2
 
 ## 우선순위 Medium
 
@@ -50,6 +51,7 @@
 - **내용**: `validateParentCommentId()`는 부모 댓글의 존재/삭제여부/동일콘텐츠만 검증(부모가 이미 대댓글인지는 미검증). `insight-detail.js`의 `buildCommentHtml()`도 `depth`와 무관하게 모든 댓글에 답글 버튼을 렌더링하는 재귀 구조라 **UI에서도 무제한 중첩이 실제로 가능함이 확인됨**
 - **리스크**: `MVP_SCOPE.md`에 기술된 "대댓글까지만 지원"이 실제 구현과 다름(문서-코드 불일치). 화면 레이아웃도 깊은 중첩을 고려해 설계되지 않았을 가능성(들여쓰기 무한 반복)
 - **권장**: (1) 정책 결정 필요 — 다단 중첩을 허용할지, 서버 검증으로 1단계로 제한할지, (2) 결정 후 `MVP_SCOPE.md` 기술 정정
+- **✅ 결정 및 구현 완료 (2026-08-07, 사용자 승인)**: **다단 중첩 허용** 확정. CSS depth cap(5단계부터 들여쓰기 고정)으로 화면 레이아웃 대응, `MVP_SCOPE.md`/`insight-comment.md` 갱신 완료. Claude 독립 검증(68 tests 통과). 상세: `docs/02-design/features/insight-comment.md` §⑩, `docs/01-plan/features/service-quality-roadmap.md` P2-1
 
 ### F-06. `weekly_ai_insight`뿐 아니라 DB 스키마 전체가 `docs/sql/`과 불일치 가능성
 - **출처**: Unit 10(DB 스키마)
@@ -70,6 +72,7 @@
 - **출처**: Unit 6(마이페이지)
 - **내용**: 탈퇴 처리(`MyPageService.withdraw()`)가 좋아요·북마크는 선삭제하지만 `InsightComment`는 정리하지 않음. 작성자가 탈퇴해도 댓글은 그대로 남는 것으로 추정(화면 표시 방식 미확인)
 - **권장**: 정책적으로 의도된 것인지(탈퇴해도 댓글 보존) 확인 필요
+- **✅ 결정 완료 (2026-08-07, 사용자 승인)**: **현행 유지(보존)** — 탈퇴해도 댓글 내용·작성자 표시 그대로 유지. 코드 변경 불필요, 정책만 명문화. 상세: `docs/01-plan/features/service-quality-roadmap.md` P3-5
 
 ## 우선순위 Low
 
@@ -102,6 +105,7 @@
 - **출처**: Unit 2 정밀화, Codex 교차검증
 - **내용**: 소프트 삭제된 부모 댓글은 트리 조립(`findCommentDtos`) 시 DTO가 생성되지 않아, 그 자식(대댓글)이 부모 없이 최상위 댓글처럼 표시됨. "삭제된 댓글입니다" 같은 placeholder 없음
 - **권장**: UX 관점에서 의도된 동작인지 확인, 필요 시 삭제된 부모의 placeholder 표시 검토
+- **✅ 결정 및 구현 완료 (2026-08-07, 사용자 승인)**: **Placeholder 표시**로 확정(자식 유무 무관하게 삭제된 댓글은 항상 placeholder). 원본 내용/작성자명은 API 응답에도 노출하지 않음. Claude 독립 검증(68 tests 통과). 상세: `docs/02-design/features/insight-comment.md` §⑩, `service-quality-roadmap.md` P2-2
 
 ### F-16. 댓글 조회에 페이지네이션/depth 제한 없음
 - **출처**: Unit 2 정밀화, Codex 교차검증
@@ -112,6 +116,7 @@
 - **출처**: Unit 2 정밀화, Codex 교차검증
 - **내용**: `insight-detail.html`은 최상위 댓글만 `th:each`로 렌더링하고 `comment.replies`는 서버 템플릿에서 출력하지 않음. 대댓글은 클라이언트 JS 재조회 후에만 보임
 - **권장**: SEO/접근성(JS 비활성 환경) 영향이 있다면 SSR에서도 재귀 렌더링하도록 개선 검토
+- **✅ 결정 및 구현 완료 (2026-08-07, 사용자 승인)**: **SSR 재귀 렌더링 개선** 확정 및 구현. Thymeleaf 재귀 fragment로 전환, JS 렌더링과 동일한 DOM 구조 유지. Claude 독립 검증(68 tests 통과). 상세: `docs/02-design/features/insight-comment.md` §⑩, `service-quality-roadmap.md` P2-3
 
 ## 3차 사이클(Unit 8 정밀화, Codex 교차검증) 추가 발견
 
@@ -191,7 +196,9 @@
 - [x] F-18 실제 코드 수정 완료(`SecurityConfig`에 `hasRole("USER")` 적용, 전체 테스트 통과)
 - [ ] F-02(로그아웃 중복), F-03(예외처리 분산)은 Unit 8 정밀화 시 반영 예정
 - [ ] F-04, F-08은 다음에 해당 unit(Unit 15, 14)을 실제로 수정할 일이 생기면 착수 전 반드시 재확인
-- [ ] F-14~F-17(Unit 2), F-24~F-27(Unit 13) 신규 발견은 백로그로 유지
+- [x] F-05, F-15, F-17(Unit 2) — 2026-08-07 정책 결정 및 구현·검증 완료(Codex 파이프라인 첫 파일럿, 68 tests 통과)
+- [x] F-09(Unit 6) — 2026-08-07 정책 결정 완료(현행 유지, 코드 변경 불필요)
+- [ ] F-14, F-16(Unit 2), F-24~F-27(Unit 13) 신규 발견은 백로그로 유지
 - [ ] 나머지 항목은 백로그로 유지, 우선순위 재조정은 필요 시 별도 논의
 
 ---
@@ -204,3 +211,4 @@
 | 0.2 | 2026-08-06 | Unit 2 정밀화(Codex 교차검증) 반영 — F-05를 Medium→High 재평가, 신규 발견 F-14~F-17 추가(조회수 세션키 대소문자, 부모삭제시 자식승격, 댓글 페이지네이션 부재, SSR 대댓글 미표시) |
 | 0.3 | 2026-08-06 | Unit 8 정밀화(Codex 교차검증) 반영 — 신규 발견 F-18~F-22 추가, **F-18(관리자 세션의 사용자 경로 접근, High)은 정책 확인이 필요한 최우선 항목으로 표시** |
 | 0.4 | 2026-08-06 | Unit 13 정밀화(Codex 교차검증) 반영 — 신규 발견 F-23~F-27 추가, **F-23(`/admin/generate` 고아 엔드포인트, High)을 F-18과 함께 최우선 확인 항목으로 표시**. 2차 사이클(Unit 2/8/13) 정밀화 전체 완료 |
+| 0.5 | 2026-08-07 | F-05/F-09/F-15/F-17 정책 결정 및 구현 완료 반영(F-03 예외처리는 별도 설계 단계 필요로 미착수) — Codex+Claude 협업 파이프라인 첫 파일럿 성공 사례 기록 |
