@@ -31,9 +31,7 @@ public class ScheduledCrawlingExecutor {
 
         CrawlSchedule schedule = crawlScheduleService.getOrCreateSchedule();
         CrawlExecutionResult executionResult = techNewsCrawlingService.executeScheduledCrawling(LocalDate.now(), schedule);
-        if (executionResult.isSuccess()) {
-            crawlScheduleService.markExecuted(now);
-        }
+        crawlScheduleService.markExecuted(now);
         log.info("Reserved crawling executed at {} (success={}, errorCode={})", now, executionResult.isSuccess(), executionResult.getErrorCode());
     }
 }
