@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.time.LocalDate;
@@ -77,7 +76,6 @@ public class TechNewsCrawlingService {
      * @date 2026-04-17
      * @desc 관리자 입력값으로 미리보기(제목/URL) 목록을 생성합니다.
      */
-    @Transactional(readOnly = true)
     public CrawlPreviewResponse previewManualCrawling(CrawlRunForm form) {
         try {
             validateRunForm(form);
