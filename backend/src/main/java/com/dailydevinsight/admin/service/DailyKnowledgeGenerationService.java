@@ -8,7 +8,6 @@ import com.dailydevinsight.admin.dto.GenerationImageRefreshRequest;
 import com.dailydevinsight.admin.dto.GenerationImageRefreshResponse;
 import com.dailydevinsight.admin.dto.GenerationPreviewRequest;
 import com.dailydevinsight.admin.dto.GenerationPreviewResponse;
-import com.dailydevinsight.admin.dto.GenerationRequestForm;
 import com.dailydevinsight.admin.dto.GenerationSaveRequest;
 import com.dailydevinsight.admin.entity.GenerationHistory;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
@@ -43,31 +42,6 @@ public class DailyKnowledgeGenerationService {
     private final DailyKnowledgeRepository dailyKnowledgeRepository;
     private final LlmGenerationClient llmGenerationClient;
     private final ObjectProvider<ImageGenerationClient> imageGenerationClientProvider;
-
-    /**
-     * @date 2026-04-16
-     * @desc 관리자 수동 요청으로 일일 개발 지식 생성을 실행합니다.
-     */
-    @Caching(evict = {
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true)
-    })
-    public GenerationExecutionResult executeManualGeneration(GenerationRequestForm form) {
-        validateManualRequest(form);
-
-        return generateKnowledgeAndPersist(
-                form.getTargetDate(),
-                normalizeRequiredValue(form.getCategory(), "Backend"),
-                normalizeRequiredValue(form.getTone(), "실무형"),
-                normalizeRequiredValue(form.getDifficulty(), "중급"),
-                "MANUAL",
-                true
-        );
-    }
 
     /**
      * @date 2026-04-16
@@ -742,22 +716,6 @@ public class DailyKnowledgeGenerationService {
 
     /**
      * @date 2026-04-16
-     * @desc 수동 생성 요청값을 검증합니다.
-     */
-    private void validateManualRequest(GenerationRequestForm form) {
-        if (form == null) {
-            throw new IllegalArgumentException("생성 요청 값이 없습니다.");
-        }
-        if (form.getTargetDate() == null) {
-            throw new IllegalArgumentException("대상 날짜는 필수입니다.");
-        }
-        validateTextInput(form.getCategory(), "카테고리");
-        validateTextInput(form.getTone(), "톤");
-        validateTextInput(form.getDifficulty(), "난이도");
-    }
-
-    /**
-     * @date 2026-04-16
      * @desc 수동 생성 문자열 입력값을 검증합니다.
      */
     private void validateTextInput(String value, String fieldName) {
@@ -767,17 +725,6 @@ public class DailyKnowledgeGenerationService {
         if (value.trim().length() > MAX_MANUAL_TEXT_LENGTH) {
             throw new IllegalArgumentException(fieldName + " 값은 최대 " + MAX_MANUAL_TEXT_LENGTH + "자까지 입력할 수 있습니다.");
         }
-    }
-
-    /**
-     * @date 2026-04-16
-     * @desc 공백 입력값을 기본값으로 치환합니다.
-     */
-    private String normalizeRequiredValue(String value, String defaultValue) {
-        if (value == null || value.isBlank()) {
-            return defaultValue;
-        }
-        return value.trim();
     }
 
     /**

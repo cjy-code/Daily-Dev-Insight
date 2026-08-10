@@ -26,11 +26,9 @@ import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
 import com.dailydevinsight.admin.service.TechNewsCrawlingService;
 import com.dailydevinsight.admin.service.WeeklyAiInsightService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -416,38 +414,6 @@ public class AdminPageController {
                 "프롬프트 템플릿이 삭제되었습니다.",
                 () -> promptTemplateService.deleteTemplate(templateId)
         );
-    }
-
-    /**
-     * @date 2026-04-15
-     * @desc 관리자 수동 실행으로 일일 개발 지식을 생성합니다.
-     */
-    @PostMapping("/generate")
-    public String runManualGeneration(
-            @Valid GenerationRequestForm generationRequestForm,
-            BindingResult bindingResult,
-            RedirectAttributes redirectAttributes
-    ) {
-        if (bindingResult.hasErrors()) {
-            String validationMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
-            redirectAttributes.addFlashAttribute("adminError", validationMessage);
-            return "redirect:/admin/generation";
-        }
-
-        return executeAdminAction(redirectAttributes, "/admin/generation", null, () -> {
-            var executionResult = dailyKnowledgeGenerationService.executeManualGeneration(generationRequestForm);
-            if (executionResult.isSuccess()) {
-                redirectAttributes.addFlashAttribute(
-                        "adminMessage",
-                        "일일 개발 지식 생성 완료 (ID: " + executionResult.getCreatedKnowledgeId() + ")"
-                );
-            } else {
-                if (executionResult.getErrorCode() != null && !executionResult.getErrorCode().isBlank()) {
-                    redirectAttributes.addFlashAttribute("adminErrorCode", executionResult.getErrorCode());
-                }
-                redirectAttributes.addFlashAttribute("adminError", executionResult.getMessage());
-            }
-        });
     }
 
     /**
