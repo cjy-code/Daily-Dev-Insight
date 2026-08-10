@@ -63,7 +63,6 @@ WHEN MATCHED THEN
     UPDATE SET
         target.user_id = source.user_id,
         target.email = source.email,
-        target.password = source.password,
         target.name = source.name,
         target.role = source.role,
         target.status = source.status,
@@ -82,7 +81,6 @@ WHEN MATCHED THEN
     UPDATE SET
         target.user_id = source.user_id,
         target.email = source.email,
-        target.password = source.password,
         target.name = source.name,
         target.role = source.role,
         target.status = source.status,

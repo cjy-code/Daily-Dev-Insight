@@ -4,12 +4,15 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -42,6 +45,7 @@ public class OracleSchemaMigrationRunner {
     private static final String INDEX_TECH_NEWS_URL = "IDX_TECH_NEWS_URL";
 
     private final JdbcTemplate jdbcTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * @date 2026-04-15
@@ -76,6 +80,28 @@ public class OracleSchemaMigrationRunner {
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_CRAWL_HISTORY, TABLE_CRAWL_HISTORY);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_CRAWL_CONDITION_PRESET, TABLE_CRAWL_CONDITION_PRESET);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_WEEKLY_AI_INSIGHT, TABLE_WEEKLY_AI_INSIGHT);
+        ensureSeedUserPasswordsHashed();
+    }
+
+    /**
+     * @date 2026-08-10
+     * @desc 시드 계정(user01/admin01)의 평문 비밀번호를 BCrypt 해시로 1회성 재기록합니다.
+     */
+    private void ensureSeedUserPasswordsHashed() {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, password FROM users WHERE id IN (9001, 9002)");
+        for (Map<String, Object> row : rows) {
+            String storedPassword = (String) row.get("PASSWORD");
+            if (storedPassword == null || storedPassword.startsWith("{")) {
+                continue; // 이미 {id} 접두어가 붙은 인코딩 값(또는 이례적 null) — 멱등, 재작업 안 함
+            }
+            Number id = (Number) row.get("ID");
+            jdbcTemplate.update(
+                    "UPDATE users SET password = ?, updated_at = SYSTIMESTAMP WHERE id = ?",
+                    passwordEncoder.encode(storedPassword), id.longValue()
+            );
+            log.info("Rehashed seed user password to BCrypt: id={}", id);
+        }
     }
 
     /**
