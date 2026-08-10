@@ -14,7 +14,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -29,8 +31,15 @@ public class RssNewsCrawlerClient implements NewsCrawlerClient {
     private static final int MAX_TIMEOUT_SECONDS = 60;
     private static final int MIN_RETRY_COUNT = 0;
     private static final int MAX_RETRY_COUNT = 5;
+    private static final int MAX_REDIRECT_COUNT = 3;
     private static final int DETAIL_TEXT_MAX_LENGTH = 20000;
     private static final int META_DESCRIPTION_MAX_LENGTH = 3000;
+    private static final String DISALLOW_DOCTYPE_DECL_FEATURE =
+            "http://apache.org/xml/features/disallow-doctype-decl";
+    private static final String EXTERNAL_GENERAL_ENTITIES_FEATURE =
+            "http://xml.org/sax/features/external-general-entities";
+    private static final String EXTERNAL_PARAMETER_ENTITIES_FEATURE =
+            "http://xml.org/sax/features/external-parameter-entities";
     private static final Pattern HTML_TAG_PATTERN = Pattern.compile("<[^>]*>");
     private static final Pattern IMAGE_SRC_PATTERN = Pattern.compile("<img[^>]*src=[\"']([^\"']+)[\"'][^>]*>", Pattern.CASE_INSENSITIVE);
 
@@ -168,8 +177,8 @@ public class RssNewsCrawlerClient implements NewsCrawlerClient {
     }
 
     /**
-     * @date 2026-04-20
-     * @desc 단일 기사 상세 페이지를 조회하여 메타데이터와 본문 텍스트를 추출합니다.
+     * @date 2026-08-10
+     * @desc 리다이렉트 대상을 재검증하며 기사 상세 페이지의 메타데이터와 본문을 추출합니다.
      */
     private DetailCrawlData fetchArticleDetail(
             String articleUrl,
@@ -178,67 +187,112 @@ public class RssNewsCrawlerClient implements NewsCrawlerClient {
     ) throws Exception {
         validateSourceUrl(articleUrl);
 
-        URL url = URI.create(articleUrl).toURL();
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setConnectTimeout(connectTimeoutSeconds * 1000);
-        connection.setReadTimeout(readTimeoutSeconds * 1000);
-        connection.setRequestProperty("User-Agent", userAgent);
-        connection.connect();
+        String currentUrl = articleUrl;
+        int redirectCount = 0;
+        while (true) {
+            URL url = URI.create(currentUrl).toURL();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(connectTimeoutSeconds * 1000);
+            connection.setReadTimeout(readTimeoutSeconds * 1000);
+            connection.setRequestProperty("User-Agent", userAgent);
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode < 200 || responseCode >= 300) {
-            throw new IllegalStateException("상세 페이지 응답 코드가 정상이 아닙니다: " + responseCode);
-        }
+            try {
+                connection.connect();
+                int responseCode = connection.getResponseCode();
+                if (isRedirectResponseCode(responseCode)) {
+                    if (redirectCount >= MAX_REDIRECT_COUNT) {
+                        throw new IllegalStateException("상세 페이지 리다이렉트 허용 횟수를 초과했습니다.");
+                    }
+                    String redirectUrl = resolveRedirectUrl(currentUrl, connection.getHeaderField("Location"));
+                    validateSourceUrl(redirectUrl);
+                    currentUrl = redirectUrl;
+                    redirectCount++;
+                    continue;
+                }
+                if (responseCode < 200 || responseCode >= 300) {
+                    throw new IllegalStateException("상세 페이지 응답 코드가 정상이 아닙니다: " + responseCode);
+                }
 
-        try (InputStream inputStream = connection.getInputStream()) {
-            org.jsoup.nodes.Document detailDocument = Jsoup.parse(inputStream, StandardCharsets.UTF_8.name(), url.toString());
+                try (InputStream inputStream = connection.getInputStream()) {
+                    org.jsoup.nodes.Document detailDocument = Jsoup.parse(
+                            inputStream,
+                            StandardCharsets.UTF_8.name(),
+                            currentUrl
+                    );
 
-            String detailTitle = extractDetailTitle(detailDocument);
-            String detailSummary = extractDetailSummary(detailDocument);
-            String detailImageUrl = extractDetailImageUrl(detailDocument);
-            String detailContent = extractDetailContent(detailDocument);
-            return new DetailCrawlData(detailTitle, detailSummary, detailContent, detailImageUrl);
+                    String detailTitle = extractDetailTitle(detailDocument);
+                    String detailSummary = extractDetailSummary(detailDocument);
+                    String detailImageUrl = extractDetailImageUrl(detailDocument);
+                    String detailContent = extractDetailContent(detailDocument);
+                    return new DetailCrawlData(detailTitle, detailSummary, detailContent, detailImageUrl);
+                }
+            } finally {
+                connection.disconnect();
+            }
         }
     }
 
     /**
-     * @date 2026-04-17
-     * @desc RSS URL에서 XML을 조회해 안전하게 DOM Document로 변환합니다.
+     * @date 2026-08-10
+     * @desc 리다이렉트와 DOCTYPE을 검증하며 RSS XML을 안전한 DOM Document로 변환합니다.
      */
     private Document fetchRssDocument(
             String sourceUrl,
             int connectTimeoutSeconds,
             int readTimeoutSeconds
     ) throws Exception {
-        URL url = new URL(sourceUrl);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        connection.setRequestMethod("GET");
-        connection.setConnectTimeout(connectTimeoutSeconds * 1000);
-        connection.setReadTimeout(readTimeoutSeconds * 1000);
-        connection.setRequestProperty("User-Agent", userAgent);
-        connection.connect();
+        String currentUrl = sourceUrl;
+        int redirectCount = 0;
+        while (true) {
+            URL url = URI.create(currentUrl).toURL();
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(connectTimeoutSeconds * 1000);
+            connection.setReadTimeout(readTimeoutSeconds * 1000);
+            connection.setRequestProperty("User-Agent", userAgent);
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode < 200 || responseCode >= 300) {
-            throw new IllegalStateException("RSS 조회 응답 코드가 정상이 아닙니다: " + responseCode);
-        }
+            try {
+                connection.connect();
+                int responseCode = connection.getResponseCode();
+                if (isRedirectResponseCode(responseCode)) {
+                    if (redirectCount >= MAX_REDIRECT_COUNT) {
+                        throw new IllegalStateException("RSS 리다이렉트 허용 횟수를 초과했습니다.");
+                    }
+                    String redirectUrl = resolveRedirectUrl(currentUrl, connection.getHeaderField("Location"));
+                    validateSourceUrl(redirectUrl);
+                    currentUrl = redirectUrl;
+                    redirectCount++;
+                    continue;
+                }
+                if (responseCode < 200 || responseCode >= 300) {
+                    throw new IllegalStateException("RSS 조회 응답 코드가 정상이 아닙니다: " + responseCode);
+                }
 
-        try (InputStream inputStream = connection.getInputStream();
-             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
-            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-            documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
-            documentBuilderFactory.setExpandEntityReferences(false);
-            documentBuilderFactory.setXIncludeAware(false);
+                try (InputStream inputStream = connection.getInputStream();
+                     InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+                    DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+                    documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+                    documentBuilderFactory.setFeature(DISALLOW_DOCTYPE_DECL_FEATURE, true);
+                    documentBuilderFactory.setFeature(EXTERNAL_GENERAL_ENTITIES_FEATURE, false);
+                    documentBuilderFactory.setFeature(EXTERNAL_PARAMETER_ENTITIES_FEATURE, false);
+                    documentBuilderFactory.setExpandEntityReferences(false);
+                    documentBuilderFactory.setXIncludeAware(false);
 
-            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-            return documentBuilder.parse(new InputSource(reader));
+                    DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+                    return documentBuilder.parse(new InputSource(reader));
+                }
+            } finally {
+                connection.disconnect();
+            }
         }
     }
 
     /**
-     * @date 2026-04-17
-     * @desc 입력 URL 형식과 프로토콜(http/https)을 검증합니다.
+     * @date 2026-08-10
+     * @desc 입력 URL의 프로토콜과 호스트 IP가 외부 HTTP/HTTPS 주소인지 검증합니다.
      */
     private void validateSourceUrl(String sourceUrl) {
         if (sourceUrl == null || sourceUrl.isBlank()) {
@@ -249,6 +303,51 @@ public class RssNewsCrawlerClient implements NewsCrawlerClient {
         if (!"http".equals(scheme) && !"https".equals(scheme)) {
             throw new IllegalArgumentException("소스 URL은 http 또는 https만 허용됩니다.");
         }
+
+        String host = uri.getHost();
+        if (host == null || host.isBlank()) {
+            throw new IllegalArgumentException("소스 URL의 호스트가 올바르지 않습니다.");
+        }
+
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName(host);
+            for (InetAddress address : addresses) {
+                if (address.isLoopbackAddress()
+                        || address.isLinkLocalAddress()
+                        || address.isSiteLocalAddress()
+                        || address.isAnyLocalAddress()
+                        || address.isMulticastAddress()) {
+                    throw new IllegalArgumentException(
+                            "내부망 또는 예약된 주소로의 요청은 허용하지 않습니다: " + host
+                    );
+                }
+            }
+        } catch (UnknownHostException exception) {
+            throw new IllegalArgumentException("소스 URL의 호스트를 확인할 수 없습니다: " + host, exception);
+        }
+    }
+
+    /**
+     * @date 2026-08-10
+     * @desc SSRF 검증이 필요한 HTTP 리다이렉트 응답 코드인지 확인합니다.
+     */
+    private boolean isRedirectResponseCode(int responseCode) {
+        return responseCode == HttpURLConnection.HTTP_MOVED_PERM
+                || responseCode == HttpURLConnection.HTTP_MOVED_TEMP
+                || responseCode == HttpURLConnection.HTTP_SEE_OTHER
+                || responseCode == 307
+                || responseCode == 308;
+    }
+
+    /**
+     * @date 2026-08-10
+     * @desc 현재 URL을 기준으로 Location 헤더의 절대 리다이렉트 URL을 계산합니다.
+     */
+    private String resolveRedirectUrl(String currentUrl, String locationHeader) {
+        if (locationHeader == null || locationHeader.isBlank()) {
+            throw new IllegalStateException("리다이렉트 응답에 Location 헤더가 없습니다.");
+        }
+        return URI.create(currentUrl).resolve(locationHeader.trim()).toString();
     }
 
     /**
