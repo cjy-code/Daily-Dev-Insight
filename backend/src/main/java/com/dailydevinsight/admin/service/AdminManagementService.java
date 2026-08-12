@@ -212,6 +212,7 @@ public class AdminManagementService {
         if (!dailyKnowledgeRepository.existsById(postId)) {
             throw new IllegalArgumentException("삭제할 게시물을 찾을 수 없습니다.");
         }
+        generationHistoryRepository.clearCreatedKnowledgeId(postId);
         dailyKnowledgeRepository.deleteById(postId);
     }
 
