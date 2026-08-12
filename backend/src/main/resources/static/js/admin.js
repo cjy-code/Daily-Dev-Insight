@@ -1173,6 +1173,10 @@
 
         if (withOperator) {
             row.appendChild(createIncludeKeywordOperatorSelect(operatorName, operator));
+        } else {
+            const operatorPlaceholder = document.createElement('span');
+            operatorPlaceholder.className = 'include-keyword-operator-placeholder';
+            row.appendChild(operatorPlaceholder);
         }
 
         const inputField = document.createElement('input');
@@ -1291,11 +1295,20 @@
         const operatorName = wrapper.dataset.operatorName || 'includeKeywordOperators';
         rows.forEach((row, index) => {
             const existingSelect = row.querySelector('.include-keyword-operator-select');
+            const existingPlaceholder = row.querySelector('.include-keyword-operator-placeholder');
             if (index === 0) {
                 if (existingSelect) {
                     existingSelect.remove();
                 }
+                if (!existingPlaceholder) {
+                    const operatorPlaceholder = document.createElement('span');
+                    operatorPlaceholder.className = 'include-keyword-operator-placeholder';
+                    row.insertBefore(operatorPlaceholder, row.firstChild);
+                }
                 return;
+            }
+            if (existingPlaceholder) {
+                existingPlaceholder.remove();
             }
             if (!existingSelect) {
                 row.insertBefore(createIncludeKeywordOperatorSelect(operatorName, 'OR'), row.firstChild);
