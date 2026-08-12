@@ -167,7 +167,8 @@ cd backend
   - 전체 페이지/기능 소급 문서화 계획: `docs/01-plan/features/full-documentation-initiative.md`
   - 문서화 과정에서 발견된 코드 이슈 백로그: `docs/03-analysis/full-documentation-initiative-code-findings.md`
 
-## 10. 운영 전 체크 사항
+## 10. 알려진 이슈
 
-- 현재 `SecurityConfig`는 `NoOpPasswordEncoder`를 사용합니다 — 운영 배포 전 반드시 안전한 비밀번호 인코더(예: BCrypt)로 교체하세요.
-- 그 외 알려진 이슈(로그아웃 로직 중복, 캐시 무효화 범위, 고아 엔드포인트 등)는 `docs/03-analysis/full-documentation-initiative-code-findings.md`의 findings 백로그를 참고하세요.
+- 비밀번호는 BCrypt로 저장됩니다(`SecurityConfig`, 기동 시 레거시 평문 계정 자동 재해시).
+- SSRF/XXE 방어, 크롤링 트랜잭션-I/O 분리 등 서비스 품질 개선은 `docs/01-plan/features/service-quality-roadmap.md`에서 추적합니다.
+- 그 외 알려진 이슈(로그아웃 로직 중복, 캐시 무효화 범위 확인 등)는 `docs/03-analysis/full-documentation-initiative-code-findings.md`의 findings 백로그를 참고하세요.
