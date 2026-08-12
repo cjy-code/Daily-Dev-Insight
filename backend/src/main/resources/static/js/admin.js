@@ -1171,7 +1171,9 @@
         const row = document.createElement('div');
         row.className = 'dynamic-input-row include-keyword-row';
 
-        row.appendChild(createIncludeKeywordOperatorSelect(operatorName, operator));
+        if (withOperator) {
+            row.appendChild(createIncludeKeywordOperatorSelect(operatorName, operator));
+        }
 
         const inputField = document.createElement('input');
         inputField.type = 'text';
@@ -1258,7 +1260,7 @@
 
         if (limitedValues.length === 0) {
             if (inputName === 'includeKeywords') {
-                wrapper.insertBefore(createIncludeKeywordInputRow('', 'OR', placeholder, true, operatorName), addButton);
+                wrapper.insertBefore(createIncludeKeywordInputRow('', 'OR', placeholder, false, operatorName), addButton);
             } else {
                 wrapper.insertBefore(createDynamicInputRow(inputName, '', placeholder), addButton);
             }
@@ -1269,7 +1271,7 @@
             if (inputName === 'includeKeywords') {
                 const operatorValue = operators[index] || 'OR';
                 wrapper.insertBefore(
-                    createIncludeKeywordInputRow(value, operatorValue, placeholder, true, operatorName),
+                    createIncludeKeywordInputRow(value, operatorValue, placeholder, index !== 0, operatorName),
                     addButton
                 );
                 return;
@@ -1279,14 +1281,22 @@
     }
 
     /**
-     * @date 2026-04-17
-     * @desc 기능 설명을 처리합니다.
+     * @date 2026-08-10
+     * @desc 첫 번째 키워드 행에는 연산자 선택을 표시하지 않고, 이후 행에는 표시하도록 정리합니다.
+     * (첫 키워드는 연결할 대상이 없어 백엔드 매칭 로직에서 해당 값을 사용하지 않으므로,
+     * 조작 가능한데 아무 효과가 없는 UI를 없앤다)
      */
     function refreshIncludeKeywordOperatorRows(wrapper) {
         const rows = Array.from(wrapper.querySelectorAll('.dynamic-input-row'));
         const operatorName = wrapper.dataset.operatorName || 'includeKeywordOperators';
-        rows.forEach((row) => {
+        rows.forEach((row, index) => {
             const existingSelect = row.querySelector('.include-keyword-operator-select');
+            if (index === 0) {
+                if (existingSelect) {
+                    existingSelect.remove();
+                }
+                return;
+            }
             if (!existingSelect) {
                 row.insertBefore(createIncludeKeywordOperatorSelect(operatorName, 'OR'), row.firstChild);
             } else {
