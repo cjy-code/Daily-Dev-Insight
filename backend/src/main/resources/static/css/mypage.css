@@ -13,23 +13,38 @@
 }
 
 .mypage-nav-item {
-    border: 1px solid var(--color-border);
+    border: 1px solid transparent;
+    border-left: 3px solid transparent;
     border-radius: var(--radius-md);
-    color: var(--color-text-main);
+    color: var(--color-text-muted);
     text-decoration: none;
-    padding: 10px 12px;
-    background: #ffffff;
+    padding: 10px 13px;
+    background: transparent;
     font-size: 14px;
     font-weight: 700;
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.mypage-nav-item:hover {
+    background: rgba(115, 108, 237, 0.08);
+    color: var(--color-text-main);
 }
 
 .mypage-nav-item.is-active {
-    border-color: var(--color-primary-600);
+    border-left-color: var(--color-primary-600);
+    background: rgba(115, 108, 237, 0.10);
     color: var(--color-primary-600);
 }
 
 .mypage-nav-item.danger {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--color-border);
     color: var(--color-danger);
+}
+
+.mypage-nav-item.danger:hover {
+    background: rgba(209, 67, 106, 0.08);
 }
 
 .mypage-content {
@@ -154,12 +169,19 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 14px;
+    padding: 8px 16px;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--color-text-main);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--color-primary-600);
     text-decoration: none;
     font-size: 13px;
+    font-weight: 700;
+    transition: box-shadow 0.16s ease;
+}
+
+.pagination .page-link:hover {
+    box-shadow: var(--shadow-sm);
 }
 
 .pagination .page-link.disabled {
@@ -169,8 +191,10 @@
 }
 
 .pagination .page-info {
-    font-size: 13px;
+    font-size: 12.5px;
+    font-weight: 700;
     color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 900px) {

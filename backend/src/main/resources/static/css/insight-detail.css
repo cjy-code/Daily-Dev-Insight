@@ -1,11 +1,11 @@
 :root {
-    --detail-bg: #f4f7fb;
+    --detail-bg: #f2dfd7;
     --detail-card: #ffffff;
-    --detail-line: #d7dee8;
-    --detail-ink: #1f2937;
-    --detail-muted: #667085;
-    --detail-accent: #0b7285;
-    --detail-accent-soft: #e3f4f7;
+    --detail-line: #e7dcf6;
+    --detail-ink: #2f2a40;
+    --detail-muted: #726a88;
+    --detail-accent: #736ced;
+    --detail-accent-soft: #ece8fc;
 }
 
 .detail-page {

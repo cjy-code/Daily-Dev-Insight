@@ -1,13 +1,13 @@
 ﻿:root {
     --container-width: 1240px;
-    --bg-main: #f4f6f8;
+    --bg-main: #f2dfd7;
     --bg-card: #ffffff;
-    --ink-strong: #1f2937;
-    --ink-muted: #667085;
-    --line: #e4e7ec;
-    --accent: #0e7490;
-    --accent-weak: #e0f2fe;
-    --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --ink-strong: #2f2a40;
+    --ink-muted: #726a88;
+    --line: #e7dcf6;
+    --accent: #736ced;
+    --accent-weak: #ece8fc;
+    --shadow: 0 10px 30px rgba(115, 108, 237, 0.12);
 }
 
 .index-page {
@@ -220,7 +220,7 @@ h1 {
 }
 
 .insight-word {
-    color: #1d4ed8;
+    color: #736ced;
     font-weight: 700;
 }
 
@@ -444,7 +444,7 @@ h1 {
 }
 
 .weekly-ai-insight-section {
-    background: linear-gradient(180deg, #ffffff 0%, #f6fbfc 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #f9f7ff 100%);
 }
 
 .weekly-ai-insight-card {
@@ -454,7 +454,7 @@ h1 {
 }
 
 .weekly-ai-insight-block {
-    border: 1px solid #d6e7ea;
+    border: 1px solid #e7dcf6;
     border-radius: 10px;
     background: #ffffff;
     padding: 14px 16px;
