@@ -990,10 +990,36 @@
     padding: 12px 16px;
     border-bottom: 1px solid #e2e9f7;
     background: #f7faff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .history-error-modal-header h3 {
     margin: 0;
+    color: #1f2f53;
+}
+
+.modal-close-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #5a6784;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.modal-close-btn:hover {
+    background: #e9eef8;
     color: #1f2f53;
 }
 
@@ -1064,6 +1090,7 @@
     border-top: 1px solid #e2e9f7;
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
 }
 
 .inline-form,
