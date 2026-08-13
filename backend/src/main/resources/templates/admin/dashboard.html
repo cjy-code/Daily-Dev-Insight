@@ -23,12 +23,12 @@
                     <p>서비스 규모와 핵심 운영 수치를 요약합니다.</p>
                 </div>
                 <div class="stats-grid">
-                    <article class="stat-card stat-card-user"><span>총 회원</span><strong th:text="${stats.totalUsers}">0</strong></article>
-                    <article class="stat-card stat-card-user"><span>활성 회원</span><strong th:text="${stats.activeUsers}">0</strong></article>
-                    <article class="stat-card stat-card-content"><span>총 게시물</span><strong th:text="${stats.totalPosts}">0</strong></article>
-                    <article class="stat-card stat-card-content"><span>오늘 게시물</span><strong th:text="${stats.todayPosts}">0</strong></article>
-                    <article class="stat-card stat-card-time"><span>전체 조회수</span><strong th:text="${stats.totalViewCount}">0</strong></article>
-                    <article class="stat-card stat-card-content"><span>전체 북마크</span><strong th:text="${stats.totalBookmarkCount}">0</strong></article>
+                    <article class="stat-card"><span>총 회원</span><strong th:text="${stats.totalUsers}">0</strong></article>
+                    <article class="stat-card"><span>활성 회원</span><strong th:text="${stats.activeUsers}">0</strong></article>
+                    <article class="stat-card"><span>총 게시물</span><strong th:text="${stats.totalPosts}">0</strong></article>
+                    <article class="stat-card"><span>오늘 게시물</span><strong th:text="${stats.todayPosts}">0</strong></article>
+                    <article class="stat-card"><span>전체 조회수</span><strong th:text="${stats.totalViewCount}">0</strong></article>
+                    <article class="stat-card"><span>전체 북마크</span><strong th:text="${stats.totalBookmarkCount}">0</strong></article>
                 </div>
             </section>
 
@@ -38,8 +38,8 @@
                     <p>콘텐츠 생성 파이프라인 상태를 확인합니다.</p>
                 </div>
                 <div class="stats-grid">
-                    <article class="stat-card stat-card-user"><span>생성 성공</span><strong th:text="${stats.generationSuccessCount}">0</strong></article>
-                    <article class="stat-card stat-card-alert"><span>생성 실패</span><strong th:text="${stats.generationFailedCount}">0</strong></article>
+                    <article class="stat-card stat-card-success"><span>생성 성공</span><strong th:text="${stats.generationSuccessCount}">0</strong></article>
+                    <article class="stat-card" th:classappend="${stats.generationFailedCount > 0} ? ' stat-card-danger' : ''"><span>생성 실패</span><strong th:text="${stats.generationFailedCount}">0</strong></article>
                 </div>
             </section>
 
@@ -49,11 +49,11 @@
                     <p>조회수와 북마크 상세 지표 페이지로 이동할 수 있습니다.</p>
                 </div>
                 <div class="stats-grid stats-grid-link">
-                    <a class="stat-card stat-card-link stat-card-time" th:href="@{/admin/stats/views}">
+                    <a class="stat-card stat-card-link" th:href="@{/admin/stats/views}">
                         <span>조회수 통계 상세</span>
                         <strong>이동</strong>
                     </a>
-                    <a class="stat-card stat-card-link stat-card-content" th:href="@{/admin/stats/bookmarks}">
+                    <a class="stat-card stat-card-link" th:href="@{/admin/stats/bookmarks}">
                         <span>관심/북마크 통계 상세</span>
                         <strong>이동</strong>
                     </a>
@@ -65,19 +65,13 @@
                     <h3>D. 수집 예정 지표</h3>
                     <p>데이터 수집 구조 추가 후 확장될 영역입니다.</p>
                 </div>
-                <div class="stats-grid">
-                    <article class="stat-card stat-card-alert">
-                        <span>유저 로그인 추이</span>
-                        <strong>수집 예정</strong>
-                    </article>
-                    <article class="stat-card stat-card-alert">
-                        <span>세션 유지시간</span>
-                        <strong>수집 예정</strong>
-                    </article>
-                    <article class="stat-card stat-card-alert">
-                        <span>이용시간대 사용량</span>
-                        <strong>수집 예정</strong>
-                    </article>
+                <div class="dashboard-empty-state">
+                    <span>아직 수집되지 않는 지표:</span>
+                    <ul class="dashboard-empty-state-list">
+                        <li>유저 로그인 추이</li>
+                        <li>세션 유지시간</li>
+                        <li>이용시간대 사용량</li>
+                    </ul>
                 </div>
             </section>
         </section>
