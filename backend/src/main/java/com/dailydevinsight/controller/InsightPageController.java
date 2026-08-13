@@ -1,6 +1,7 @@
 package com.dailydevinsight.controller;
 
 import com.dailydevinsight.admin.service.WeeklyAiInsightService;
+import com.dailydevinsight.admin.service.DailyTrendInsightService;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.InsightDetailResponseDTO;
@@ -29,6 +30,7 @@ public class InsightPageController {
     private final DailyInsightService dailyInsightService;
     private final InsightDetailService insightDetailService;
     private final WeeklyAiInsightService weeklyAiInsightService;
+    private final DailyTrendInsightService dailyTrendInsightService;
 
     /**
      * @date 2026-04-13
@@ -82,6 +84,7 @@ public class InsightPageController {
         model.addAttribute("keyword", keyword == null ? "" : keyword);
         model.addAttribute("searchType", resolvedSearchType);
         model.addAttribute("weeklyAiInsight", weeklyAiInsightService.findLatestVisibleInsight());
+        model.addAttribute("dailyTrend", dailyTrendInsightService.findLatestVisibleTrend());
         return "index";
     }
 

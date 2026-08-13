@@ -12,6 +12,7 @@ import com.dailydevinsight.admin.service.CrawlHistoryService;
 import com.dailydevinsight.admin.service.CrawlConditionPresetService;
 import com.dailydevinsight.admin.service.CrawlScheduleService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
+import com.dailydevinsight.admin.service.DailyTrendInsightService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
@@ -86,6 +87,9 @@ class AdminPageControllerTest {
 
     @MockBean
     private WeeklyAiInsightService weeklyAiInsightService;
+
+    @MockBean
+    private DailyTrendInsightService dailyTrendInsightService;
 
     @MockBean
     private UserDetailsService userDetailsService;

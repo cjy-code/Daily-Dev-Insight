@@ -1,6 +1,7 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
+import com.dailydevinsight.admin.dto.GeneratedDailyTrendResult;
 import com.dailydevinsight.admin.dto.GeneratedWeeklyInsightResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,6 +19,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,6 +132,39 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
     }
 
     /**
+     * @date 2026-08-13
+     * @desc 크롤링 뉴스 목록을 OpenAI에 전달해 기준일의 일일 개발 트렌드를 생성합니다.
+     */
+    @Override
+    public GeneratedDailyTrendResult generateDailyTrend(String prompt, LocalDate targetDate) {
+        String resolvedApiKey = validateAndResolveApiKey();
+        try {
+            HttpEntity<Map<String, Object>> httpEntity = createDailyTrendRequestEntity(
+                    prompt,
+                    targetDate,
+                    resolvedApiKey
+            );
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    baseUrl + OPENAI_CHAT_COMPLETIONS_PATH,
+                    HttpMethod.POST,
+                    httpEntity,
+                    String.class
+            );
+            return parseDailyTrendResult(responseEntity.getBody());
+        } catch (HttpStatusCodeException exception) {
+            throw toLlmClientException(exception);
+        } catch (ResourceAccessException exception) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "network_error",
+                    0,
+                    "OpenAI 서버 연결에 실패했습니다. 네트워크 상태를 확인해주세요.",
+                    "OpenAI 네트워크 연결 실패: " + exception.getMessage()
+            );
+        }
+    }
+
+    /**
      * @date 2026-04-20
      * @desc 설정값/환경변수/JVM 프로퍼티에서 OpenAI API Key를 조회하고 유효성을 검증합니다.
      */
@@ -210,6 +246,30 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
         body.put("messages", List.of(
                 Map.of("role", "system", "content", buildWeeklyInsightSystemInstruction()),
                 Map.of("role", "user", "content", buildWeeklyInsightUserPrompt(prompt, weekStartDate, weekEndDate))
+        ));
+
+        return new HttpEntity<>(body, headers);
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 일일 개발 트렌드 생성을 위한 OpenAI 요청 헤더와 본문을 구성합니다.
+     */
+    private HttpEntity<Map<String, Object>> createDailyTrendRequestEntity(
+            String prompt,
+            LocalDate targetDate,
+            String apiKey
+    ) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey.trim());
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("temperature", 0.4);
+        body.put("messages", List.of(
+                Map.of("role", "system", "content", buildDailyTrendSystemInstruction()),
+                Map.of("role", "user", "content", buildDailyTrendUserPrompt(prompt, targetDate))
         ));
 
         return new HttpEntity<>(body, headers);
@@ -325,6 +385,61 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
     }
 
     /**
+     * @date 2026-08-13
+     * @desc OpenAI 응답에서 일일 개발 트렌드 JSON을 추출하고 키워드 개수를 검증합니다.
+     */
+    private GeneratedDailyTrendResult parseDailyTrendResult(String responseBody) {
+        try {
+            JsonNode responseRoot = objectMapper.readTree(responseBody);
+            JsonNode contentNode = responseRoot.path("choices").path(0).path("message").path("content");
+            if (contentNode.isMissingNode() || contentNode.asText().isBlank()) {
+                throw new LlmClientException(
+                        "OPENAI",
+                        "empty_response",
+                        200,
+                        "OpenAI 응답이 비어 있습니다. 잠시 후 다시 시도해주세요.",
+                        "OpenAI choices.message.content 값이 비어 있습니다."
+                );
+            }
+
+            JsonNode generatedJson = objectMapper.readTree(contentNode.asText());
+            JsonNode keywordsNode = generatedJson.path("keywords");
+            LinkedHashSet<String> normalizedKeywords = new LinkedHashSet<>();
+            if (keywordsNode.isArray()) {
+                keywordsNode.forEach(keywordNode -> {
+                    String keyword = keywordNode.asText("").trim().replace(",", "");
+                    if (!keyword.isBlank()) {
+                        normalizedKeywords.add(keyword);
+                    }
+                });
+            }
+            if (normalizedKeywords.size() < 3) {
+                throw new LlmClientException(
+                        "OPENAI",
+                        "invalid_daily_trend_keywords",
+                        200,
+                        "OpenAI 응답의 트렌드 키워드가 부족합니다.",
+                        "OpenAI 일일 트렌드 응답의 유효 키워드가 3개 미만입니다."
+                );
+            }
+
+            List<String> keywords = new ArrayList<>(normalizedKeywords).stream().limit(5).toList();
+            return GeneratedDailyTrendResult.builder()
+                    .keywords(keywords)
+                    .summary(readRequiredValue(generatedJson, "summary"))
+                    .build();
+        } catch (JsonProcessingException exception) {
+            throw new LlmClientException(
+                    "OPENAI",
+                    "invalid_response_format",
+                    200,
+                    "OpenAI 응답 형식 파싱에 실패했습니다.",
+                    "OpenAI 일일 트렌드 응답 파싱 실패: " + exception.getMessage()
+            );
+        }
+    }
+
+    /**
      * @date 2026-05-08
      * @desc 모델이 주간 개발 트렌드 분석을 JSON 형식으로 응답하도록 시스템 지시문을 생성합니다.
      */
@@ -332,6 +447,16 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
         return "당신은 개발자를 위한 주간 기술 뉴스 분석가입니다. 반드시 JSON 객체로만 응답하세요. "
                 + "필수 키는 summary, trendAnalysis, developerView 입니다. "
                 + "각 값은 한국어로 작성하고 실무 개발자가 바로 이해할 수 있게 구체적으로 설명하세요.";
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 모델이 일일 개발 트렌드를 JSON 형식으로 응답하도록 시스템 지시문을 생성합니다.
+     */
+    private String buildDailyTrendSystemInstruction() {
+        return "당신은 개발자를 위한 일일 기술 뉴스 분석가입니다. 반드시 JSON 객체로만 응답하세요. "
+                + "필수 키는 keywords(문자열 배열, 3~5개), summary(1~2문장 한국어 요약) 입니다. "
+                + "keywords는 명사형 기술 키워드로, summary는 실무 개발자가 바로 이해할 수 있게 구체적으로 작성하세요.";
     }
 
     /**
@@ -345,6 +470,19 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
                 + prompt + "\n\n"
                 + "응답 JSON 형식:\n"
                 + "{\"summary\":\"...\",\"trendAnalysis\":\"...\",\"developerView\":\"...\"}";
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 기준일과 크롤링 뉴스 목록을 일일 개발 트렌드 사용자 프롬프트로 구성합니다.
+     */
+    private String buildDailyTrendUserPrompt(String prompt, LocalDate targetDate) {
+        return "다음 크롤링 뉴스 목록을 기반으로 일일 개발 트렌드를 생성하세요.\n"
+                + "- 기준일: " + targetDate + "\n\n"
+                + "뉴스 목록:\n"
+                + prompt + "\n\n"
+                + "응답 JSON 형식:\n"
+                + "{\"keywords\":[\"...\",\"...\",\"...\"],\"summary\":\"...\"}";
     }
 
     /**

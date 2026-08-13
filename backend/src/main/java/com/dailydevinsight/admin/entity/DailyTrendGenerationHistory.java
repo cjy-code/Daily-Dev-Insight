@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -17,16 +16,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "generation_history")
+@Table(name = "daily_trend_generation_history")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GenerationHistory {
+public class DailyTrendGenerationHistory {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "generation_history_seq_gen")
-    @SequenceGenerator(name = "generation_history_seq_gen", sequenceName = "seq_generation_history", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "daily_trend_gen_history_seq_gen")
+    @SequenceGenerator(name = "daily_trend_gen_history_seq_gen", sequenceName = "seq_daily_trend_gen_history", allocationSize = 1)
     @Column(name = "id", nullable = false)
     private Long id;
 
@@ -39,21 +38,11 @@ public class GenerationHistory {
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
-    @Column(name = "prompt_template_id")
-    private Long promptTemplateId;
+    @Column(name = "source_news_count")
+    private Integer sourceNewsCount;
 
-    @Column(name = "created_knowledge_id")
-    private Long createdKnowledgeId;
-
-    @Column(name = "used_trend_id")
-    private Long usedTrendId;
-
-    @Column(name = "title", length = 255)
-    private String title;
-
-    @Lob
-    @Column(name = "prompt_snapshot")
-    private String promptSnapshot;
+    @Column(name = "created_trend_id")
+    private Long createdTrendId;
 
     @Column(name = "error_message", length = 1000)
     private String errorMessage;

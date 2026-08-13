@@ -22,6 +22,14 @@
                th:text="${activeTemplate != null ? '활성 템플릿: ' + activeTemplate.name : '활성 템플릿이 없어 생성할 수 없습니다.'}">
                 활성 템플릿: 기본 템플릿
             </p>
+            <section class="daily-trend-readonly-block" th:if="${dailyTrendPreview != null}">
+                <h4>참고: 오늘의 개발 트렌드(자동 반영됨, 편집 불가)</h4>
+                <p th:text="'키워드: ' + ${#strings.listJoin(dailyTrendPreview.keywords, ', ')}">키워드: Rust, AI</p>
+                <p th:text="${dailyTrendPreview.summary}">트렌드 요약</p>
+            </section>
+            <p class="daily-trend-missing-guide" th:if="${dailyTrendPreview == null}">
+                기준일에 생성된 트렌드가 없어 트렌드 없이 생성됩니다. (관리자 → 크롤링 관리 → 오늘의 개발 트렌드에서 먼저 생성 가능)
+            </p>
             <label for="composePromptContent">프롬프트 본문</label>
             <textarea id="composePromptContent" rows="12" th:text="${renderedPrompt}" th:disabled="${activeTemplate == null}"></textarea>
 
@@ -81,6 +89,7 @@
     </div>
 
     <footer class="admin-compose-footer">
+        <input type="hidden" id="composeDailyTrendId" value="">
         <button type="button" class="secondary" id="composeCancelButton">취소</button>
         <button type="button" id="composeSaveButton" th:disabled="${activeTemplate == null}">저장</button>
     </footer>

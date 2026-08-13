@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 public class ScheduledGenerationExecutor {
 
     private final GenerationScheduleService generationScheduleService;
+    private final DailyTrendInsightService dailyTrendInsightService;
     private final DailyKnowledgeGenerationService dailyKnowledgeGenerationService;
 
     /**
@@ -26,6 +27,12 @@ public class ScheduledGenerationExecutor {
         LocalDateTime now = LocalDateTime.now();
         if (!generationScheduleService.isExecutionDue(now)) {
             return;
+        }
+
+        try {
+            dailyTrendInsightService.generateScheduledDailyTrend(LocalDate.now());
+        } catch (Exception trendException) {
+            log.warn("Scheduled daily trend generation failed: {}", trendException.getMessage());
         }
 
         GenerationExecutionResult executionResult = dailyKnowledgeGenerationService.executeScheduledGeneration(LocalDate.now());

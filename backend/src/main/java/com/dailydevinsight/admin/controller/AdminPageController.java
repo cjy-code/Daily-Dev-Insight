@@ -21,6 +21,7 @@ import com.dailydevinsight.admin.service.CrawlHistoryService;
 import com.dailydevinsight.admin.service.CrawlConditionPresetService;
 import com.dailydevinsight.admin.service.CrawlScheduleService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
+import com.dailydevinsight.admin.service.DailyTrendInsightService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
@@ -67,6 +68,7 @@ public class AdminPageController {
     private final CrawlConditionPresetService crawlConditionPresetService;
     private final TechNewsCrawlingService techNewsCrawlingService;
     private final WeeklyAiInsightService weeklyAiInsightService;
+    private final DailyTrendInsightService dailyTrendInsightService;
 
     /**
      * @date 2026-04-15
@@ -196,6 +198,10 @@ public class AdminPageController {
         model.addAttribute("weeklyAiInsight", weeklyAiInsightService.findLatestInsightForAdmin());
         model.addAttribute("weeklyAiInsightList", weeklyAiInsightService.findRecentInsightsForAdmin());
         model.addAttribute("weeklyAiInsightReferenceDate", LocalDate.now());
+        model.addAttribute("dailyTrend", dailyTrendInsightService.findLatestTrendForAdmin());
+        model.addAttribute("dailyTrendList", dailyTrendInsightService.findRecentTrendsForAdmin());
+        model.addAttribute("dailyTrendReferenceDate", LocalDate.now());
+        model.addAttribute("dailyTrendHistoryList", dailyTrendInsightService.findRecentGenerationHistoryForAdmin());
         return "admin/crawling";
     }
 
@@ -446,6 +452,7 @@ public class AdminPageController {
         model.addAttribute("activeTemplate", activeTemplate);
         model.addAttribute("renderedPrompt", renderedPrompt);
         model.addAttribute("imagePromptTemplate", dailyKnowledgeGenerationService.buildImagePromptTemplateForManual(activeTemplate));
+        model.addAttribute("dailyTrendPreview", dailyTrendInsightService.findByTrendDate(targetDate));
         return "admin/generation-compose";
     }
 
@@ -593,6 +600,44 @@ public class AdminPageController {
     }
 
     /**
+     * @date 2026-08-13
+     * @desc 기준일 테크 뉴스 기반 일일 개발 트렌드를 생성하거나 재생성합니다.
+     */
+    @PostMapping("/daily-trend/generate")
+    public String generateDailyTrend(
+            @RequestParam(value = "referenceDate", required = false) LocalDate referenceDate,
+            RedirectAttributes redirectAttributes
+    ) {
+        return executeAdminAction(redirectAttributes, "/admin/crawling", null, () -> {
+            var dailyTrend = dailyTrendInsightService.generateDailyTrend(referenceDate);
+            redirectAttributes.addFlashAttribute(
+                    "adminMessage",
+                    "오늘의 개발 트렌드가 생성되었습니다. 기준일: " + dailyTrend.getTrendDate()
+            );
+        });
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 일일 개발 트렌드의 사용자 노출 여부를 변경합니다.
+     */
+    @PostMapping("/daily-trend/{id}/toggle-visible")
+    public String toggleDailyTrendVisible(
+            @PathVariable("id") Long trendId,
+            RedirectAttributes redirectAttributes
+    ) {
+        return executeAdminAction(redirectAttributes, "/admin/crawling", null, () -> {
+            var dailyTrend = dailyTrendInsightService.toggleVisible(trendId);
+            redirectAttributes.addFlashAttribute(
+                    "adminMessage",
+                    Boolean.TRUE.equals(dailyTrend.getVisible())
+                            ? "오늘의 개발 트렌드가 사용자 화면에 노출됩니다."
+                            : "오늘의 개발 트렌드가 숨겨졌습니다."
+            );
+        });
+    }
+
+    /**
      * @date 2026-08-07
      * @desc 관리자 작업을 실행하고 성공 또는 오류 메시지와 리다이렉트 경로를 일관되게 처리합니다.
      */
@@ -608,6 +653,8 @@ public class AdminPageController {
                 redirectAttributes.addFlashAttribute("adminMessage", successMessage);
             }
         } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
+        } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute("adminError", exception.getMessage());
         } catch (Exception exception) {
             redirectAttributes.addFlashAttribute("adminError", "작업 처리 중 오류가 발생했습니다.");

@@ -296,6 +296,96 @@ body {
     justify-content: flex-end;
 }
 
+.daily-trend-admin-panel {
+    gap: 14px;
+}
+
+.daily-trend-admin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.daily-trend-admin-header p {
+    margin: 6px 0 0;
+    color: var(--admin-sub);
+}
+
+.daily-trend-generate-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.daily-trend-generate-form label {
+    color: var(--admin-sub);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.daily-trend-generate-form input[type="date"] {
+    height: 38px;
+    border: 1px solid var(--admin-line);
+    border-radius: 8px;
+    padding: 0 10px;
+}
+
+.daily-trend-admin-card {
+    display: grid;
+    gap: 12px;
+    border: 1px solid #dbe8e6;
+    border-radius: 10px;
+    background: #f9fcfb;
+    padding: 14px;
+    margin: 14px 0;
+}
+
+.daily-trend-admin-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    color: var(--admin-sub);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.daily-trend-keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.daily-trend-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: var(--admin-brand-strong);
+    font-size: 13px;
+    font-weight: 800;
+    padding: 3px 12px;
+}
+
+.daily-trend-admin-card > p {
+    margin: 0;
+    color: #344054;
+    line-height: 1.6;
+}
+
+.daily-trend-admin-panel h4 {
+    margin: 18px 0 10px;
+    color: var(--admin-brand-strong);
+}
+
+.daily-trend-history-table {
+    margin-bottom: 18px;
+}
+
 .admin-content {
     display: grid;
     gap: 14px;
@@ -1247,6 +1337,33 @@ body {
 .prompt-template-image-guide {
     margin: 8px 0 0;
     color: #526485;
+    font-size: 13px;
+}
+
+.daily-trend-readonly-block {
+    border: 1px dashed #b8c4e0;
+    border-radius: 8px;
+    background: #f3f6ff;
+    padding: 10px 14px;
+    margin: 0 0 14px;
+}
+
+.daily-trend-readonly-block h4 {
+    margin: 0 0 6px;
+    color: var(--admin-brand-strong);
+    font-size: 13px;
+}
+
+.daily-trend-readonly-block p {
+    margin: 4px 0 0;
+    color: #344054;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.daily-trend-missing-guide {
+    margin: 0 0 14px;
+    color: var(--admin-sub);
     font-size: 13px;
 }
 
