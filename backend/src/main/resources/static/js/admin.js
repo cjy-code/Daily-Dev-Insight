@@ -746,6 +746,213 @@
         });
     }
 
+    const CRON_WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const CRON_WEEKDAY_LABEL = { MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일' };
+
+    /**
+     * @date 2026-08-13
+     * @desc Cron 문자열(초 분 시 일 월 요일)을 반복 주기 빌더 상태로 역파싱합니다.
+     * 빌더가 표현할 수 없는 패턴(월 지정, 스텝/범위 값, 일+요일 동시 지정 등)은 advanced로 안전하게 폴백합니다.
+     */
+    function parseCronExpressionForBuilder(cronValue) {
+        const raw = (cronValue || '').trim();
+        const fallback = { mode: 'advanced', raw };
+        const tokens = raw.split(/\s+/);
+        if (tokens.length !== 6) {
+            return fallback;
+        }
+        const [sec, min, hour, dayOfMonth, month, dayOfWeek] = tokens;
+        if (month !== '*' || !/^\d+$/.test(sec) || !/^\d+$/.test(min) || !/^\d+$/.test(hour)) {
+            return fallback;
+        }
+        const second = Number(sec);
+        const minute = Number(min);
+        const hourNum = Number(hour);
+        if (second > 59 || minute > 59 || hourNum > 23) {
+            return fallback;
+        }
+
+        if (dayOfMonth === '*' && dayOfWeek === '*') {
+            return { mode: 'daily', second, minute, hour: hourNum };
+        }
+        if (dayOfMonth === '*' && dayOfWeek !== '*') {
+            const days = dayOfWeek.split(',').map((d) => d.trim().toUpperCase());
+            const isValid = days.length > 0 && days.every((d) => CRON_WEEKDAY_ORDER.includes(d));
+            return isValid ? { mode: 'weekly', second, minute, hour: hourNum, days } : fallback;
+        }
+        if (dayOfMonth !== '*' && dayOfWeek === '*') {
+            return /^([1-9]|[12]\d|3[01])$/.test(dayOfMonth)
+                ? { mode: 'monthly', second, minute, hour: hourNum, dayOfMonth: Number(dayOfMonth) }
+                : fallback;
+        }
+        return fallback;
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 반복 주기 빌더 상태를 Cron 문자열(초 분 시 일 월 요일)로 조립합니다.
+     */
+    function buildCronExpressionFromState(state) {
+        const sec = String(state.second ?? 0);
+        const min = String(state.minute ?? 0);
+        const hour = String(state.hour ?? 0);
+        if (state.mode === 'weekly') {
+            const days = state.days && state.days.length > 0 ? state.days.join(',') : 'MON';
+            return `${sec} ${min} ${hour} * * ${days}`;
+        }
+        if (state.mode === 'monthly') {
+            return `${sec} ${min} ${hour} ${state.dayOfMonth ?? 1} * *`;
+        }
+        if (state.mode === 'advanced') {
+            return state.raw ?? '';
+        }
+        return `${sec} ${min} ${hour} * * *`;
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 예약 생성/크롤링 예약 설정 화면 공통 - Cron 직접 입력 대신 반복 주기(매일/매주/매월)와
+     * 시:분:초를 선택하는 빌더 UI를 실제 cronExpression 히든 입력과 동기화합니다.
+     */
+    function bindCronScheduleBuilder(idPrefix) {
+        const root = document.querySelector(`[data-cron-builder="${idPrefix}"]`);
+        if (!root) {
+            return;
+        }
+        const hiddenInput = root.querySelector('[data-cron-hidden]');
+        const modeButtons = root.querySelectorAll('[data-cron-mode]');
+        const hourInput = root.querySelector('[data-cron-field="hour"]');
+        const minuteInput = root.querySelector('[data-cron-field="minute"]');
+        const secondInput = root.querySelector('[data-cron-field="second"]');
+        const dayOfMonthSelect = root.querySelector('[data-cron-field="dayOfMonth"]');
+        const weekdayChecks = root.querySelectorAll('[data-cron-weekday]');
+        const rawInput = root.querySelector('[data-cron-raw]');
+        const timeRow = root.querySelector('[data-cron-time-row]');
+        const weekdayRow = root.querySelector('[data-cron-weekday-row]');
+        const monthdayRow = root.querySelector('[data-cron-monthday-row]');
+        const advancedRow = root.querySelector('[data-cron-advanced-row]');
+        const summary = root.querySelector('[data-cron-summary]');
+        if (!hiddenInput || !hourInput || !minuteInput || !secondInput || !rawInput) {
+            return;
+        }
+
+        function readUiState(mode) {
+            return {
+                mode,
+                second: Number(secondInput.value || 0),
+                minute: Number(minuteInput.value || 0),
+                hour: Number(hourInput.value || 0),
+                days: Array.from(weekdayChecks).filter((c) => c.checked).map((c) => c.dataset.cronWeekday),
+                dayOfMonth: dayOfMonthSelect ? Number(dayOfMonthSelect.value) : 1,
+                raw: rawInput.value,
+            };
+        }
+
+        function describeCron(state) {
+            const time = `${String(state.hour).padStart(2, '0')}:${String(state.minute).padStart(2, '0')}:${String(state.second).padStart(2, '0')}`;
+            if (state.mode === 'weekly') {
+                if (state.days.length === 0) {
+                    return '요일을 1개 이상 선택해 주세요.';
+                }
+                const labels = state.days.map((d) => CRON_WEEKDAY_LABEL[d] || d).join(', ');
+                return `매주 ${labels}요일 ${time}에 실행됩니다.`;
+            }
+            if (state.mode === 'monthly') {
+                return `매월 ${state.dayOfMonth}일 ${time}에 실행됩니다.`;
+            }
+            if (state.mode === 'advanced') {
+                return '반복 주기 옵션으로 표현할 수 없어 입력한 cron 표현식을 그대로 사용합니다.';
+            }
+            return `매일 ${time}에 실행됩니다.`;
+        }
+
+        function setActiveMode(mode) {
+            modeButtons.forEach((btn) => {
+                const isActive = btn.dataset.cronMode === mode;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-pressed', String(isActive));
+            });
+            if (timeRow) timeRow.hidden = mode === 'advanced';
+            if (weekdayRow) weekdayRow.hidden = mode !== 'weekly';
+            if (monthdayRow) monthdayRow.hidden = mode !== 'monthly';
+            if (advancedRow) advancedRow.hidden = mode !== 'advanced';
+        }
+
+        function currentMode() {
+            const activeBtn = root.querySelector('.cron-mode-btn.active');
+            return activeBtn ? activeBtn.dataset.cronMode : 'daily';
+        }
+
+        function syncFromUi() {
+            const state = readUiState(currentMode());
+            hiddenInput.value = buildCronExpressionFromState(state);
+            if (summary) {
+                summary.textContent = describeCron(state);
+            }
+        }
+
+        function applyState(state) {
+            setActiveMode(state.mode);
+            if (state.mode === 'advanced') {
+                rawInput.value = state.raw || hiddenInput.value;
+            } else {
+                hourInput.value = state.hour;
+                minuteInput.value = state.minute;
+                secondInput.value = state.second;
+                if (state.mode === 'weekly') {
+                    weekdayChecks.forEach((c) => {
+                        c.checked = (state.days || []).includes(c.dataset.cronWeekday);
+                    });
+                }
+                if (state.mode === 'monthly' && dayOfMonthSelect) {
+                    dayOfMonthSelect.value = String(state.dayOfMonth || 1);
+                }
+            }
+            syncFromUi();
+        }
+
+        const parsed = parseCronExpressionForBuilder(hiddenInput.value);
+        applyState(Object.assign({ hour: 9, minute: 0, second: 0, days: ['MON'], dayOfMonth: 1 }, parsed));
+
+        modeButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.cronMode;
+                setActiveMode(mode);
+                if (mode === 'weekly' && Array.from(weekdayChecks).every((c) => !c.checked)) {
+                    const monday = Array.from(weekdayChecks).find((c) => c.dataset.cronWeekday === 'MON');
+                    if (monday) monday.checked = true;
+                }
+                syncFromUi();
+            });
+        });
+        [hourInput, minuteInput, secondInput].forEach((input) => {
+            input.addEventListener('input', syncFromUi);
+        });
+        weekdayChecks.forEach((c) => c.addEventListener('change', syncFromUi));
+        if (dayOfMonthSelect) {
+            dayOfMonthSelect.addEventListener('change', syncFromUi);
+        }
+        rawInput.addEventListener('input', syncFromUi);
+
+        const form = root.closest('form');
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                syncFromUi();
+                const mode = currentMode();
+                if (mode === 'weekly' && readUiState('weekly').days.length === 0) {
+                    event.preventDefault();
+                    window.alert('예약 요일을 1개 이상 선택해 주세요.');
+                    return;
+                }
+                if (mode === 'advanced' && !rawInput.value.trim()) {
+                    event.preventDefault();
+                    window.alert('Cron 표현식을 입력해 주세요.');
+                    rawInput.focus();
+                }
+            });
+        }
+    }
+
     /**
      * @date 2026-04-16
      * @desc 기능 설명을 처리합니다.
@@ -1770,6 +1977,8 @@
         bindGenerationTabs();
         bindGenerationScheduleToggleUi();
         bindCrawlScheduleToggleUi();
+        bindCronScheduleBuilder('schedule');
+        bindCronScheduleBuilder('crawlSchedule');
         bindGenerationActionGuard();
         bindPromptTemplateSaveLimitGuard();
         bindPromptTemplateToggleConfirm();

@@ -744,6 +744,103 @@ body {
     font-weight: 600;
 }
 
+.cron-builder {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid #dde2ee;
+    border-radius: 10px;
+    background: #f8f9fd;
+}
+
+.cron-mode-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.admin-form .cron-mode-btn {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #cdd3e0;
+    background: #fff;
+    color: #49577a;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.admin-form .cron-mode-btn.active {
+    border-color: var(--admin-brand);
+    background: var(--admin-brand);
+    color: #fff;
+}
+
+.cron-time-inputs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+}
+
+.cron-time-inputs input {
+    width: 64px;
+    flex: none;
+}
+
+.cron-time-inputs span {
+    color: #49577a;
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+.cron-weekday-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.cron-weekday-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid #cdd3e0;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    color: #49577a;
+    cursor: pointer;
+}
+
+.cron-weekday-chip input {
+    accent-color: var(--admin-brand);
+}
+
+.cron-weekday-chip:has(input:checked) {
+    border-color: var(--admin-brand);
+    background: color-mix(in srgb, var(--admin-brand) 12%, #ffffff);
+    color: var(--admin-brand-strong);
+}
+
+.cron-monthday-row select {
+    max-width: 160px;
+}
+
+.cron-builder-hint {
+    margin: 0;
+    color: #7b849c;
+    font-size: 12px;
+}
+
+.cron-builder-summary {
+    margin: 2px 0 0;
+    color: #146a3f;
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .admin-toast-container {
     position: fixed;
     right: 20px;

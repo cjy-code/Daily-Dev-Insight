@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="cron-builder" th:fragment="cronBuilder(idPrefix, cronValue)" th:attr="data-cron-builder=${idPrefix}">
+    <input type="hidden" th:id="${idPrefix + 'CronExpression'}" name="cronExpression" th:value="${cronValue}" data-cron-hidden>
+
+    <label>반복 주기</label>
+    <div class="cron-mode-row" role="radiogroup" aria-label="반복 주기">
+        <button type="button" class="cron-mode-btn" data-cron-mode="daily">매일</button>
+        <button type="button" class="cron-mode-btn" data-cron-mode="weekly">매주</button>
+        <button type="button" class="cron-mode-btn" data-cron-mode="monthly">매월</button>
+        <button type="button" class="cron-mode-btn" data-cron-mode="advanced">직접 입력</button>
+    </div>
+
+    <div class="cron-time-row" data-cron-time-row>
+        <label th:for="${idPrefix + 'CronHour'}">실행 시각</label>
+        <div class="cron-time-inputs">
+            <input type="number" min="0" max="23" th:id="${idPrefix + 'CronHour'}" data-cron-field="hour" aria-label="시"><span>시</span>
+            <input type="number" min="0" max="59" th:id="${idPrefix + 'CronMinute'}" data-cron-field="minute" aria-label="분"><span>분</span>
+            <input type="number" min="0" max="59" th:id="${idPrefix + 'CronSecond'}" data-cron-field="second" aria-label="초"><span>초</span>
+        </div>
+    </div>
+
+    <div class="cron-weekday-row" data-cron-weekday-row hidden>
+        <label>요일 선택</label>
+        <div class="cron-weekday-chips">
+            <label class="cron-weekday-chip"><input type="checkbox" data-cron-weekday="MON"><span>월</span></label>
+            <label class="cron-weekday-chip"><input type="checkbox" data-cron-weekday="TUE"><span>화</span></label>
+            <label class="cron-weekday-chip"><input type="checkbox" data-cron-weekday="WED"><span>수</span></label>
+            <label class="cron-weekday-chip"><input type="checkbox" data-cron-weekday="THU"><span>목</span></label>
+            <label class="cron-weekday-chip"><input type="checkbox" data-cron-weekday="FRI"><span>금</span></label>
+            <label class="cron-weekday-chip"><input type="checkbox" data-cron-weekday="SAT"><span>토</span></label>
+            <label class="cron-weekday-chip"><input type="checkbox" data-cron-weekday="SUN"><span>일</span></label>
+        </div>
+    </div>
+
+    <div class="cron-monthday-row" data-cron-monthday-row hidden>
+        <label th:for="${idPrefix + 'CronDayOfMonth'}">매월 실행일</label>
+        <select th:id="${idPrefix + 'CronDayOfMonth'}" data-cron-field="dayOfMonth">
+            <option th:each="day : ${#numbers.sequence(1, 31)}" th:value="${day}" th:text="${day} + '일'">1일</option>
+        </select>
+    </div>
+
+    <div class="cron-advanced-row" data-cron-advanced-row hidden>
+        <label th:for="${idPrefix + 'CronRaw'}">Cron 표현식 (초 분 시 일 월 요일)</label>
+        <input type="text" th:id="${idPrefix + 'CronRaw'}" data-cron-raw>
+        <p class="cron-builder-hint">예: 0 0 9 * * * (매일 09:00:00). 위 반복 주기 옵션으로 표현할 수 없는 패턴일 때만 사용하세요.</p>
+    </div>
+
+    <p class="cron-builder-summary" data-cron-summary></p>
+</div>
+</body>
+</html>

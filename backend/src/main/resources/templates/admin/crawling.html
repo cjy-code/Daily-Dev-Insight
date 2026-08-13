@@ -245,8 +245,7 @@
 
                 <div id="crawlScheduleEditableFields" class="schedule-editable-fields">
 
-                <label for="crawlCronExpression">Cron 표현식 (초 분 시 일 월 요일)</label>
-                <input type="text" id="crawlCronExpression" name="cronExpression" th:value="${crawlScheduleForm.cronExpression}" required>
+                <div th:replace="~{fragments/cronScheduleBuilder :: cronBuilder('crawlSchedule', ${crawlScheduleForm.cronExpression})}"></div>
 
                 <label for="crawlScheduleSourceName">소스 이름</label>
                 <input type="text" id="crawlScheduleSourceName" name="sourceName" th:value="${crawlScheduleForm.sourceName}" required>

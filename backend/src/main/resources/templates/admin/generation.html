@@ -184,8 +184,7 @@
                 </p>
 
                 <div id="scheduleEditableFields" class="schedule-editable-fields">
-                <label for="cronExpression">Cron 표현식 (초 분 시 일 월 요일)</label>
-                <input type="text" id="cronExpression" name="cronExpression" th:value="${scheduleForm.cronExpression}" required>
+                <div th:replace="~{fragments/cronScheduleBuilder :: cronBuilder('schedule', ${scheduleForm.cronExpression})}"></div>
                 <label for="scheduleCategory">카테고리</label>
                 <input type="text" id="scheduleCategory" name="category" th:value="${scheduleForm.category}" required>
                 <label for="scheduleTone">톤</label>
