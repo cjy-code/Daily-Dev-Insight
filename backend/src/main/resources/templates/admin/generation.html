@@ -30,13 +30,14 @@
         <section class="admin-panel generation-tab-panel" data-tab-panel="prompt"
                  th:attr="data-active-template-name=${activeTemplate != null ? activeTemplate.name : ''},data-has-active-template=${activeTemplate != null},data-template-count=${#lists.size(templateList)},data-max-template-count=10">
             <h3>프롬프트 템플릿</h3>
-            <div class="active-template-card">
-                <strong>현재 활성 템플릿</strong>
-                <p th:if="${activeTemplate != null}">
-                    <span th:text="${activeTemplate.name}">기본 템플릿</span>
-                    <span class="active-template-meta"
-                          th:text="'(수정일: ' + ${#temporals.format(activeTemplate.updatedAt, 'yyyy-MM-dd HH:mm:ss')} + ')'">(수정일: -)</span>
-                </p>
+            <div class="active-template-card" th:classappend="${activeTemplate == null} ? ' is-empty' : ''">
+                <span class="active-template-eyebrow">현재 활성 템플릿</span>
+                <div th:if="${activeTemplate != null}" class="active-template-info">
+                    <span class="active-template-name" th:text="${activeTemplate.name}">기본 템플릿</span>
+                    <span class="status-badge active">사용 중</span>
+                </div>
+                <p th:if="${activeTemplate != null}" class="active-template-meta"
+                   th:text="'최근 수정 · ' + ${#temporals.format(activeTemplate.updatedAt, 'yyyy-MM-dd HH:mm:ss')}">최근 수정 · -</p>
                 <p th:if="${activeTemplate == null}" class="inactive-text">현재 활성화된 템플릿이 없습니다.</p>
             </div>
             <div class="template-toolbar">
@@ -281,16 +282,29 @@
 
                             <div class="prompt-template-image-settings-grid">
                                 <div>
-                                    <label for="templateImageQuality">이미지 품질</label>
-                                    <select id="templateImageQuality">
-                                        <option value="low">low</option>
-                                        <option value="medium">medium</option>
-                                        <option value="high">high</option>
-                                    </select>
+                                    <span class="field-label-static">이미지 품질</span>
+                                    <div class="segmented-control" id="templateImageQualityControl" role="radiogroup" aria-label="이미지 품질">
+                                        <label class="segmented-chip">
+                                            <input type="radio" name="templateImageQualityRadio" value="low">
+                                            <span>low</span>
+                                        </label>
+                                        <label class="segmented-chip">
+                                            <input type="radio" name="templateImageQualityRadio" value="medium">
+                                            <span>medium</span>
+                                        </label>
+                                        <label class="segmented-chip">
+                                            <input type="radio" name="templateImageQualityRadio" value="high">
+                                            <span>high</span>
+                                        </label>
+                                    </div>
+                                    <input type="hidden" id="templateImageQuality" value="medium">
                                 </div>
                                 <div>
                                     <label for="templateImageMaxTokens">이미지 최대 토큰 예산</label>
-                                    <input type="number" id="templateImageMaxTokens" min="100" max="8000" step="100" value="1200">
+                                    <div class="token-slider-row">
+                                        <input type="range" id="templateImageMaxTokens" min="100" max="8000" step="100" value="1200">
+                                        <span class="token-slider-value" id="templateImageMaxTokensDisplay">1200</span>
+                                    </div>
                                 </div>
                             </div>
 

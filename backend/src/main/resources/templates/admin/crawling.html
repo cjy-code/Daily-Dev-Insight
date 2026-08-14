@@ -335,10 +335,12 @@
                            id="weeklyAiInsightReferenceDate"
                            name="referenceDate"
                            th:value="${weeklyAiInsightReferenceDate}"
-                           th:max="${T(java.time.LocalDate).now()}">
-                    <button type="submit" th:text="${weeklyAiInsight == null} ? '주간 분석 생성' : '주간 분석 재생성'">주간 분석 생성</button>
+                           th:max="${T(java.time.LocalDate).now()}"
+                           disabled>
+                    <button type="submit" class="admin-btn" disabled th:text="${weeklyAiInsight == null} ? '주간 분석 생성' : '주간 분석 재생성'">주간 분석 생성</button>
                 </form>
             </div>
+            <p class="empty">일일 개발 트렌드와 콘텐츠가 겹치는 문제 검토 중이라 생성을 임시로 막아두었습니다. 문서: docs/01-plan/features/daily-trend-insight.md 참고.</p>
 
             <article class="weekly-ai-insight-admin-card" th:if="${weeklyAiInsight != null}">
                 <div class="weekly-ai-insight-admin-meta">
@@ -367,7 +369,7 @@
                       class="weekly-ai-insight-visible-form">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <button type="submit"
-                            class="secondary"
+                            class="admin-btn secondary"
                             th:text="${weeklyAiInsight.visible} ? '사용자 노출 끄기' : '사용자 노출 켜기'">사용자 노출 끄기</button>
                 </form>
             </article>
@@ -406,7 +408,7 @@
                            name="referenceDate"
                            th:value="${dailyTrendReferenceDate}"
                            th:max="${T(java.time.LocalDate).now()}">
-                    <button type="submit" th:text="${dailyTrend == null} ? '트렌드 생성' : '트렌드 재생성'">트렌드 생성</button>
+                    <button type="submit" class="admin-btn" th:text="${dailyTrend == null} ? '트렌드 생성' : '트렌드 재생성'">트렌드 생성</button>
                 </form>
             </div>
 
@@ -427,7 +429,7 @@
                 <form method="post" th:action="@{/admin/daily-trend/{id}/toggle-visible(id=${dailyTrend.id})}">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <button type="submit"
-                            class="secondary"
+                            class="admin-btn secondary"
                             th:text="${dailyTrend.visible} ? '사용자 노출 끄기' : '사용자 노출 켜기'">사용자 노출 끄기</button>
                 </form>
             </article>

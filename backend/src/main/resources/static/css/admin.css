@@ -472,30 +472,50 @@ body {
 }
 
 .active-template-card {
-    border: 1px solid #d9dfeb;
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--admin-line);
+    border-left: 4px solid var(--admin-brand);
     border-radius: 10px;
-    background: #f7fbff;
-    padding: 10px 12px;
-    margin-bottom: 10px;
+    background: linear-gradient(135deg, #fff9ef 0%, #fefcf8 100%);
+    padding: 14px 16px;
+    margin-bottom: 14px;
 }
 
-.active-template-card strong {
-    display: block;
-    color: #233053;
-    margin-bottom: 4px;
+.active-template-card.is-empty {
+    border-left-color: #c9d0df;
+    background: #f7f8fa;
 }
 
-.active-template-card p {
-    margin: 0;
-    color: #3f4c69;
+.active-template-eyebrow {
+    color: var(--admin-sub);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.active-template-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.active-template-name {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--admin-ink);
 }
 
 .active-template-meta {
-    color: #647393;
-    margin-left: 4px;
+    margin: 0;
+    color: var(--admin-sub);
+    font-size: 13px;
 }
 
 .inactive-text {
+    margin: 0;
     color: #8a2a3b;
 }
 
@@ -713,8 +733,10 @@ body {
     color: #8c96ad;
 }
 
+/* .admin-form과 .admin-table 밖에서 관리자 기본 버튼 스타일이 필요하면 .admin-btn을 붙일 것 (secondary/danger 변형 동일하게 사용 가능) */
 .admin-form button,
-.admin-table button {
+.admin-table button,
+.admin-btn {
     padding: 8px 12px;
     border-radius: 8px;
     border: 1px solid var(--admin-brand);
@@ -725,18 +747,30 @@ body {
 }
 
 .admin-form button:hover,
-.admin-table button:hover {
+.admin-table button:hover,
+.admin-btn:hover {
     background: var(--admin-brand-strong);
     border-color: var(--admin-brand-strong);
 }
 
+.admin-form button:disabled,
+.admin-table button:disabled,
+.admin-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: var(--admin-brand);
+    border-color: var(--admin-brand);
+}
+
 .admin-form button.secondary,
-.admin-table button.secondary {
+.admin-table button.secondary,
+.admin-btn.secondary {
     border-color: #6f7a95;
     background: #6f7a95;
 }
 
-.admin-table button.danger {
+.admin-table button.danger,
+.admin-btn.danger {
     border-color: var(--admin-danger);
     background: var(--admin-danger);
 }
@@ -788,6 +822,7 @@ body {
 }
 
 .toggle-switch {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -1338,6 +1373,77 @@ body {
     margin: 8px 0 0;
     color: #526485;
     font-size: 13px;
+}
+
+.field-label-static {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--admin-sub, #55627f);
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.segmented-control {
+    display: inline-flex;
+    width: 100%;
+    border: 1px solid #cdd3e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.segmented-chip {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #49577a;
+    background: #fff;
+    cursor: pointer;
+    border-right: 1px solid #cdd3e0;
+    transition: background-color .16s ease, color .16s ease;
+}
+
+.segmented-chip:last-child {
+    border-right: none;
+}
+
+.segmented-chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.segmented-chip:has(input:checked) {
+    background: var(--admin-brand);
+    color: #fff;
+}
+
+.segmented-control.is-disabled .segmented-chip {
+    cursor: not-allowed;
+    opacity: .65;
+}
+
+.token-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.token-slider-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--admin-brand);
+}
+
+.token-slider-value {
+    min-width: 52px;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--admin-brand-strong);
 }
 
 .daily-trend-readonly-block {

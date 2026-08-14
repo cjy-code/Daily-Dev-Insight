@@ -1,5 +1,43 @@
 ﻿(function () {
     /**
+     * @date 2026-08-13
+     * @desc 신규 프롬프트 템플릿 작성 시 빈칸 대신 채워주는 기본 초안. 프롬프트 작성 경험이 없는
+     * 관리자도 이 구조를 참고해 문구만 다듬으면 되도록 역할/난이도 기준/필드 규칙/안티패턴을 포함한다.
+     */
+    const DEFAULT_PROMPT_TEMPLATE_STARTER = [
+        '당신은 실무 경력 10년차 이상의 시니어 개발자이자 기술 교육자입니다.',
+        '${date} 기준 "오늘의 개발 지식" 게시물을 한국어로 작성하세요.',
+        '',
+        '- 카테고리: ${category}',
+        '- 톤: ${tone}',
+        '- 난이도: ${difficulty}',
+        '',
+        '## 난이도별 작성 기준 (반드시 구분해서 반영)',
+        '- 초급: 핵심 개념 정의 + 왜 필요한지 비유/실생활 예시 중심. 전문 용어는 처음 등장할 때 한 줄 설명을 덧붙인다.',
+        '- 중급: 실무에서 이 개념을 언제/왜 쓰는지 구체적 시나리오 중심. 흔한 실수나 헷갈리는 지점을 1개 이상 짚는다.',
+        '- 고급: 내부 동작 원리, 트레이드오프, 대안과의 비교를 포함. "왜 이게 정답이 아닐 수도 있는지"까지 다룬다.',
+        '',
+        '## 필드별 작성 규칙',
+        '- title: 클릭하고 싶어지는 구체적 제목. "OOO 개요", "OOO 알아보기" 같은 뻔한 제목 금지.',
+        '- summary: 1~2문장. 이 글을 읽으면 무엇을 알게 되는지 결론부터 요약.',
+        '- detail: 최소 800자 이상. 아래 구조를 따른다.',
+        '  1. 왜 지금 이 주제가 실무에서 중요한지 (도입)',
+        '  2. 핵심 개념 설명',
+        '  3. 실무 적용 예시 또는 코드 스니펫 최소 1개',
+        '  4. 흔한 실수 또는 주의할 점',
+        '  5. 한 줄 요약(마무리)',
+        '',
+        '## 피해야 할 것',
+        '- 공식 문서를 그대로 번역/요약만 하는 것',
+        '- 추상적인 설명만 하고 구체적 예시가 없는 것',
+        '- 이미 잘 알려진 내용을 새로운 관점 없이 반복하는 것',
+        '',
+        '## 오늘의 개발 트렌드 참고 (있는 경우에만 반영)',
+        '${dailyTrend}',
+        '위 트렌드가 존재하면 도입부나 예시에 자연스럽게 연결하세요. 관련이 낮으면 무시해도 됩니다.'
+    ].join('\n');
+
+    /**
      * @date 2026-04-24
      * @desc 이미지 생성 설정 기본값을 반환합니다.
      */
@@ -75,6 +113,28 @@
     }
 
     /**
+     * @date 2026-08-13
+     * @desc 이미지 품질 라디오 버튼(수평 세그먼트 컨트롤)을 주어진 값에 맞게 체크 상태로 동기화합니다.
+     */
+    function syncImageQualityRadiosFromValue(value) {
+        const radios = document.querySelectorAll('input[name="templateImageQualityRadio"]');
+        radios.forEach((radio) => {
+            radio.checked = radio.value === value;
+        });
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 이미지 최대 토큰 예산 슬라이더 옆의 실시간 값 표시를 갱신합니다.
+     */
+    function syncImageMaxTokensDisplay(value) {
+        const display = document.getElementById('templateImageMaxTokensDisplay');
+        if (display) {
+            display.textContent = String(value);
+        }
+    }
+
+    /**
      * @date 2026-04-24
      * @desc 이미지 생성 설정 입력값을 폼에 반영합니다.
      */
@@ -90,7 +150,9 @@
         const normalizedSettings = normalizeTemplateImageSettings(settings);
         imageEnabledField.checked = normalizedSettings.enabled;
         imageQualityField.value = normalizedSettings.quality;
+        syncImageQualityRadiosFromValue(normalizedSettings.quality);
         imageMaxTokensField.value = String(normalizedSettings.maxTokens);
+        syncImageMaxTokensDisplay(normalizedSettings.maxTokens);
         imagePromptTemplateField.value = normalizedSettings.promptTemplate;
         syncTemplateImageSettingsEnabledState();
     }
@@ -126,6 +188,7 @@
         const imageMaxTokensField = document.getElementById('templateImageMaxTokens');
         const imagePromptTemplateField = document.getElementById('templateImagePromptTemplate');
         const imageSettingsContainer = document.querySelector('.prompt-template-image-settings');
+        const imageQualityControl = document.getElementById('templateImageQualityControl');
         if (!imageEnabledField || !imageQualityField || !imageMaxTokensField || !imagePromptTemplateField || !imageSettingsContainer) {
             return;
         }
@@ -135,6 +198,36 @@
         imageMaxTokensField.disabled = !enabled;
         imagePromptTemplateField.disabled = !enabled;
         imageSettingsContainer.classList.toggle('is-disabled', !enabled);
+        if (imageQualityControl) {
+            imageQualityControl.classList.toggle('is-disabled', !enabled);
+            imageQualityControl.querySelectorAll('input[name="templateImageQualityRadio"]').forEach((radio) => {
+                radio.disabled = !enabled;
+            });
+        }
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 이미지 품질 세그먼트 버튼과 토큰 예산 슬라이더의 사용자 조작을 실제 값 필드(hidden input)에 반영합니다.
+     */
+    function bindTemplateImageSettingsControls() {
+        const imageQualityField = document.getElementById('templateImageQuality');
+        const imageMaxTokensField = document.getElementById('templateImageMaxTokens');
+        if (!imageQualityField || !imageMaxTokensField) {
+            return;
+        }
+
+        document.querySelectorAll('input[name="templateImageQualityRadio"]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    imageQualityField.value = radio.value;
+                }
+            });
+        });
+
+        imageMaxTokensField.addEventListener('input', () => {
+            syncImageMaxTokensDisplay(imageMaxTokensField.value);
+        });
     }
     /**
      * @date 2026-04-15
@@ -176,11 +269,15 @@
     function clearPromptTemplateForm() {
         const form = document.getElementById('promptTemplateForm');
         const idField = document.getElementById('promptId');
+        const contentField = document.getElementById('templateContent');
         if (!form || !idField) {
             return;
         }
         form.reset();
         idField.value = '';
+        if (contentField) {
+            contentField.value = DEFAULT_PROMPT_TEMPLATE_STARTER;
+        }
         setTemplateImageSettingsFormValue(createDefaultTemplateImageSettings());
     }
 
@@ -1972,6 +2069,7 @@
         bindTemplateLoadButtons();
         bindPromptTemplateModal();
         bindPromptTemplateImageSettings();
+        bindTemplateImageSettingsControls();
         bindPromptTemplateFormSubmitSerializer();
         bindCrawlPresetModal();
         bindGenerationTabs();

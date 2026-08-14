@@ -450,6 +450,11 @@ public String toggleDailyTrendVisible(@PathVariable("id") Long trendId, Redirect
   - **영향 범위**: 예약 생성 경로는 해당 없음(트렌드 조회~LLM 호출~저장이 한 번의 스케줄 실행 안에서 끊김 없이 일어나 재생성이 끼어들 틈이 없음). 수동 생성 경로만 해당
   - **왜 지금 안 고치는지**: 단일 관리자가 운영하는 포트폴리오 서비스 특성상 "미리보기 대기 중 트렌드 재생성"이 실제로 겹칠 가능성이 낮다고 판단해, 사용자가 지금 수정 대신 기록만 남기고 넘어가기로 결정(2026-08-13)
   - **재검토 트리거/해결 방향**: 관리자가 여러 명으로 늘거나 이 문제로 실제 혼선이 발생하면, `GenerationSaveRequest`/`GenerationPreviewResponse`에 트렌드 키워드·요약 본문 자체를 스냅샷 필드로 추가해 ID 재조회 없이 저장하도록 보완(작은 패치로 가능, 별도 Plan 불필요)
+- **홈 화면 배너의 시각적 무게 대비 콘텐츠 양 불균형(2026-08-13, 사용자 피드백, 착수는 보류)**: `daily-trend-section`이 `weekly-ai-insight-section`과 동일한 `content-section`급 레이아웃(전체 폭 배너, 카드 패딩)을 쓰는데, 실제 콘텐츠는 키워드 3~5개 + 짧은 문장 1개뿐이라 주간 인사이트(3개 문단 블록)에 비해 배너 하나를 차지할 만큼의 정보량이 아니라는 지적. 후보안:
+  1. 독립 섹션을 없애고 "오늘의 개발 인사이트" 하이라이트 카드 상단에 트렌드 키워드 한 줄로 흡수(트렌드→지식 인과관계도 더 밀착되어 오히려 UX 목적에 부합) — 제안 시점 기준 Claude 추천안
+  2. 섹션은 유지하되 패딩/높이를 줄인 슬림한 가로 배지 줄로 축소
+  3. 요약 문장을 더 길게/풍부하게 만들어 콘텐츠 자체를 키움
+  - **왜 지금 안 고치는지**: 레이아웃 재구성 범위라 별도 확인 후 진행하기로 사용자가 보류 결정. 착수 시 옵션 중 하나를 확정하고 진행
 
 ---
 
@@ -460,3 +465,4 @@ public String toggleDailyTrendVisible(@PathVariable("id") Long trendId, Redirect
 | 0.1 | 2026-08-13 | 최초 작성 — Plan(Approved) 기반 설계. 신규 엔티티 2개(`DailyTrendInsight`, `DailyTrendGenerationHistory`), `GenerationHistory` 확장, LLM 클라이언트 확장, `DailyKnowledgeGenerationService` 강제 주입 로직, 스케줄 예외 격리, 관리자 탭(§7.1)·홈 카드(§8) 구현 방식을 코드 레벨로 확정. `OracleSchemaMigrationRunner` 순서 리스크 §9에 명시 | Claude (Design 세션) |
 | 0.2 | 2026-08-13 | `codex exec -s danger-full-access`로 구현 위임 → 완료(git add/commit/push 미실행, 작업 트리에만 변경). Claude 독립 검증 수행: `git diff` 전체 파일 리뷰 + `./gradlew test --rerun` 직접 실행(101 tests, 0 failures — Codex 자체 보고와 일치). 핵심 로직(FR-07 강제 주입, §6 예외 격리, §9 스키마 마이그레이션, LLM 파싱 검증)은 설계와 일치 확인. **검증 중 gap 발견**: 수동 저장 경로가 `usedTrendId`는 정확히 전달하지만 트렌드 본문 스냅샷은 전달하지 않아, 미리보기~저장 사이 트렌드 재생성 시 FR-08이 깨지는 좁은 race window 존재 — 사용자 확인 후 지금은 수정하지 않고 §13 Known Gaps에 기록하기로 결정(§10 표, §13 신규 항목에 반영). 홈 화면 트렌드 카드 배치가 설계 문구(`dailyKnowledgeChunks` 슬라이더 앞)와 다르게 "오늘의 개발 인사이트" 단일 카드 앞에 놓인 것을 확인 — 인과관계 전달 취지에는 더 부합해 결함으로 보지 않음 | Claude (구현 검증 세션) |
 | 0.3 | 2026-08-13 | 사용자가 기존 `admin/generation.html`의 "생성 이력" 탭 + 오류 상세 모달 패턴을 기억하고 "트렌드 쪽엔 왜 없냐"고 지적 → `DailyTrendGenerationHistory`(실패 이력 포함)가 저장은 되지만 관리자 UI에 전혀 노출되지 않는 설계 누락 확인(§7.1.1 신설). Claude가 직접 패치(Codex 재위임 없이): `DailyTrendGenerationHistoryRepository.findTop20ByOrderByCreatedAtDesc()`, `DailyTrendInsightService.findRecentGenerationHistoryForAdmin()`, 컨트롤러 모델 속성, `crawling.html`에 이력 테이블 + 기존 오류 모달 마크업 재사용 추가. `./gradlew test --rerun` 재확인(101 tests, 0 failures, 회귀 없음) | Claude (구현 검증 세션) |
+| 0.4 | 2026-08-13 | 실제 Oracle DB + 브라우저(포트 9091)로 전 구간 라이브 검증 — 트렌드 생성(관리자 버튼) → 실제 DB 저장 → 생성 이력 UI 표시 → 일일 지식 수동 생성 화면의 트렌드 읽기 전용 구역 렌더링 → Mock LLM 응답에 트렌드 블록이 그대로 포함된 것 확인(FR-07 실제 동작 증명) → 저장까지 성공 확인. `.daily-trend-*` CSS가 전혀 없어 키워드 배지가 붙어 보이던 문제 발견 → `admin.css`/`index.css`에 스타일 추가(기존 `.weekly-ai-insight-*` 패턴과 통일). 커밋 완료(`73e8a05`). 이후 사용자 피드백으로 홈 배너의 시각적 무게 대비 콘텐츠 양 불균형 이슈를 Known Gaps에 추가 기록(위 항목) — 착수는 보류 | Claude (라이브 검증·커밋·후속 피드백 기록) |
