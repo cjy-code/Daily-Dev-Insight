@@ -60,6 +60,9 @@ class InsightDetailServiceTest {
     @Mock
     private CacheManager cacheManager;
 
+    @Mock
+    private MarkdownRenderService markdownRenderService;
+
     @InjectMocks
     private InsightDetailService insightDetailService;
 

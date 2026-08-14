@@ -281,7 +281,9 @@ public class OpenAiLlmGenerationClient implements LlmGenerationClient {
      */
     private String buildSystemInstruction() {
         return "당신은 일일 개발 지식 콘텐츠 생성기입니다. 반드시 JSON 객체로만 응답하세요. "
-                + "필수 키는 title, summary, detail 입니다.";
+                + "필수 키는 title, summary, detail 입니다. "
+                + "detail 필드는 마크다운 문법으로 작성하세요. 소제목은 ##, 목록은 -, 강조는 **굵게**만 사용하고 "
+                + "그 외 문법(표, 이미지, 링크, # h1)은 쓰지 마세요.";
     }
 
     /**

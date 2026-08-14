@@ -54,7 +54,12 @@
 
     <article class="detail-content">
         <h2>본문</h2>
-        <p class="detail-text" th:text="${detail.detail}">본문 내용</p>
+        <div class="detail-text detail-markdown"
+             th:if="${detail.detailHtml != null and !#strings.isEmpty(detail.detailHtml)}"
+             th:utext="${detail.detailHtml}">본문 내용</div>
+        <p class="detail-text"
+           th:unless="${detail.detailHtml != null and !#strings.isEmpty(detail.detailHtml)}"
+           th:text="${detail.detail}">본문 내용</p>
     </article>
 
     <section class="comment-section">

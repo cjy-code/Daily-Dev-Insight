@@ -57,6 +57,7 @@ public class InsightDetailService {
     private final InsightCommentRepository insightCommentRepository;
     private final UserRepository userRepository;
     private final CacheManager cacheManager;
+    private final MarkdownRenderService markdownRenderService;
 
     /**
      * @date 2026-04-14
@@ -344,6 +345,9 @@ public class InsightDetailService {
                 .title(baseData.title())
                 .summary(baseData.summary())
                 .detail(baseData.detail())
+                .detailHtml(contentType == InsightContentType.KNOWLEDGE
+                        ? markdownRenderService.renderSafeHtml(baseData.detail())
+                        : null)
                 .thumbnailUrl(baseData.thumbnailUrl())
                 .source(baseData.source())
                 .url(baseData.url())
