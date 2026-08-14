@@ -1,6 +1,7 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
+import com.dailydevinsight.admin.dto.GeneratedDailyTrendResult;
 import com.dailydevinsight.admin.dto.GeneratedWeeklyInsightResult;
 
 import java.time.LocalDate;
@@ -25,4 +26,10 @@ public interface LlmGenerationClient {
      * @desc 최근 크롤링 뉴스 목록을 기반으로 주간 개발 트렌드 분석 결과를 생성합니다.
      */
     GeneratedWeeklyInsightResult generateWeeklyInsight(String prompt, LocalDate weekStartDate, LocalDate weekEndDate);
+
+    /**
+     * @date 2026-08-13
+     * @desc 크롤링 뉴스 목록을 기반으로 기준일의 일일 개발 트렌드를 생성합니다.
+     */
+    GeneratedDailyTrendResult generateDailyTrend(String prompt, LocalDate targetDate);
 }

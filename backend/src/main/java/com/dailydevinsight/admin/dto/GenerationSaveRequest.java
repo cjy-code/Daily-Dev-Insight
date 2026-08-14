@@ -18,4 +18,5 @@ public class GenerationSaveRequest {
     private String generatedSummary;
     private String generatedDetail;
     private String generatedImageUrl;
+    private Long dailyTrendId;
 }

@@ -19,6 +19,7 @@ public class InsightDetailResponseDTO {
     private String title;
     private String summary;
     private String detail;
+    private String detailHtml;
     private String thumbnailUrl;
     private String source;
     private String url;

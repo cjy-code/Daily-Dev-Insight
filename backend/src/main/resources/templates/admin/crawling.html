@@ -25,6 +25,7 @@
             <button type="button" class="admin-tab-btn" data-tab-target="manual">수동 실행</button>
             <button type="button" class="admin-tab-btn" data-tab-target="schedule">예약 설정</button>
             <button type="button" class="admin-tab-btn" data-tab-target="weeklyInsight">주간 AI 인사이트</button>
+            <button type="button" class="admin-tab-btn" data-tab-target="dailyTrend">오늘의 개발 트렌드</button>
             <button type="button" class="admin-tab-btn" data-tab-target="history">크롤링 이력</button>
         </nav>
 
@@ -245,8 +246,7 @@
 
                 <div id="crawlScheduleEditableFields" class="schedule-editable-fields">
 
-                <label for="crawlCronExpression">Cron 표현식 (초 분 시 일 월 요일)</label>
-                <input type="text" id="crawlCronExpression" name="cronExpression" th:value="${crawlScheduleForm.cronExpression}" required>
+                <div th:replace="~{fragments/cronScheduleBuilder :: cronBuilder('crawlSchedule', ${crawlScheduleForm.cronExpression})}"></div>
 
                 <label for="crawlScheduleSourceName">소스 이름</label>
                 <input type="text" id="crawlScheduleSourceName" name="sourceName" th:value="${crawlScheduleForm.sourceName}" required>
@@ -335,10 +335,12 @@
                            id="weeklyAiInsightReferenceDate"
                            name="referenceDate"
                            th:value="${weeklyAiInsightReferenceDate}"
-                           th:max="${T(java.time.LocalDate).now()}">
-                    <button type="submit" th:text="${weeklyAiInsight == null} ? '주간 분석 생성' : '주간 분석 재생성'">주간 분석 생성</button>
+                           th:max="${T(java.time.LocalDate).now()}"
+                           disabled>
+                    <button type="submit" class="admin-btn" disabled th:text="${weeklyAiInsight == null} ? '주간 분석 생성' : '주간 분석 재생성'">주간 분석 생성</button>
                 </form>
             </div>
+            <p class="empty">일일 개발 트렌드와 콘텐츠가 겹치는 문제 검토 중이라 생성을 임시로 막아두었습니다. 문서: docs/01-plan/features/daily-trend-insight.md 참고.</p>
 
             <article class="weekly-ai-insight-admin-card" th:if="${weeklyAiInsight != null}">
                 <div class="weekly-ai-insight-admin-meta">
@@ -367,7 +369,7 @@
                       class="weekly-ai-insight-visible-form">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <button type="submit"
-                            class="secondary"
+                            class="admin-btn secondary"
                             th:text="${weeklyAiInsight.visible} ? '사용자 노출 끄기' : '사용자 노출 켜기'">사용자 노출 끄기</button>
                 </form>
             </article>
@@ -391,6 +393,119 @@
                 </tbody>
             </table>
         </section>
+
+        <section class="admin-panel generation-tab-panel daily-trend-admin-panel" data-tab-panel="dailyTrend" hidden>
+            <div class="daily-trend-admin-header">
+                <div>
+                    <h3>오늘의 개발 트렌드</h3>
+                    <p>기준일 테크 뉴스(부족 시 최근 3일)를 기반으로 홈에 노출할 일일 트렌드를 생성합니다.</p>
+                </div>
+                <form method="post" th:action="@{/admin/daily-trend/generate}" class="daily-trend-generate-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <label for="dailyTrendReferenceDate">기준일</label>
+                    <input type="date"
+                           id="dailyTrendReferenceDate"
+                           name="referenceDate"
+                           th:value="${dailyTrendReferenceDate}"
+                           th:max="${T(java.time.LocalDate).now()}">
+                    <button type="submit" class="admin-btn" th:text="${dailyTrend == null} ? '트렌드 생성' : '트렌드 재생성'">트렌드 생성</button>
+                </form>
+            </div>
+
+            <article class="daily-trend-admin-card" th:if="${dailyTrend != null}">
+                <div class="daily-trend-admin-meta">
+                    <span th:text="${dailyTrend.trendDate}">2026-08-13</span>
+                    <span th:text="'분석 뉴스 ' + ${dailyTrend.sourceNewsCount} + '건'">분석 뉴스 0건</span>
+                    <span th:classappend="${dailyTrend.visible} ? ' active' : ' inactive'"
+                          class="status-badge"
+                          th:text="${dailyTrend.visible} ? '노출 중' : '숨김'">노출 중</span>
+                </div>
+                <div class="daily-trend-keywords">
+                    <span class="daily-trend-tag"
+                          th:each="keyword : ${dailyTrend.keywords}"
+                          th:text="'#' + ${keyword}">#태그</span>
+                </div>
+                <p th:text="${dailyTrend.summary}">트렌드 요약</p>
+                <form method="post" th:action="@{/admin/daily-trend/{id}/toggle-visible(id=${dailyTrend.id})}">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit"
+                            class="admin-btn secondary"
+                            th:text="${dailyTrend.visible} ? '사용자 노출 끄기' : '사용자 노출 켜기'">사용자 노출 끄기</button>
+                </form>
+            </article>
+
+            <p class="empty" th:if="${dailyTrend == null}">아직 생성된 오늘의 개발 트렌드가 없습니다.</p>
+
+            <table class="admin-table daily-trend-history-table" th:if="${!#lists.isEmpty(dailyTrendList)}">
+                <thead>
+                <tr>
+                    <th>기준일</th>
+                    <th>키워드</th>
+                    <th>뉴스 수</th>
+                    <th>노출 상태</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="trend : ${dailyTrendList}">
+                    <td th:text="${trend.trendDate}">2026-08-13</td>
+                    <td th:text="${#strings.listJoin(trend.keywords, ', ')}">Rust, AI</td>
+                    <td th:text="${trend.sourceNewsCount}">0</td>
+                    <td th:text="${trend.visible} ? '노출 중' : '숨김'">노출 중</td>
+                </tr>
+                </tbody>
+            </table>
+
+            <h4>최근 생성 시도 이력</h4>
+            <table class="admin-table daily-trend-generation-history-table" th:if="${!#lists.isEmpty(dailyTrendHistoryList)}">
+                <thead>
+                <tr>
+                    <th>일시</th>
+                    <th>트리거</th>
+                    <th>대상일</th>
+                    <th>상태</th>
+                    <th>뉴스 수</th>
+                    <th>오류</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="history : ${dailyTrendHistoryList}">
+                    <td th:text="${#temporals.format(history.createdAt, 'yyyy-MM-dd HH:mm:ss')}">-</td>
+                    <td><span class="history-trigger-badge" th:text="${history.triggerType}">MANUAL</span></td>
+                    <td th:text="${history.targetDate}">-</td>
+                    <td>
+                        <span class="history-status-badge"
+                              th:classappend="${history.status == 'SUCCESS'} ? ' success' : ' failed'"
+                              th:text="${history.status}">SUCCESS</span>
+                    </td>
+                    <td th:text="${history.sourceNewsCount}">0</td>
+                    <td class="history-error-cell">
+                        <span th:if="${history.errorMessage != null && !#strings.isEmpty(history.errorMessage)}"
+                              class="history-error-trigger"
+                              th:text="${history.errorMessage}"
+                              th:title="${history.errorMessage}">-</span>
+                        <textarea th:if="${history.errorMessage != null && !#strings.isEmpty(history.errorMessage)}"
+                                  class="history-error-full"
+                                  hidden
+                                  th:text="${history.errorMessage}"></textarea>
+                        <span th:if="${history.errorMessage == null || #strings.isEmpty(history.errorMessage)}">-</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="empty" th:if="${#lists.isEmpty(dailyTrendHistoryList)}">생성 시도 이력이 없습니다.</p>
+        </section>
+
+        <div id="historyErrorModalOverlay" class="history-error-modal-overlay" aria-hidden="true">
+            <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="historyErrorModalTitle">
+                <header class="history-error-modal-header">
+                    <h3 id="historyErrorModalTitle">상세 오류</h3>
+                    <button type="button" class="modal-close-btn" id="historyErrorModalClose" aria-label="닫기">&times;</button>
+                </header>
+                <div class="history-error-modal-body">
+                    <pre id="historyErrorModalContent"></pre>
+                </div>
+            </section>
+        </div>
 
         <section class="admin-panel generation-tab-panel" data-tab-panel="history" hidden>
             <h3>크롤링 이력</h3>
@@ -446,13 +561,11 @@
             <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="historyErrorModalTitle">
                 <header class="history-error-modal-header">
                     <h3 id="historyErrorModalTitle">상세 오류</h3>
+                    <button type="button" class="modal-close-btn" id="historyErrorModalClose" aria-label="닫기">&times;</button>
                 </header>
                 <div class="history-error-modal-body">
                     <pre id="historyErrorModalContent"></pre>
                 </div>
-                <footer class="history-error-modal-footer">
-                    <button type="button" class="secondary" id="historyErrorModalClose">창닫기</button>
-                </footer>
             </section>
         </div>
 
@@ -460,6 +573,7 @@
             <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="crawlPresetModalTitle">
                 <header class="history-error-modal-header">
                     <h3 id="crawlPresetModalTitle">조건 프리셋 추가</h3>
+                    <button type="button" class="modal-close-btn" id="cancelCrawlPresetModalButton" aria-label="닫기">&times;</button>
                 </header>
                 <form method="post" th:action="@{/admin/crawling/presets}" class="admin-form prompt-template-modal-form" id="crawlPresetModalForm">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -525,7 +639,6 @@
                                th:value="${crawlPresetForm.retryCount}" required>
                     </div>
                     <footer class="history-error-modal-footer">
-                        <button type="button" class="secondary" id="cancelCrawlPresetModalButton">취소</button>
                         <button type="submit" id="saveCrawlPresetButton">저장</button>
                     </footer>
                 </form>
@@ -536,6 +649,7 @@
             <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="crawlPreviewModalTitle">
                 <header class="history-error-modal-header">
                     <h3 id="crawlPreviewModalTitle">크롤링 미리보기</h3>
+                    <button type="button" class="modal-close-btn" id="cancelCrawlPreviewModalButton" aria-label="닫기">&times;</button>
                 </header>
                 <div class="history-error-modal-body">
                     <p id="crawlPreviewSummary" class="crawl-preview-summary">미리보기 결과를 불러오는 중입니다.</p>
@@ -554,7 +668,6 @@
                     </table>
                 </div>
                 <footer class="history-error-modal-footer">
-                    <button type="button" class="secondary" id="cancelCrawlPreviewModalButton">취소</button>
                     <button type="button" id="confirmCrawlPreviewRunButton">저장 실행</button>
                 </footer>
             </section>

@@ -1,6 +1,5 @@
 package com.dailydevinsight.admin.controller;
 
-import com.dailydevinsight.admin.dto.GenerationExecutionResult;
 import com.dailydevinsight.admin.dto.CrawlPreviewResponse;
 import com.dailydevinsight.admin.entity.CrawlSchedule;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
@@ -13,6 +12,7 @@ import com.dailydevinsight.admin.service.CrawlHistoryService;
 import com.dailydevinsight.admin.service.CrawlConditionPresetService;
 import com.dailydevinsight.admin.service.CrawlScheduleService;
 import com.dailydevinsight.admin.service.DailyKnowledgeGenerationService;
+import com.dailydevinsight.admin.service.DailyTrendInsightService;
 import com.dailydevinsight.admin.service.GenerationHistoryService;
 import com.dailydevinsight.admin.service.GenerationScheduleService;
 import com.dailydevinsight.admin.service.PromptTemplateService;
@@ -87,6 +87,9 @@ class AdminPageControllerTest {
 
     @MockBean
     private WeeklyAiInsightService weeklyAiInsightService;
+
+    @MockBean
+    private DailyTrendInsightService dailyTrendInsightService;
 
     @MockBean
     private UserDetailsService userDetailsService;
@@ -380,42 +383,6 @@ class AdminPageControllerTest {
         mockMvc.perform(get("/admin/dashboard"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin/login?adminDenied=true"));
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void runManualGeneration_ShouldRedirectToGenerationPage() throws Exception {
-        given(dailyKnowledgeGenerationService.executeManualGeneration(any())).willReturn(
-                GenerationExecutionResult.builder()
-                        .success(true)
-                        .message("ok")
-                        .createdKnowledgeId(10L)
-                        .build()
-        );
-
-        mockMvc.perform(post("/admin/generate")
-                        .with(csrf())
-                        .param("targetDate", "2026-04-15")
-                        .param("category", "Backend")
-                        .param("tone", "Practical")
-                        .param("difficulty", "Intermediate"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/generation"));
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void runManualGeneration_ShouldRejectWhenValidationFails() throws Exception {
-        mockMvc.perform(post("/admin/generate")
-                        .with(csrf())
-                        .param("targetDate", "2026-04-15")
-                        .param("category", "")
-                        .param("tone", "Practical")
-                        .param("difficulty", "Intermediate"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin/generation"));
-
-        verifyNoInteractions(dailyKnowledgeGenerationService);
     }
 
     @Test

@@ -1,11 +1,13 @@
 package com.dailydevinsight.admin.service;
 
 import com.dailydevinsight.admin.dto.GeneratedKnowledgeResult;
+import com.dailydevinsight.admin.dto.GeneratedDailyTrendResult;
 import com.dailydevinsight.admin.dto.GeneratedWeeklyInsightResult;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Component
 @ConditionalOnProperty(name = "llm.provider", havingValue = "mock", matchIfMissing = true)
@@ -45,6 +47,18 @@ public class MockLlmGenerationClient implements LlmGenerationClient {
                 .summary("이번 주 크롤링 뉴스에서는 AI 개발 도구, 백엔드 성능 개선, 보안 업데이트 흐름이 두드러졌습니다.")
                 .trendAnalysis("반복적으로 등장한 패턴은 자동화 도구 확산, 인프라 비용 최적화, 데이터 처리 안정성 강화입니다.")
                 .developerView("개발자는 새 도구 도입보다 운영 안정성, 검증 가능한 자동화, 장애 대응 전략을 우선 점검하는 것이 좋습니다.")
+                .build();
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 로컬 개발 환경에서 사용할 일일 개발 트렌드 Mock 결과를 생성합니다.
+     */
+    @Override
+    public GeneratedDailyTrendResult generateDailyTrend(String prompt, LocalDate targetDate) {
+        return GeneratedDailyTrendResult.builder()
+                .keywords(List.of("백엔드", "AI", "클라우드"))
+                .summary("AI 기반 개발 도구와 백엔드·클라우드 운영 기술에 대한 관심이 높아지고 있습니다.")
                 .build();
     }
 

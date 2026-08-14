@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -73,6 +74,9 @@ public class UserService {
         }
         if (normalizedNewPassword.length() < 8) {
             throw new IllegalArgumentException("새 비밀번호는 8자 이상이어야 합니다.");
+        }
+        if (normalizedNewPassword.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException("새 비밀번호는 72바이트(UTF-8 기준)를 초과할 수 없습니다.");
         }
         if (passwordEncoder.matches(normalizedNewPassword, user.getPassword())) {
             throw new IllegalArgumentException("현재 비밀번호와 동일한 값으로 변경할 수 없습니다.");

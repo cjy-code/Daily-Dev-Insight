@@ -145,6 +145,7 @@
         const previousTitleField = document.getElementById('composePreviousTitle');
         const previousSummaryField = document.getElementById('composePreviousSummary');
         const previousDetailField = document.getElementById('composePreviousDetail');
+        const dailyTrendIdField = document.getElementById('composeDailyTrendId');
 
         if (!titleField || !summaryField || !detailField || !previousTitleField || !previousSummaryField || !previousDetailField) {
             return;
@@ -153,6 +154,9 @@
         titleField.value = previewResponse.generatedTitle || '';
         summaryField.value = previewResponse.generatedSummary || '';
         detailField.value = previewResponse.generatedDetail || '';
+        if (dailyTrendIdField) {
+            dailyTrendIdField.value = previewResponse.dailyTrendId || '';
+        }
         applyComposePreviewImage('composeGeneratedImage', 'composeGeneratedImageEmpty', previewResponse.generatedImageUrl || '');
 
         if (previewResponse.hasPreviousResult) {
@@ -232,6 +236,7 @@
         const detailField = document.getElementById('composeGeneratedDetail');
         const generatedImageField = document.getElementById('composeGeneratedImage');
         const statusField = document.getElementById('composePreviewStatus');
+        const dailyTrendIdField = document.getElementById('composeDailyTrendId');
         const generationContext = getGenerationContext();
         if (!promptField || !titleField || !summaryField || !detailField || !statusField || !generationContext) {
             return;
@@ -255,7 +260,10 @@
             generatedTitle: titleField.value,
             generatedSummary: summaryField.value,
             generatedDetail: detailField.value,
-            generatedImageUrl
+            generatedImageUrl,
+            dailyTrendId: dailyTrendIdField && dailyTrendIdField.value
+                ? Number(dailyTrendIdField.value)
+                : null
         };
 
         statusField.textContent = '생성 결과를 저장하는 중입니다...';

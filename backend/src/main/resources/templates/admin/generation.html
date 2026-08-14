@@ -30,13 +30,14 @@
         <section class="admin-panel generation-tab-panel" data-tab-panel="prompt"
                  th:attr="data-active-template-name=${activeTemplate != null ? activeTemplate.name : ''},data-has-active-template=${activeTemplate != null},data-template-count=${#lists.size(templateList)},data-max-template-count=10">
             <h3>프롬프트 템플릿</h3>
-            <div class="active-template-card">
-                <strong>현재 활성 템플릿</strong>
-                <p th:if="${activeTemplate != null}">
-                    <span th:text="${activeTemplate.name}">기본 템플릿</span>
-                    <span class="active-template-meta"
-                          th:text="'(수정일: ' + ${#temporals.format(activeTemplate.updatedAt, 'yyyy-MM-dd HH:mm:ss')} + ')'">(수정일: -)</span>
-                </p>
+            <div class="active-template-card" th:classappend="${activeTemplate == null} ? ' is-empty' : ''">
+                <span class="active-template-eyebrow">현재 활성 템플릿</span>
+                <div th:if="${activeTemplate != null}" class="active-template-info">
+                    <span class="active-template-name" th:text="${activeTemplate.name}">기본 템플릿</span>
+                    <span class="status-badge active">사용 중</span>
+                </div>
+                <p th:if="${activeTemplate != null}" class="active-template-meta"
+                   th:text="'최근 수정 · ' + ${#temporals.format(activeTemplate.updatedAt, 'yyyy-MM-dd HH:mm:ss')}">최근 수정 · -</p>
                 <p th:if="${activeTemplate == null}" class="inactive-text">현재 활성화된 템플릿이 없습니다.</p>
             </div>
             <div class="template-toolbar">
@@ -88,7 +89,7 @@
 
         <section class="admin-panel generation-tab-panel" data-tab-panel="manual" hidden>
             <h3>수동 생성</h3>
-            <form method="post" th:action="@{/admin/generate}" class="admin-form" id="manualGenerationForm">
+            <div class="admin-form" id="manualGenerationForm">
                 <label for="targetDate">대상 날짜</label>
                 <input type="date" id="targetDate" name="targetDate" th:value="${generationRequestForm.targetDate}" required>
 
@@ -140,7 +141,7 @@
                 </div>
 
                 <button type="button" id="openManualGenerationComposeWindow">지금 생성</button>
-            </form>
+            </div>
         </section>
 
         <section class="admin-panel generation-tab-panel schedule-status-card"
@@ -184,8 +185,7 @@
                 </p>
 
                 <div id="scheduleEditableFields" class="schedule-editable-fields">
-                <label for="cronExpression">Cron 표현식 (초 분 시 일 월 요일)</label>
-                <input type="text" id="cronExpression" name="cronExpression" th:value="${scheduleForm.cronExpression}" required>
+                <div th:replace="~{fragments/cronScheduleBuilder :: cronBuilder('schedule', ${scheduleForm.cronExpression})}"></div>
                 <label for="scheduleCategory">카테고리</label>
                 <input type="text" id="scheduleCategory" name="category" th:value="${scheduleForm.category}" required>
                 <label for="scheduleTone">톤</label>
@@ -245,13 +245,11 @@
             <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="historyErrorModalTitle">
                 <header class="history-error-modal-header">
                     <h3 id="historyErrorModalTitle">상세 오류</h3>
+                    <button type="button" class="modal-close-btn" id="historyErrorModalClose" aria-label="닫기">&times;</button>
                 </header>
                 <div class="history-error-modal-body">
                     <pre id="historyErrorModalContent"></pre>
                 </div>
-                <footer class="history-error-modal-footer">
-                    <button type="button" class="secondary" id="historyErrorModalClose">창닫기</button>
-                </footer>
             </section>
         </div>
 
@@ -259,6 +257,7 @@
             <section class="history-error-modal" role="dialog" aria-modal="true" aria-labelledby="promptTemplateModalTitle">
                 <header class="history-error-modal-header">
                     <h3 id="promptTemplateModalTitle">프롬프트 템플릿 추가</h3>
+                    <button type="button" class="modal-close-btn" id="cancelPromptTemplateModalButton" aria-label="닫기">&times;</button>
                 </header>
                 <form method="post" th:action="@{/admin/prompts}" class="admin-form prompt-template-modal-form" id="promptTemplateForm">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -283,16 +282,29 @@
 
                             <div class="prompt-template-image-settings-grid">
                                 <div>
-                                    <label for="templateImageQuality">이미지 품질</label>
-                                    <select id="templateImageQuality">
-                                        <option value="low">low</option>
-                                        <option value="medium">medium</option>
-                                        <option value="high">high</option>
-                                    </select>
+                                    <span class="field-label-static">이미지 품질</span>
+                                    <div class="segmented-control" id="templateImageQualityControl" role="radiogroup" aria-label="이미지 품질">
+                                        <label class="segmented-chip">
+                                            <input type="radio" name="templateImageQualityRadio" value="low">
+                                            <span>low</span>
+                                        </label>
+                                        <label class="segmented-chip">
+                                            <input type="radio" name="templateImageQualityRadio" value="medium">
+                                            <span>medium</span>
+                                        </label>
+                                        <label class="segmented-chip">
+                                            <input type="radio" name="templateImageQualityRadio" value="high">
+                                            <span>high</span>
+                                        </label>
+                                    </div>
+                                    <input type="hidden" id="templateImageQuality" value="medium">
                                 </div>
                                 <div>
                                     <label for="templateImageMaxTokens">이미지 최대 토큰 예산</label>
-                                    <input type="number" id="templateImageMaxTokens" min="100" max="8000" step="100" value="1200">
+                                    <div class="token-slider-row">
+                                        <input type="range" id="templateImageMaxTokens" min="100" max="8000" step="100" value="1200">
+                                        <span class="token-slider-value" id="templateImageMaxTokensDisplay">1200</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -303,7 +315,6 @@
                         </section>
                     </div>
                     <footer class="history-error-modal-footer">
-                        <button type="button" class="secondary" id="cancelPromptTemplateModalButton">취소</button>
                         <button type="submit" id="savePromptTemplateButton">저장</button>
                     </footer>
                 </form>

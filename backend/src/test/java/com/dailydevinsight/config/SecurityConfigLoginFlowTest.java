@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,6 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(LoginController.class)
 @Import(SecurityConfig.class)
 class SecurityConfigLoginFlowTest {
+
+    private static final String ENCODED_PW =
+            PasswordEncoderFactories.createDelegatingPasswordEncoder().encode("pw");
 
     @Autowired
     private MockMvc mockMvc;
@@ -39,13 +43,13 @@ class SecurityConfigLoginFlowTest {
     void setUpUserDetailsService() {
         UserDetails adminUser = User.builder()
                 .username("admin")
-                .password("pw")
+                .password(ENCODED_PW)
                 .roles("ADMIN")
                 .build();
 
         UserDetails normalUser = User.builder()
                 .username("user")
-                .password("pw")
+                .password(ENCODED_PW)
                 .roles("USER")
                 .build();
 

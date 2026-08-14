@@ -72,6 +72,23 @@
                 </div>
             </section>
 
+            <section class="content-section daily-trend-section" th:if="${dailyTrend != null}">
+                <div class="section-head">
+                    <h2>오늘의 개발 <span class="insight-word">Trend</span></h2>
+                    <p th:text="${dailyTrend.trendDate + ' | 분석 뉴스 ' + dailyTrend.sourceNewsCount + '건'}">
+                        2026-08-13 | 분석 뉴스 0건
+                    </p>
+                </div>
+                <div class="daily-trend-card">
+                    <div class="daily-trend-keywords">
+                        <span class="daily-trend-tag"
+                              th:each="keyword : ${dailyTrend.keywords}"
+                              th:text="'#' + ${keyword}">#태그</span>
+                    </div>
+                    <p class="daily-trend-summary" th:text="${dailyTrend.summary}">오늘의 트렌드 요약</p>
+                </div>
+            </section>
+
             <section class="content-section">
                 <div class="section-head">
                     <h2>Daily <span class="hot-word">HOT</span></h2>

@@ -3,6 +3,8 @@ package com.dailydevinsight.admin.dto;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.List;
+
 @Getter
 @Builder
 public class GenerationPreviewResponse {
@@ -15,6 +17,10 @@ public class GenerationPreviewResponse {
     private String generatedSummary;
     private String generatedDetail;
     private String generatedImageUrl;
+
+    private Long dailyTrendId;
+    private List<String> dailyTrendKeywords;
+    private String dailyTrendSummary;
 
     private boolean hasPreviousResult;
     private String previousTitle;

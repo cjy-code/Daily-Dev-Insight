@@ -8,7 +8,6 @@ import com.dailydevinsight.admin.dto.GenerationImageRefreshRequest;
 import com.dailydevinsight.admin.dto.GenerationImageRefreshResponse;
 import com.dailydevinsight.admin.dto.GenerationPreviewRequest;
 import com.dailydevinsight.admin.dto.GenerationPreviewResponse;
-import com.dailydevinsight.admin.dto.GenerationRequestForm;
 import com.dailydevinsight.admin.dto.GenerationSaveRequest;
 import com.dailydevinsight.admin.entity.GenerationHistory;
 import com.dailydevinsight.admin.entity.GenerationSchedule;
@@ -16,7 +15,9 @@ import com.dailydevinsight.admin.entity.PromptTemplate;
 import com.dailydevinsight.admin.repository.GenerationHistoryRepository;
 import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.entity.DailyKnowledge;
+import com.dailydevinsight.entity.DailyTrendInsight;
 import com.dailydevinsight.repository.DailyKnowledgeRepository;
+import com.dailydevinsight.repository.DailyTrendInsightRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
@@ -26,6 +27,8 @@ import org.springframework.stereotype.Service;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -36,38 +39,15 @@ public class DailyKnowledgeGenerationService {
     private static final int MAX_CATEGORY_LENGTH = 50;
     private static final int MAX_TITLE_LENGTH = 255;
     private static final String ERROR_CODE_ALREADY_EXISTS = "already_exists";
+    private static final String DAILY_TREND_PLACEHOLDER = "${dailyTrend}";
 
     private final PromptTemplateService promptTemplateService;
     private final GenerationScheduleService generationScheduleService;
     private final GenerationHistoryRepository generationHistoryRepository;
     private final DailyKnowledgeRepository dailyKnowledgeRepository;
+    private final DailyTrendInsightRepository dailyTrendInsightRepository;
     private final LlmGenerationClient llmGenerationClient;
     private final ObjectProvider<ImageGenerationClient> imageGenerationClientProvider;
-
-    /**
-     * @date 2026-04-16
-     * @desc 관리자 수동 요청으로 일일 개발 지식 생성을 실행합니다.
-     */
-    @Caching(evict = {
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP10, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_WEEKLY_TOP5, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_STATS, allEntries = true),
-            @CacheEvict(cacheNames = RedisCacheConfig.CACHE_ADMIN_CONTENT_VIEW_STATS, allEntries = true)
-    })
-    public GenerationExecutionResult executeManualGeneration(GenerationRequestForm form) {
-        validateManualRequest(form);
-
-        return generateKnowledgeAndPersist(
-                form.getTargetDate(),
-                normalizeRequiredValue(form.getCategory(), "Backend"),
-                normalizeRequiredValue(form.getTone(), "실무형"),
-                normalizeRequiredValue(form.getDifficulty(), "중급"),
-                "MANUAL",
-                true
-        );
-    }
 
     /**
      * @date 2026-04-16
@@ -141,10 +121,12 @@ public class DailyKnowledgeGenerationService {
      */
     public GenerationPreviewResponse previewManualGeneration(GenerationPreviewRequest request) {
         validatePreviewRequest(request);
+        DailyTrendInsight dailyTrendInsight = dailyTrendInsightRepository.findByTrendDate(request.getTargetDate())
+                .orElse(null);
 
         try {
             GeneratedKnowledgeResult generatedKnowledge = llmGenerationClient.generateKnowledge(
-                    request.getPromptContent(),
+                    appendDailyTrendContext(request.getPromptContent(), dailyTrendInsight),
                     request.getTargetDate(),
                     request.getCategory(),
                     request.getTone(),
@@ -171,6 +153,9 @@ public class DailyKnowledgeGenerationService {
                     .generatedSummary(defaultIfBlank(generatedKnowledge.getSummary(), "요약 정보가 없습니다."))
                     .generatedDetail(defaultIfBlank(generatedKnowledge.getDetail(), "상세 내용이 없습니다."))
                     .generatedImageUrl(generatedImageUrl)
+                    .dailyTrendId(dailyTrendInsight == null ? null : dailyTrendInsight.getId())
+                    .dailyTrendKeywords(toKeywordList(dailyTrendInsight))
+                    .dailyTrendSummary(dailyTrendInsight == null ? null : dailyTrendInsight.getSummary())
                     .hasPreviousResult(previousKnowledge != null)
                     .previousTitle(previousKnowledge == null ? "" : defaultIfBlank(previousKnowledge.getTitle(), ""))
                     .previousSummary(previousKnowledge == null ? "" : defaultIfBlank(previousKnowledge.getSummary(), ""))
@@ -186,6 +171,9 @@ public class DailyKnowledgeGenerationService {
                     .generatedSummary("")
                     .generatedDetail("")
                     .generatedImageUrl("")
+                    .dailyTrendId(null)
+                    .dailyTrendKeywords(List.of())
+                    .dailyTrendSummary(null)
                     .hasPreviousResult(false)
                     .previousTitle("")
                     .previousSummary("")
@@ -201,6 +189,9 @@ public class DailyKnowledgeGenerationService {
                     .generatedSummary("")
                     .generatedDetail("")
                     .generatedImageUrl("")
+                    .dailyTrendId(null)
+                    .dailyTrendKeywords(List.of())
+                    .dailyTrendSummary(null)
                     .hasPreviousResult(false)
                     .previousTitle("")
                     .previousSummary("")
@@ -240,7 +231,14 @@ public class DailyKnowledgeGenerationService {
                     resolveGeneratedImagePath(request.getGeneratedImageUrl()),
                     true
             );
-            saveSuccessHistory("MANUAL", request.getTargetDate(), promptTemplate, request.getPromptContent(), savedKnowledge);
+            saveSuccessHistory(
+                    "MANUAL",
+                    request.getTargetDate(),
+                    promptTemplate,
+                    request.getPromptContent(),
+                    savedKnowledge,
+                    request.getDailyTrendId()
+            );
 
             return GenerationExecutionResult.builder()
                     .success(true)
@@ -249,7 +247,14 @@ public class DailyKnowledgeGenerationService {
                     .createdKnowledgeId(savedKnowledge.getId())
                     .build();
         } catch (Exception exception) {
-            saveFailureHistory("MANUAL", request.getTargetDate(), promptTemplate, request.getPromptContent(), exception);
+            saveFailureHistory(
+                    "MANUAL",
+                    request.getTargetDate(),
+                    promptTemplate,
+                    request.getPromptContent(),
+                    request.getDailyTrendId(),
+                    exception
+            );
             return GenerationExecutionResult.builder()
                     .success(false)
                     .errorCode("unexpected_error")
@@ -274,11 +279,13 @@ public class DailyKnowledgeGenerationService {
         PromptTemplate promptTemplate = promptTemplateService.getActiveTemplate();
         // LLM 호출 전에 선택된 템플릿과 요청 필드를 결합해 최종 프롬프트를 생성합니다.
         String renderedPrompt = renderPrompt(promptTemplate.getTemplateContent(), targetDate, category, tone, difficulty);
+        DailyTrendInsight dailyTrendInsight = dailyTrendInsightRepository.findByTrendDate(targetDate).orElse(null);
+        String promptWithDailyTrend = appendDailyTrendContext(renderedPrompt, dailyTrendInsight);
 
         try {
             // LLM 연동 경계 지점입니다. 운영에서는 실제 외부 API 구현체가 주입되어 호출됩니다.
             GeneratedKnowledgeResult generatedKnowledgeResult = llmGenerationClient.generateKnowledge(
-                    renderedPrompt,
+                    promptWithDailyTrend,
                     targetDate,
                     category,
                     tone,
@@ -296,7 +303,14 @@ public class DailyKnowledgeGenerationService {
                     generatedImagePath,
                     updateExistingKnowledge
             );
-            saveSuccessHistory(triggerType, targetDate, promptTemplate, renderedPrompt, savedKnowledge);
+            saveSuccessHistory(
+                    triggerType,
+                    targetDate,
+                    promptTemplate,
+                    promptWithDailyTrend,
+                    savedKnowledge,
+                    dailyTrendInsight == null ? null : dailyTrendInsight.getId()
+            );
 
             return GenerationExecutionResult.builder()
                     .success(true)
@@ -306,7 +320,14 @@ public class DailyKnowledgeGenerationService {
                     .build();
         } catch (LlmClientException llmClientException) {
             // LLM 제공자 예외는 코드/메시지를 표준화해 화면과 이력에 함께 남깁니다.
-            saveFailureHistory(triggerType, targetDate, promptTemplate, renderedPrompt, llmClientException);
+            saveFailureHistory(
+                    triggerType,
+                    targetDate,
+                    promptTemplate,
+                    promptWithDailyTrend,
+                    dailyTrendInsight == null ? null : dailyTrendInsight.getId(),
+                    llmClientException
+            );
             return GenerationExecutionResult.builder()
                     .success(false)
                     .errorCode(llmClientException.getErrorCode())
@@ -315,7 +336,14 @@ public class DailyKnowledgeGenerationService {
                     .build();
         } catch (Exception exception) {
             // LLM 호출 또는 저장 실패 시에도 이력을 남겨 감사/추적이 가능하도록 처리합니다.
-            saveFailureHistory(triggerType, targetDate, promptTemplate, renderedPrompt, exception);
+            saveFailureHistory(
+                    triggerType,
+                    targetDate,
+                    promptTemplate,
+                    promptWithDailyTrend,
+                    dailyTrendInsight == null ? null : dailyTrendInsight.getId(),
+                    exception
+            );
             return GenerationExecutionResult.builder()
                     .success(false)
                     .errorCode("unexpected_error")
@@ -342,6 +370,38 @@ public class DailyKnowledgeGenerationService {
                 .replace("${category}", category)
                 .replace("${tone}", tone)
                 .replace("${difficulty}", difficulty);
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 기준일 트렌드를 프롬프트 지정 위치에 치환하거나 프롬프트 말미에 강제로 추가합니다.
+     */
+    private String appendDailyTrendContext(String basePrompt, DailyTrendInsight dailyTrendInsight) {
+        if (dailyTrendInsight == null) {
+            return basePrompt;
+        }
+        String trendBlock = "[오늘의 개발 트렌드 참고]\n"
+                + "키워드: " + dailyTrendInsight.getKeywords() + "\n"
+                + "요약: " + dailyTrendInsight.getSummary();
+        if (basePrompt.contains(DAILY_TREND_PLACEHOLDER)) {
+            return basePrompt.replace(DAILY_TREND_PLACEHOLDER, trendBlock);
+        }
+        return basePrompt + "\n\n" + trendBlock;
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 저장된 쉼표 구분 트렌드 키워드를 미리보기 응답 목록으로 변환합니다.
+     */
+    private List<String> toKeywordList(DailyTrendInsight dailyTrendInsight) {
+        if (dailyTrendInsight == null || dailyTrendInsight.getKeywords() == null
+                || dailyTrendInsight.getKeywords().isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(dailyTrendInsight.getKeywords().split(","))
+                .map(String::trim)
+                .filter(keyword -> !keyword.isBlank())
+                .toList();
     }
 
     /**
@@ -621,7 +681,8 @@ public class DailyKnowledgeGenerationService {
             LocalDate targetDate,
             PromptTemplate promptTemplate,
             String renderedPrompt,
-            DailyKnowledge savedKnowledge
+            DailyKnowledge savedKnowledge,
+            Long usedTrendId
     ) {
         GenerationHistory history = GenerationHistory.builder()
                 .triggerType(triggerType)
@@ -629,6 +690,7 @@ public class DailyKnowledgeGenerationService {
                 .status("SUCCESS")
                 .promptTemplateId(promptTemplate.getId())
                 .createdKnowledgeId(savedKnowledge.getId())
+                .usedTrendId(usedTrendId)
                 .title(limitLength(savedKnowledge.getTitle(), MAX_TITLE_LENGTH))
                 .promptSnapshot(renderedPrompt)
                 .errorMessage(null)
@@ -659,6 +721,7 @@ public class DailyKnowledgeGenerationService {
                 .status("SKIPPED")
                 .promptTemplateId(null)
                 .createdKnowledgeId(existingKnowledgeId)
+                .usedTrendId(null)
                 .title(null)
                 .promptSnapshot(null)
                 .errorMessage(limitErrorMessage("[" + errorCode + "] " + reason))
@@ -673,6 +736,7 @@ public class DailyKnowledgeGenerationService {
             LocalDate targetDate,
             PromptTemplate promptTemplate,
             String renderedPrompt,
+            Long usedTrendId,
             Exception exception
     ) {
         String errorCode = resolveErrorCode(exception);
@@ -683,6 +747,7 @@ public class DailyKnowledgeGenerationService {
                 .status("FAILED")
                 .promptTemplateId(promptTemplate.getId())
                 .createdKnowledgeId(null)
+                .usedTrendId(usedTrendId)
                 .title(null)
                 .promptSnapshot(renderedPrompt)
                 .errorMessage(limitErrorMessage("[" + errorCode + "] " + errorMessage))
@@ -742,22 +807,6 @@ public class DailyKnowledgeGenerationService {
 
     /**
      * @date 2026-04-16
-     * @desc 수동 생성 요청값을 검증합니다.
-     */
-    private void validateManualRequest(GenerationRequestForm form) {
-        if (form == null) {
-            throw new IllegalArgumentException("생성 요청 값이 없습니다.");
-        }
-        if (form.getTargetDate() == null) {
-            throw new IllegalArgumentException("대상 날짜는 필수입니다.");
-        }
-        validateTextInput(form.getCategory(), "카테고리");
-        validateTextInput(form.getTone(), "톤");
-        validateTextInput(form.getDifficulty(), "난이도");
-    }
-
-    /**
-     * @date 2026-04-16
      * @desc 수동 생성 문자열 입력값을 검증합니다.
      */
     private void validateTextInput(String value, String fieldName) {
@@ -767,17 +816,6 @@ public class DailyKnowledgeGenerationService {
         if (value.trim().length() > MAX_MANUAL_TEXT_LENGTH) {
             throw new IllegalArgumentException(fieldName + " 값은 최대 " + MAX_MANUAL_TEXT_LENGTH + "자까지 입력할 수 있습니다.");
         }
-    }
-
-    /**
-     * @date 2026-04-16
-     * @desc 공백 입력값을 기본값으로 치환합니다.
-     */
-    private String normalizeRequiredValue(String value, String defaultValue) {
-        if (value == null || value.isBlank()) {
-            return defaultValue;
-        }
-        return value.trim();
     }
 
     /**

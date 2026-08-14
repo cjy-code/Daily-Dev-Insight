@@ -6,25 +6,19 @@ import com.dailydevinsight.admin.dto.CrawlPreviewResponse;
 import com.dailydevinsight.admin.dto.CrawlRunForm;
 import com.dailydevinsight.admin.entity.CrawlHistory;
 import com.dailydevinsight.admin.entity.CrawlSchedule;
-import com.dailydevinsight.admin.repository.CrawlHistoryRepository;
 import com.dailydevinsight.config.RedisCacheConfig;
 import com.dailydevinsight.entity.TechNews;
-import com.dailydevinsight.repository.TechNewsRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -32,10 +26,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TechNewsCrawlingService {
 
-    private static final int MAX_SOURCE_TEXT_LENGTH = 100;
-    private static final int MAX_TITLE_LENGTH = 255;
-    private static final int MAX_URL_LENGTH = 500;
-    private static final int MAX_ERROR_MESSAGE_LENGTH = 1000;
     private static final int MIN_MAX_ARTICLES = 1;
     private static final int MAX_MAX_ARTICLES = 100;
     private static final int MIN_TIMEOUT_SECONDS = 1;
@@ -46,8 +36,8 @@ public class TechNewsCrawlingService {
 
     private final AtomicBoolean crawlingInProgress = new AtomicBoolean(false);
 
-    private final TechNewsRepository techNewsRepository;
-    private final CrawlHistoryRepository crawlHistoryRepository;
+    private final TechNewsPersistenceService techNewsPersistenceService;
+    private final CrawlHistoryService crawlHistoryService;
     private final NewsCrawlerClient newsCrawlerClient;
     private final NewsThumbnailStorageService newsThumbnailStorageService;
 
@@ -55,7 +45,6 @@ public class TechNewsCrawlingService {
      * @date 2026-04-17
      * @desc 관리자 입력값으로 즉시 수동 크롤링을 실행합니다.
      */
-    @Transactional
     @Caching(evict = {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
@@ -87,7 +76,6 @@ public class TechNewsCrawlingService {
      * @date 2026-04-17
      * @desc 관리자 입력값으로 미리보기(제목/URL) 목록을 생성합니다.
      */
-    @Transactional(readOnly = true)
     public CrawlPreviewResponse previewManualCrawling(CrawlRunForm form) {
         try {
             validateRunForm(form);
@@ -150,7 +138,6 @@ public class TechNewsCrawlingService {
      * @date 2026-04-17
      * @desc 예약 설정값으로 스케줄 크롤링을 실행합니다.
      */
-    @Transactional
     @Caching(evict = {
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_DATE, allEntries = true),
             @CacheEvict(cacheNames = RedisCacheConfig.CACHE_INSIGHTS_BY_RANGE, allEntries = true),
@@ -179,7 +166,7 @@ public class TechNewsCrawlingService {
 
     /**
      * @date 2026-04-17
-     * @desc 수집/필터/저장/히스토리 업데이트를 단일 흐름으로 실행합니다.
+     * @desc 트랜잭션 없이 수집/필터/썸네일 처리를 수행하고 저장과 이력 기록을 위임합니다.
      */
     private CrawlExecutionResult executeCrawling(
             LocalDate targetDate,
@@ -200,7 +187,13 @@ public class TechNewsCrawlingService {
         int normalizedMaxArticles = normalizeMaxArticles(maxArticles);
 
         if (!crawlingInProgress.compareAndSet(false, true)) {
-            saveSkippedHistory(triggerType, targetDate, sourceName, normalizedMaxArticles, "이미 다른 크롤링 작업이 실행 중입니다.");
+            crawlHistoryService.recordSkipped(
+                    triggerType,
+                    targetDate,
+                    sourceName,
+                    normalizedMaxArticles,
+                    "이미 다른 크롤링 작업이 실행 중입니다."
+            );
             return CrawlExecutionResult.builder()
                     .success(false)
                     .errorCode("crawl_in_progress")
@@ -210,7 +203,12 @@ public class TechNewsCrawlingService {
                     .build();
         }
 
-        CrawlHistory runningHistory = saveRunningHistory(triggerType, targetDate, sourceName, normalizedMaxArticles);
+        CrawlHistory runningHistory = crawlHistoryService.recordRunning(
+                triggerType,
+                targetDate,
+                sourceName,
+                normalizedMaxArticles
+        );
         try {
             List<NewsArticleData> collectedArticles = newsCrawlerClient.crawlArticles(
                     sourceName,
@@ -228,21 +226,26 @@ public class TechNewsCrawlingService {
                     keywordMatchType,
                     targetDomains
             );
-            List<TechNews> insertTargets = buildInsertTargets(targetDate, sourceName, filteredArticles, allowDuplicate);
-            if (!insertTargets.isEmpty()) {
-                techNewsRepository.saveAll(insertTargets);
-            }
+            List<EnrichedArticle> enrichedArticles = filteredArticles.stream()
+                    .map(article -> new EnrichedArticle(article, resolveThumbnailPath(article, targetDate)))
+                    .collect(Collectors.toList());
+            List<TechNews> savedArticles = techNewsPersistenceService.persistArticles(
+                    targetDate,
+                    sourceName,
+                    enrichedArticles,
+                    allowDuplicate
+            );
 
-            updateSuccessHistory(runningHistory, collectedArticles.size(), insertTargets.size());
+            crawlHistoryService.recordSuccess(runningHistory, collectedArticles.size(), savedArticles.size());
             return CrawlExecutionResult.builder()
                     .success(true)
                     .errorCode(null)
                     .message("크롤링이 완료되었습니다.")
                     .collectedCount(collectedArticles.size())
-                    .insertedCount(insertTargets.size())
+                    .insertedCount(savedArticles.size())
                     .build();
         } catch (Exception exception) {
-            updateFailureHistory(runningHistory, exception);
+            crawlHistoryService.recordFailure(runningHistory, exception);
             return CrawlExecutionResult.builder()
                     .success(false)
                     .errorCode("crawl_failed")
@@ -404,85 +407,10 @@ public class TechNewsCrawlingService {
 
     /**
      * @date 2026-04-17
-     * @desc 신규 기사만 선별하여 DB 저장용 엔티티 목록으로 변환합니다.
-     */
-    private List<TechNews> buildInsertTargets(
-            LocalDate targetDate,
-            String sourceName,
-            List<NewsArticleData> collectedArticles,
-            boolean allowDuplicate
-    ) {
-        List<TechNews> insertTargets = new ArrayList<>();
-        Set<String> existingUrls = allowDuplicate ? Collections.emptySet() : findExistingUrls(collectedArticles);
-        Set<String> queuedUrls = new HashSet<>();
-        long nextId = resolveNextNewsId();
-        for (NewsArticleData article : collectedArticles) {
-            if (article.getUrl() == null || article.getUrl().isBlank()) {
-                continue;
-            }
-            String normalizedUrl = article.getUrl().trim();
-            if (!allowDuplicate) {
-                if (existingUrls.contains(normalizedUrl) || queuedUrls.contains(normalizedUrl)) {
-                    continue;
-                }
-                queuedUrls.add(normalizedUrl);
-            }
-
-            String thumbnailPath = resolveThumbnailPath(article, targetDate);
-            TechNews techNews = TechNews.builder()
-                    .id(nextId)
-                    .newsDate(targetDate)
-                    .source(limitLength(defaultIfBlank(article.getSourceName(), sourceName), MAX_SOURCE_TEXT_LENGTH))
-                    .title(limitLength(defaultIfBlank(article.getTitle(), "제목 없음"), MAX_TITLE_LENGTH))
-                    .url(limitLength(normalizedUrl, MAX_URL_LENGTH))
-                    .attachmentImagePath(normalizeOptionalText(thumbnailPath))
-                    .summary(defaultIfBlank(article.getSummary(), "요약 정보가 없습니다."))
-                    .viewCount(0L)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-            insertTargets.add(techNews);
-            nextId++;
-        }
-        return insertTargets;
-    }
-
-    /**
-     * @date 2026-04-23
-     * @desc 수집 기사 URL 목록으로 기존 저장 URL 집합을 조회합니다.
-     */
-    private Set<String> findExistingUrls(List<NewsArticleData> collectedArticles) {
-        List<String> candidateUrls = collectedArticles.stream()
-                .map(NewsArticleData::getUrl)
-                .filter(url -> url != null && !url.isBlank())
-                .map(String::trim)
-                .distinct()
-                .collect(Collectors.toList());
-        if (candidateUrls.isEmpty()) {
-            return Collections.emptySet();
-        }
-        return techNewsRepository.findByUrlIn(candidateUrls).stream()
-                .map(TechNews::getUrl)
-                .filter(url -> url != null && !url.isBlank())
-                .map(String::trim)
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * @date 2026-04-17
      * @desc 기사 대표 이미지 URL 기반으로 썸네일을 저장하고 공개 경로를 반환합니다.
      */
     private String resolveThumbnailPath(NewsArticleData article, LocalDate targetDate) {
         return newsThumbnailStorageService.downloadAndStoreThumbnail(article.getImageUrl(), targetDate);
-    }
-
-    /**
-     * @date 2026-04-17
-     * @desc 다음 tech_news ID 값을 계산합니다.
-     */
-    private long resolveNextNewsId() {
-        return techNewsRepository.findTopByOrderByIdDesc()
-                .map(TechNews::getId)
-                .orElse(0L) + 1L;
     }
 
     /**
@@ -656,88 +584,6 @@ public class TechNewsCrawlingService {
 
     /**
      * @date 2026-04-17
-     * @desc 실행 시작 시 RUNNING 상태 히스토리를 저장합니다.
-     */
-    private CrawlHistory saveRunningHistory(String triggerType, LocalDate targetDate, String sourceName, int requestedCount) {
-        CrawlHistory history = CrawlHistory.builder()
-                .triggerType(triggerType)
-                .targetDate(targetDate)
-                .status("RUNNING")
-                .sourceName(limitLength(sourceName, MAX_SOURCE_TEXT_LENGTH))
-                .requestedCount(requestedCount)
-                .collectedCount(0)
-                .insertedCount(0)
-                .errorMessage(null)
-                .createdAt(LocalDateTime.now())
-                .build();
-        return crawlHistoryRepository.save(history);
-    }
-
-    /**
-     * @date 2026-04-17
-     * @desc 중복 실행으로 스킵된 요청의 히스토리를 저장합니다.
-     */
-    private void saveSkippedHistory(String triggerType, LocalDate targetDate, String sourceName, int requestedCount, String reason) {
-        CrawlHistory history = CrawlHistory.builder()
-                .triggerType(triggerType)
-                .targetDate(targetDate)
-                .status("SKIPPED")
-                .sourceName(limitLength(sourceName, MAX_SOURCE_TEXT_LENGTH))
-                .requestedCount(requestedCount)
-                .collectedCount(0)
-                .insertedCount(0)
-                .errorMessage(limitLength(reason, MAX_ERROR_MESSAGE_LENGTH))
-                .createdAt(LocalDateTime.now())
-                .build();
-        crawlHistoryRepository.save(history);
-    }
-
-    /**
-     * @date 2026-04-17
-     * @desc RUNNING 히스토리를 SUCCESS 상태로 갱신합니다.
-     */
-    private void updateSuccessHistory(CrawlHistory runningHistory, int collectedCount, int insertedCount) {
-        CrawlHistory history = CrawlHistory.builder()
-                .id(runningHistory.getId())
-                .triggerType(runningHistory.getTriggerType())
-                .targetDate(runningHistory.getTargetDate())
-                .status("SUCCESS")
-                .sourceName(runningHistory.getSourceName())
-                .requestedCount(runningHistory.getRequestedCount())
-                .collectedCount(collectedCount)
-                .insertedCount(insertedCount)
-                .errorMessage(null)
-                .createdAt(runningHistory.getCreatedAt())
-                .build();
-        crawlHistoryRepository.save(history);
-    }
-
-    /**
-     * @date 2026-04-17
-     * @desc RUNNING 히스토리를 FAILED 상태로 갱신합니다.
-     */
-    private void updateFailureHistory(CrawlHistory runningHistory, Exception exception) {
-        String message = exception.getMessage() == null || exception.getMessage().isBlank()
-                ? "원인을 확인할 수 없는 오류"
-                : exception.getMessage().trim();
-
-        CrawlHistory history = CrawlHistory.builder()
-                .id(runningHistory.getId())
-                .triggerType(runningHistory.getTriggerType())
-                .targetDate(runningHistory.getTargetDate())
-                .status("FAILED")
-                .sourceName(runningHistory.getSourceName())
-                .requestedCount(runningHistory.getRequestedCount())
-                .collectedCount(0)
-                .insertedCount(0)
-                .errorMessage(limitLength(message, MAX_ERROR_MESSAGE_LENGTH))
-                .createdAt(runningHistory.getCreatedAt())
-                .build();
-        crawlHistoryRepository.save(history);
-    }
-
-    /**
-     * @date 2026-04-17
      * @desc 공백 문자열이면 기본값을 반환하고 아니면 trim 결과를 반환합니다.
      */
     private String defaultIfBlank(String value, String defaultValue) {
@@ -747,29 +593,4 @@ public class TechNewsCrawlingService {
         return value.trim();
     }
 
-    /**
-     * @date 2026-04-17
-     * @desc 선택 입력 문자열을 trim 처리하고 비어 있으면 null로 변환합니다.
-     */
-    private String normalizeOptionalText(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return value.trim();
-    }
-
-    /**
-     * @date 2026-04-17
-     * @desc 문자열을 지정한 최대 길이 이하로 잘라 DB 컬럼 길이를 보호합니다.
-     */
-    private String limitLength(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-        String normalizedValue = value.trim();
-        if (normalizedValue.length() <= maxLength) {
-            return normalizedValue;
-        }
-        return normalizedValue.substring(0, maxLength);
-    }
 }

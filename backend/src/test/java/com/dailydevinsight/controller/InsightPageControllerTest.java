@@ -2,6 +2,7 @@ package com.dailydevinsight.controller;
 
 import com.dailydevinsight.config.SecurityConfig;
 import com.dailydevinsight.admin.service.WeeklyAiInsightService;
+import com.dailydevinsight.admin.service.DailyTrendInsightService;
 import com.dailydevinsight.dto.DailyInsightDTO;
 import com.dailydevinsight.dto.DailyInsightResponseDTO;
 import com.dailydevinsight.dto.InsightCommentDTO;
@@ -61,6 +62,9 @@ public class InsightPageControllerTest {
 
     @MockBean
     private WeeklyAiInsightService weeklyAiInsightService;
+
+    @MockBean
+    private DailyTrendInsightService dailyTrendInsightService;
 
     @MockBean
     private UserDetailsService userDetailsService;

@@ -45,6 +45,9 @@ public class GenerationHistory {
     @Column(name = "created_knowledge_id")
     private Long createdKnowledgeId;
 
+    @Column(name = "used_trend_id")
+    private Long usedTrendId;
+
     @Column(name = "title", length = 255)
     private String title;
 

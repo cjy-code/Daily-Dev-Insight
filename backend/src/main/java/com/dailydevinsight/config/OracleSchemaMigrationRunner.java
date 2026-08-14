@@ -4,12 +4,15 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -30,18 +33,24 @@ public class OracleSchemaMigrationRunner {
     private static final String TABLE_CRAWL_HISTORY = "CRAWL_HISTORY";
     private static final String TABLE_CRAWL_CONDITION_PRESET = "CRAWL_CONDITION_PRESET";
     private static final String TABLE_WEEKLY_AI_INSIGHT = "WEEKLY_AI_INSIGHT";
+    private static final String TABLE_DAILY_TREND_INSIGHT = "DAILY_TREND_INSIGHT";
+    private static final String TABLE_DAILY_TREND_GENERATION_HISTORY = "DAILY_TREND_GENERATION_HISTORY";
     private static final String COLUMN_ATTACHMENT_IMAGE_PATH = "ATTACHMENT_IMAGE_PATH";
     private static final String COLUMN_ALLOW_DUPLICATE = "ALLOW_DUPLICATE";
     private static final String COLUMN_EXCLUDE_KEYWORDS = "EXCLUDE_KEYWORDS";
     private static final String COLUMN_INCLUDE_KEYWORD_OPERATORS = "INCLUDE_KEYWORD_OPERATORS";
+    private static final String COLUMN_USED_TREND_ID = "USED_TREND_ID";
     private static final String SEQUENCE_PROMPT_TEMPLATE = "SEQ_PROMPT_TEMPLATE";
     private static final String SEQUENCE_GENERATION_HISTORY = "SEQ_GENERATION_HISTORY";
     private static final String SEQUENCE_CRAWL_HISTORY = "SEQ_CRAWL_HISTORY";
     private static final String SEQUENCE_CRAWL_CONDITION_PRESET = "SEQ_CRAWL_CONDITION_PRESET";
     private static final String SEQUENCE_WEEKLY_AI_INSIGHT = "SEQ_WEEKLY_AI_INSIGHT";
+    private static final String SEQUENCE_DAILY_TREND_INSIGHT = "SEQ_DAILY_TREND_INSIGHT";
+    private static final String SEQUENCE_DAILY_TREND_GENERATION_HISTORY = "SEQ_DAILY_TREND_GEN_HISTORY";
     private static final String INDEX_TECH_NEWS_URL = "IDX_TECH_NEWS_URL";
 
     private final JdbcTemplate jdbcTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * @date 2026-04-15
@@ -61,6 +70,7 @@ public class OracleSchemaMigrationRunner {
         ensureTechNewsAttachmentImagePathColumn();
         ensureGenerationScheduleAllowDuplicateColumn();
         ensureGenerationHistoryStatusConstraint();
+        ensureGenerationHistoryUsedTrendIdColumn();
         ensureTechNewsUrlIndex();
         ensureCrawlScheduleTable();
         ensureCrawlScheduleExtensionColumns();
@@ -71,11 +81,42 @@ public class OracleSchemaMigrationRunner {
         ensureCrawlConditionPresetSequence();
         ensureWeeklyAiInsightTable();
         ensureWeeklyAiInsightSequence();
+        ensureDailyTrendInsightTable();
+        ensureDailyTrendInsightSequence();
+        ensureDailyTrendGenerationHistoryTable();
+        ensureDailyTrendGenerationHistorySequence();
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_PROMPT_TEMPLATE, TABLE_PROMPT_TEMPLATE);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_GENERATION_HISTORY, TABLE_GENERATION_HISTORY);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_CRAWL_HISTORY, TABLE_CRAWL_HISTORY);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_CRAWL_CONDITION_PRESET, TABLE_CRAWL_CONDITION_PRESET);
         ensureSequenceAlignedWithTableMaxId(SEQUENCE_WEEKLY_AI_INSIGHT, TABLE_WEEKLY_AI_INSIGHT);
+        ensureSequenceAlignedWithTableMaxId(SEQUENCE_DAILY_TREND_INSIGHT, TABLE_DAILY_TREND_INSIGHT);
+        ensureSequenceAlignedWithTableMaxId(
+                SEQUENCE_DAILY_TREND_GENERATION_HISTORY,
+                TABLE_DAILY_TREND_GENERATION_HISTORY
+        );
+        ensureSeedUserPasswordsHashed();
+    }
+
+    /**
+     * @date 2026-08-10
+     * @desc 시드 계정(user01/admin01)의 평문 비밀번호를 BCrypt 해시로 1회성 재기록합니다.
+     */
+    private void ensureSeedUserPasswordsHashed() {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT id, password FROM users WHERE id IN (9001, 9002)");
+        for (Map<String, Object> row : rows) {
+            String storedPassword = (String) row.get("PASSWORD");
+            if (storedPassword == null || storedPassword.startsWith("{")) {
+                continue; // 이미 {id} 접두어가 붙은 인코딩 값(또는 이례적 null) — 멱등, 재작업 안 함
+            }
+            Number id = (Number) row.get("ID");
+            jdbcTemplate.update(
+                    "UPDATE users SET password = ?, updated_at = SYSTIMESTAMP WHERE id = ?",
+                    passwordEncoder.encode(storedPassword), id.longValue()
+            );
+            log.info("Rehashed seed user password to BCrypt: id={}", id);
+        }
     }
 
     /**
@@ -183,6 +224,18 @@ public class OracleSchemaMigrationRunner {
                         "CHECK (status IN ('SUCCESS', 'FAILED', 'SKIPPED'))"
         );
         log.info("Applied schema migration: updated constraint ck_generation_history_status");
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc generation_history에 지식 생성 시 사용한 일일 트렌드 ID 컬럼이 없으면 추가합니다.
+     */
+    private void ensureGenerationHistoryUsedTrendIdColumn() {
+        if (!existsTable(TABLE_GENERATION_HISTORY) || existsColumn(TABLE_GENERATION_HISTORY, COLUMN_USED_TREND_ID)) {
+            return;
+        }
+        jdbcTemplate.execute("ALTER TABLE generation_history ADD (used_trend_id NUMBER(19))");
+        log.info("Applied schema migration: added {}.{}", TABLE_GENERATION_HISTORY, COLUMN_USED_TREND_ID);
     }
 
     /**
@@ -395,6 +448,82 @@ public class OracleSchemaMigrationRunner {
         }
         jdbcTemplate.execute("CREATE SEQUENCE seq_weekly_ai_insight START WITH 1 INCREMENT BY 1 NOCACHE");
         log.info("Applied schema migration: created sequence {}", SEQUENCE_WEEKLY_AI_INSIGHT);
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc daily_trend_insight 테이블과 기준일 고유 인덱스가 없으면 생성합니다.
+     */
+    private void ensureDailyTrendInsightTable() {
+        if (existsTable(TABLE_DAILY_TREND_INSIGHT)) {
+            return;
+        }
+        jdbcTemplate.execute("""
+                CREATE TABLE daily_trend_insight (
+                    id NUMBER(19) NOT NULL,
+                    trend_date DATE NOT NULL,
+                    keywords VARCHAR2(500) NOT NULL,
+                    summary VARCHAR2(1000) NOT NULL,
+                    source_news_count NUMBER(10) NOT NULL,
+                    is_visible NUMBER(1) DEFAULT 1 NOT NULL,
+                    created_at TIMESTAMP(6) NOT NULL,
+                    updated_at TIMESTAMP(6) NOT NULL,
+                    CONSTRAINT pk_daily_trend_insight PRIMARY KEY (id)
+                )
+                """);
+        jdbcTemplate.execute(
+                "CREATE UNIQUE INDEX ux_daily_trend_insight_date ON daily_trend_insight (trend_date)"
+        );
+        log.info("Applied schema migration: created table {}", TABLE_DAILY_TREND_INSIGHT);
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc daily_trend_insight ID 생성을 위한 시퀀스가 없으면 생성합니다.
+     */
+    private void ensureDailyTrendInsightSequence() {
+        if (existsSequence(SEQUENCE_DAILY_TREND_INSIGHT)) {
+            return;
+        }
+        jdbcTemplate.execute("CREATE SEQUENCE seq_daily_trend_insight START WITH 1 INCREMENT BY 1 NOCACHE");
+        log.info("Applied schema migration: created sequence {}", SEQUENCE_DAILY_TREND_INSIGHT);
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc daily_trend_generation_history 테이블이 없으면 생성합니다.
+     */
+    private void ensureDailyTrendGenerationHistoryTable() {
+        if (existsTable(TABLE_DAILY_TREND_GENERATION_HISTORY)) {
+            return;
+        }
+        jdbcTemplate.execute("""
+                CREATE TABLE daily_trend_generation_history (
+                    id NUMBER(19) NOT NULL,
+                    trigger_type VARCHAR2(20) NOT NULL,
+                    target_date DATE NOT NULL,
+                    status VARCHAR2(20) NOT NULL,
+                    source_news_count NUMBER(10),
+                    created_trend_id NUMBER(19),
+                    error_message VARCHAR2(1000),
+                    created_at TIMESTAMP(6) NOT NULL,
+                    CONSTRAINT pk_daily_trend_gen_history PRIMARY KEY (id),
+                    CONSTRAINT ck_daily_trend_gen_history_status CHECK (status IN ('SUCCESS', 'FAILED'))
+                )
+                """);
+        log.info("Applied schema migration: created table {}", TABLE_DAILY_TREND_GENERATION_HISTORY);
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc daily_trend_generation_history ID 생성을 위한 시퀀스가 없으면 생성합니다.
+     */
+    private void ensureDailyTrendGenerationHistorySequence() {
+        if (existsSequence(SEQUENCE_DAILY_TREND_GENERATION_HISTORY)) {
+            return;
+        }
+        jdbcTemplate.execute("CREATE SEQUENCE seq_daily_trend_gen_history START WITH 1 INCREMENT BY 1 NOCACHE");
+        log.info("Applied schema migration: created sequence {}", SEQUENCE_DAILY_TREND_GENERATION_HISTORY);
     }
 
     /**

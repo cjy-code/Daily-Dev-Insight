@@ -1,5 +1,43 @@
 ﻿(function () {
     /**
+     * @date 2026-08-13
+     * @desc 신규 프롬프트 템플릿 작성 시 빈칸 대신 채워주는 기본 초안. 프롬프트 작성 경험이 없는
+     * 관리자도 이 구조를 참고해 문구만 다듬으면 되도록 역할/난이도 기준/필드 규칙/안티패턴을 포함한다.
+     */
+    const DEFAULT_PROMPT_TEMPLATE_STARTER = [
+        '당신은 실무 경력 10년차 이상의 시니어 개발자이자 기술 교육자입니다.',
+        '${date} 기준 "오늘의 개발 지식" 게시물을 한국어로 작성하세요.',
+        '',
+        '- 카테고리: ${category}',
+        '- 톤: ${tone}',
+        '- 난이도: ${difficulty}',
+        '',
+        '## 난이도별 작성 기준 (반드시 구분해서 반영)',
+        '- 초급: 핵심 개념 정의 + 왜 필요한지 비유/실생활 예시 중심. 전문 용어는 처음 등장할 때 한 줄 설명을 덧붙인다.',
+        '- 중급: 실무에서 이 개념을 언제/왜 쓰는지 구체적 시나리오 중심. 흔한 실수나 헷갈리는 지점을 1개 이상 짚는다.',
+        '- 고급: 내부 동작 원리, 트레이드오프, 대안과의 비교를 포함. "왜 이게 정답이 아닐 수도 있는지"까지 다룬다.',
+        '',
+        '## 필드별 작성 규칙',
+        '- title: 클릭하고 싶어지는 구체적 제목. "OOO 개요", "OOO 알아보기" 같은 뻔한 제목 금지.',
+        '- summary: 1~2문장. 이 글을 읽으면 무엇을 알게 되는지 결론부터 요약.',
+        '- detail: 최소 800자 이상. 아래 구조를 따른다.',
+        '  1. 왜 지금 이 주제가 실무에서 중요한지 (도입)',
+        '  2. 핵심 개념 설명',
+        '  3. 실무 적용 예시 또는 코드 스니펫 최소 1개',
+        '  4. 흔한 실수 또는 주의할 점',
+        '  5. 한 줄 요약(마무리)',
+        '',
+        '## 피해야 할 것',
+        '- 공식 문서를 그대로 번역/요약만 하는 것',
+        '- 추상적인 설명만 하고 구체적 예시가 없는 것',
+        '- 이미 잘 알려진 내용을 새로운 관점 없이 반복하는 것',
+        '',
+        '## 오늘의 개발 트렌드 참고 (있는 경우에만 반영)',
+        '${dailyTrend}',
+        '위 트렌드가 존재하면 도입부나 예시에 자연스럽게 연결하세요. 관련이 낮으면 무시해도 됩니다.'
+    ].join('\n');
+
+    /**
      * @date 2026-04-24
      * @desc 이미지 생성 설정 기본값을 반환합니다.
      */
@@ -75,6 +113,28 @@
     }
 
     /**
+     * @date 2026-08-13
+     * @desc 이미지 품질 라디오 버튼(수평 세그먼트 컨트롤)을 주어진 값에 맞게 체크 상태로 동기화합니다.
+     */
+    function syncImageQualityRadiosFromValue(value) {
+        const radios = document.querySelectorAll('input[name="templateImageQualityRadio"]');
+        radios.forEach((radio) => {
+            radio.checked = radio.value === value;
+        });
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 이미지 최대 토큰 예산 슬라이더 옆의 실시간 값 표시를 갱신합니다.
+     */
+    function syncImageMaxTokensDisplay(value) {
+        const display = document.getElementById('templateImageMaxTokensDisplay');
+        if (display) {
+            display.textContent = String(value);
+        }
+    }
+
+    /**
      * @date 2026-04-24
      * @desc 이미지 생성 설정 입력값을 폼에 반영합니다.
      */
@@ -90,7 +150,9 @@
         const normalizedSettings = normalizeTemplateImageSettings(settings);
         imageEnabledField.checked = normalizedSettings.enabled;
         imageQualityField.value = normalizedSettings.quality;
+        syncImageQualityRadiosFromValue(normalizedSettings.quality);
         imageMaxTokensField.value = String(normalizedSettings.maxTokens);
+        syncImageMaxTokensDisplay(normalizedSettings.maxTokens);
         imagePromptTemplateField.value = normalizedSettings.promptTemplate;
         syncTemplateImageSettingsEnabledState();
     }
@@ -126,6 +188,7 @@
         const imageMaxTokensField = document.getElementById('templateImageMaxTokens');
         const imagePromptTemplateField = document.getElementById('templateImagePromptTemplate');
         const imageSettingsContainer = document.querySelector('.prompt-template-image-settings');
+        const imageQualityControl = document.getElementById('templateImageQualityControl');
         if (!imageEnabledField || !imageQualityField || !imageMaxTokensField || !imagePromptTemplateField || !imageSettingsContainer) {
             return;
         }
@@ -135,6 +198,36 @@
         imageMaxTokensField.disabled = !enabled;
         imagePromptTemplateField.disabled = !enabled;
         imageSettingsContainer.classList.toggle('is-disabled', !enabled);
+        if (imageQualityControl) {
+            imageQualityControl.classList.toggle('is-disabled', !enabled);
+            imageQualityControl.querySelectorAll('input[name="templateImageQualityRadio"]').forEach((radio) => {
+                radio.disabled = !enabled;
+            });
+        }
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 이미지 품질 세그먼트 버튼과 토큰 예산 슬라이더의 사용자 조작을 실제 값 필드(hidden input)에 반영합니다.
+     */
+    function bindTemplateImageSettingsControls() {
+        const imageQualityField = document.getElementById('templateImageQuality');
+        const imageMaxTokensField = document.getElementById('templateImageMaxTokens');
+        if (!imageQualityField || !imageMaxTokensField) {
+            return;
+        }
+
+        document.querySelectorAll('input[name="templateImageQualityRadio"]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    imageQualityField.value = radio.value;
+                }
+            });
+        });
+
+        imageMaxTokensField.addEventListener('input', () => {
+            syncImageMaxTokensDisplay(imageMaxTokensField.value);
+        });
     }
     /**
      * @date 2026-04-15
@@ -176,11 +269,15 @@
     function clearPromptTemplateForm() {
         const form = document.getElementById('promptTemplateForm');
         const idField = document.getElementById('promptId');
+        const contentField = document.getElementById('templateContent');
         if (!form || !idField) {
             return;
         }
         form.reset();
         idField.value = '';
+        if (contentField) {
+            contentField.value = DEFAULT_PROMPT_TEMPLATE_STARTER;
+        }
         setTemplateImageSettingsFormValue(createDefaultTemplateImageSettings());
     }
 
@@ -746,6 +843,213 @@
         });
     }
 
+    const CRON_WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const CRON_WEEKDAY_LABEL = { MON: '월', TUE: '화', WED: '수', THU: '목', FRI: '금', SAT: '토', SUN: '일' };
+
+    /**
+     * @date 2026-08-13
+     * @desc Cron 문자열(초 분 시 일 월 요일)을 반복 주기 빌더 상태로 역파싱합니다.
+     * 빌더가 표현할 수 없는 패턴(월 지정, 스텝/범위 값, 일+요일 동시 지정 등)은 advanced로 안전하게 폴백합니다.
+     */
+    function parseCronExpressionForBuilder(cronValue) {
+        const raw = (cronValue || '').trim();
+        const fallback = { mode: 'advanced', raw };
+        const tokens = raw.split(/\s+/);
+        if (tokens.length !== 6) {
+            return fallback;
+        }
+        const [sec, min, hour, dayOfMonth, month, dayOfWeek] = tokens;
+        if (month !== '*' || !/^\d+$/.test(sec) || !/^\d+$/.test(min) || !/^\d+$/.test(hour)) {
+            return fallback;
+        }
+        const second = Number(sec);
+        const minute = Number(min);
+        const hourNum = Number(hour);
+        if (second > 59 || minute > 59 || hourNum > 23) {
+            return fallback;
+        }
+
+        if (dayOfMonth === '*' && dayOfWeek === '*') {
+            return { mode: 'daily', second, minute, hour: hourNum };
+        }
+        if (dayOfMonth === '*' && dayOfWeek !== '*') {
+            const days = dayOfWeek.split(',').map((d) => d.trim().toUpperCase());
+            const isValid = days.length > 0 && days.every((d) => CRON_WEEKDAY_ORDER.includes(d));
+            return isValid ? { mode: 'weekly', second, minute, hour: hourNum, days } : fallback;
+        }
+        if (dayOfMonth !== '*' && dayOfWeek === '*') {
+            return /^([1-9]|[12]\d|3[01])$/.test(dayOfMonth)
+                ? { mode: 'monthly', second, minute, hour: hourNum, dayOfMonth: Number(dayOfMonth) }
+                : fallback;
+        }
+        return fallback;
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 반복 주기 빌더 상태를 Cron 문자열(초 분 시 일 월 요일)로 조립합니다.
+     */
+    function buildCronExpressionFromState(state) {
+        const sec = String(state.second ?? 0);
+        const min = String(state.minute ?? 0);
+        const hour = String(state.hour ?? 0);
+        if (state.mode === 'weekly') {
+            const days = state.days && state.days.length > 0 ? state.days.join(',') : 'MON';
+            return `${sec} ${min} ${hour} * * ${days}`;
+        }
+        if (state.mode === 'monthly') {
+            return `${sec} ${min} ${hour} ${state.dayOfMonth ?? 1} * *`;
+        }
+        if (state.mode === 'advanced') {
+            return state.raw ?? '';
+        }
+        return `${sec} ${min} ${hour} * * *`;
+    }
+
+    /**
+     * @date 2026-08-13
+     * @desc 예약 생성/크롤링 예약 설정 화면 공통 - Cron 직접 입력 대신 반복 주기(매일/매주/매월)와
+     * 시:분:초를 선택하는 빌더 UI를 실제 cronExpression 히든 입력과 동기화합니다.
+     */
+    function bindCronScheduleBuilder(idPrefix) {
+        const root = document.querySelector(`[data-cron-builder="${idPrefix}"]`);
+        if (!root) {
+            return;
+        }
+        const hiddenInput = root.querySelector('[data-cron-hidden]');
+        const modeButtons = root.querySelectorAll('[data-cron-mode]');
+        const hourInput = root.querySelector('[data-cron-field="hour"]');
+        const minuteInput = root.querySelector('[data-cron-field="minute"]');
+        const secondInput = root.querySelector('[data-cron-field="second"]');
+        const dayOfMonthSelect = root.querySelector('[data-cron-field="dayOfMonth"]');
+        const weekdayChecks = root.querySelectorAll('[data-cron-weekday]');
+        const rawInput = root.querySelector('[data-cron-raw]');
+        const timeRow = root.querySelector('[data-cron-time-row]');
+        const weekdayRow = root.querySelector('[data-cron-weekday-row]');
+        const monthdayRow = root.querySelector('[data-cron-monthday-row]');
+        const advancedRow = root.querySelector('[data-cron-advanced-row]');
+        const summary = root.querySelector('[data-cron-summary]');
+        if (!hiddenInput || !hourInput || !minuteInput || !secondInput || !rawInput) {
+            return;
+        }
+
+        function readUiState(mode) {
+            return {
+                mode,
+                second: Number(secondInput.value || 0),
+                minute: Number(minuteInput.value || 0),
+                hour: Number(hourInput.value || 0),
+                days: Array.from(weekdayChecks).filter((c) => c.checked).map((c) => c.dataset.cronWeekday),
+                dayOfMonth: dayOfMonthSelect ? Number(dayOfMonthSelect.value) : 1,
+                raw: rawInput.value,
+            };
+        }
+
+        function describeCron(state) {
+            const time = `${String(state.hour).padStart(2, '0')}:${String(state.minute).padStart(2, '0')}:${String(state.second).padStart(2, '0')}`;
+            if (state.mode === 'weekly') {
+                if (state.days.length === 0) {
+                    return '요일을 1개 이상 선택해 주세요.';
+                }
+                const labels = state.days.map((d) => CRON_WEEKDAY_LABEL[d] || d).join(', ');
+                return `매주 ${labels}요일 ${time}에 실행됩니다.`;
+            }
+            if (state.mode === 'monthly') {
+                return `매월 ${state.dayOfMonth}일 ${time}에 실행됩니다.`;
+            }
+            if (state.mode === 'advanced') {
+                return '반복 주기 옵션으로 표현할 수 없어 입력한 cron 표현식을 그대로 사용합니다.';
+            }
+            return `매일 ${time}에 실행됩니다.`;
+        }
+
+        function setActiveMode(mode) {
+            modeButtons.forEach((btn) => {
+                const isActive = btn.dataset.cronMode === mode;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-pressed', String(isActive));
+            });
+            if (timeRow) timeRow.hidden = mode === 'advanced';
+            if (weekdayRow) weekdayRow.hidden = mode !== 'weekly';
+            if (monthdayRow) monthdayRow.hidden = mode !== 'monthly';
+            if (advancedRow) advancedRow.hidden = mode !== 'advanced';
+        }
+
+        function currentMode() {
+            const activeBtn = root.querySelector('.cron-mode-btn.active');
+            return activeBtn ? activeBtn.dataset.cronMode : 'daily';
+        }
+
+        function syncFromUi() {
+            const state = readUiState(currentMode());
+            hiddenInput.value = buildCronExpressionFromState(state);
+            if (summary) {
+                summary.textContent = describeCron(state);
+            }
+        }
+
+        function applyState(state) {
+            setActiveMode(state.mode);
+            if (state.mode === 'advanced') {
+                rawInput.value = state.raw || hiddenInput.value;
+            } else {
+                hourInput.value = state.hour;
+                minuteInput.value = state.minute;
+                secondInput.value = state.second;
+                if (state.mode === 'weekly') {
+                    weekdayChecks.forEach((c) => {
+                        c.checked = (state.days || []).includes(c.dataset.cronWeekday);
+                    });
+                }
+                if (state.mode === 'monthly' && dayOfMonthSelect) {
+                    dayOfMonthSelect.value = String(state.dayOfMonth || 1);
+                }
+            }
+            syncFromUi();
+        }
+
+        const parsed = parseCronExpressionForBuilder(hiddenInput.value);
+        applyState(Object.assign({ hour: 9, minute: 0, second: 0, days: ['MON'], dayOfMonth: 1 }, parsed));
+
+        modeButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.cronMode;
+                setActiveMode(mode);
+                if (mode === 'weekly' && Array.from(weekdayChecks).every((c) => !c.checked)) {
+                    const monday = Array.from(weekdayChecks).find((c) => c.dataset.cronWeekday === 'MON');
+                    if (monday) monday.checked = true;
+                }
+                syncFromUi();
+            });
+        });
+        [hourInput, minuteInput, secondInput].forEach((input) => {
+            input.addEventListener('input', syncFromUi);
+        });
+        weekdayChecks.forEach((c) => c.addEventListener('change', syncFromUi));
+        if (dayOfMonthSelect) {
+            dayOfMonthSelect.addEventListener('change', syncFromUi);
+        }
+        rawInput.addEventListener('input', syncFromUi);
+
+        const form = root.closest('form');
+        if (form) {
+            form.addEventListener('submit', (event) => {
+                syncFromUi();
+                const mode = currentMode();
+                if (mode === 'weekly' && readUiState('weekly').days.length === 0) {
+                    event.preventDefault();
+                    window.alert('예약 요일을 1개 이상 선택해 주세요.');
+                    return;
+                }
+                if (mode === 'advanced' && !rawInput.value.trim()) {
+                    event.preventDefault();
+                    window.alert('Cron 표현식을 입력해 주세요.');
+                    rawInput.focus();
+                }
+            });
+        }
+    }
+
     /**
      * @date 2026-04-16
      * @desc 기능 설명을 처리합니다.
@@ -1171,7 +1475,13 @@
         const row = document.createElement('div');
         row.className = 'dynamic-input-row include-keyword-row';
 
-        row.appendChild(createIncludeKeywordOperatorSelect(operatorName, operator));
+        if (withOperator) {
+            row.appendChild(createIncludeKeywordOperatorSelect(operatorName, operator));
+        } else {
+            const operatorPlaceholder = document.createElement('span');
+            operatorPlaceholder.className = 'include-keyword-operator-placeholder';
+            row.appendChild(operatorPlaceholder);
+        }
 
         const inputField = document.createElement('input');
         inputField.type = 'text';
@@ -1258,7 +1568,7 @@
 
         if (limitedValues.length === 0) {
             if (inputName === 'includeKeywords') {
-                wrapper.insertBefore(createIncludeKeywordInputRow('', 'OR', placeholder, true, operatorName), addButton);
+                wrapper.insertBefore(createIncludeKeywordInputRow('', 'OR', placeholder, false, operatorName), addButton);
             } else {
                 wrapper.insertBefore(createDynamicInputRow(inputName, '', placeholder), addButton);
             }
@@ -1269,7 +1579,7 @@
             if (inputName === 'includeKeywords') {
                 const operatorValue = operators[index] || 'OR';
                 wrapper.insertBefore(
-                    createIncludeKeywordInputRow(value, operatorValue, placeholder, true, operatorName),
+                    createIncludeKeywordInputRow(value, operatorValue, placeholder, index !== 0, operatorName),
                     addButton
                 );
                 return;
@@ -1279,14 +1589,31 @@
     }
 
     /**
-     * @date 2026-04-17
-     * @desc 기능 설명을 처리합니다.
+     * @date 2026-08-10
+     * @desc 첫 번째 키워드 행에는 연산자 선택을 표시하지 않고, 이후 행에는 표시하도록 정리합니다.
+     * (첫 키워드는 연결할 대상이 없어 백엔드 매칭 로직에서 해당 값을 사용하지 않으므로,
+     * 조작 가능한데 아무 효과가 없는 UI를 없앤다)
      */
     function refreshIncludeKeywordOperatorRows(wrapper) {
         const rows = Array.from(wrapper.querySelectorAll('.dynamic-input-row'));
         const operatorName = wrapper.dataset.operatorName || 'includeKeywordOperators';
-        rows.forEach((row) => {
+        rows.forEach((row, index) => {
             const existingSelect = row.querySelector('.include-keyword-operator-select');
+            const existingPlaceholder = row.querySelector('.include-keyword-operator-placeholder');
+            if (index === 0) {
+                if (existingSelect) {
+                    existingSelect.remove();
+                }
+                if (!existingPlaceholder) {
+                    const operatorPlaceholder = document.createElement('span');
+                    operatorPlaceholder.className = 'include-keyword-operator-placeholder';
+                    row.insertBefore(operatorPlaceholder, row.firstChild);
+                }
+                return;
+            }
+            if (existingPlaceholder) {
+                existingPlaceholder.remove();
+            }
             if (!existingSelect) {
                 row.insertBefore(createIncludeKeywordOperatorSelect(operatorName, 'OR'), row.firstChild);
             } else {
@@ -1742,11 +2069,14 @@
         bindTemplateLoadButtons();
         bindPromptTemplateModal();
         bindPromptTemplateImageSettings();
+        bindTemplateImageSettingsControls();
         bindPromptTemplateFormSubmitSerializer();
         bindCrawlPresetModal();
         bindGenerationTabs();
         bindGenerationScheduleToggleUi();
         bindCrawlScheduleToggleUi();
+        bindCronScheduleBuilder('schedule');
+        bindCronScheduleBuilder('crawlSchedule');
         bindGenerationActionGuard();
         bindPromptTemplateSaveLimitGuard();
         bindPromptTemplateToggleConfirm();

@@ -130,6 +130,36 @@ class AdminManagementServiceTest {
     }
 
     /**
+     * @date 2026-08-12
+     * @desc 일일 지식 삭제 시 참조 중인 생성 이력의 참조가 먼저 해제되는지 검증합니다.
+     */
+    @Test
+    void deleteKnowledgePost_ShouldClearGenerationHistoryReferenceBeforeDelete() {
+        when(dailyKnowledgeRepository.existsById(24L)).thenReturn(true);
+
+        adminManagementService.deleteKnowledgePost(24L);
+
+        verify(generationHistoryRepository).clearCreatedKnowledgeId(24L);
+        verify(dailyKnowledgeRepository).deleteById(24L);
+    }
+
+    /**
+     * @date 2026-08-12
+     * @desc 존재하지 않는 게시물 삭제 요청 시 예외가 발생하고 이력 참조 해제는 시도하지 않는지 검증합니다.
+     */
+    @Test
+    void deleteKnowledgePost_ShouldThrowWhenPostNotFound() {
+        when(dailyKnowledgeRepository.existsById(99L)).thenReturn(false);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> adminManagementService.deleteKnowledgePost(99L)
+        );
+
+        verify(generationHistoryRepository, org.mockito.Mockito.never()).clearCreatedKnowledgeId(org.mockito.ArgumentMatchers.any());
+    }
+
+    /**
      * @date 2026-04-22
      * @desc 테스트용 일일 지식 엔티티를 생성합니다.
      */

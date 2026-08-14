@@ -10,7 +10,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -45,7 +45,7 @@ public class SecurityConfig {
         http
                 .securityMatcher("/admin/**")
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(ADMIN_LOGIN_PATH, "/error", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        .requestMatchers(ADMIN_LOGIN_PATH, "/error", "/css/**", "/js/**", "/images/**", "/fonts/**", "/uploads/**").permitAll()
                         .anyRequest().hasRole("ADMIN")
                 )
                 .formLogin(form -> form
@@ -76,7 +76,7 @@ public class SecurityConfig {
     ) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(USER_LOGIN_PATH, ADMIN_LOGIN_PATH, "/error", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        .requestMatchers(USER_LOGIN_PATH, ADMIN_LOGIN_PATH, "/error", "/css/**", "/js/**", "/images/**", "/fonts/**", "/uploads/**").permitAll()
                         .requestMatchers(LOGOUT_PATH).authenticated()
                         .anyRequest().hasRole("USER")
                 )
@@ -98,7 +98,7 @@ public class SecurityConfig {
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
     /**
