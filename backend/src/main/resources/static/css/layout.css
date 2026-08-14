@@ -192,6 +192,7 @@ body {
     position: absolute;
     left: calc(50% + min(630px, 50vw - 20px) + 14px);
     top: 0;
+    bottom: 0;
     width: 176px;
     margin-top: clamp(96px, 12vh, 136px);
 }

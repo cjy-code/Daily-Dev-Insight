@@ -21,6 +21,8 @@ body:has(.index-page) {
     width: 100%;
     margin: 0;
     padding: 28px 0 44px;
+    word-break: keep-all;
+    overflow-wrap: break-word;
 }
 
 .top-panel,
