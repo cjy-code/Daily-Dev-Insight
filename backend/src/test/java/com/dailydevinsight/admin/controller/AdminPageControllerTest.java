@@ -327,7 +327,7 @@ class AdminPageControllerTest {
                 .build();
 
         willDoNothing().given(promptTemplateService).ensureDefaultTemplateExists();
-        given(promptTemplateService.findAllTemplates()).willReturn(Collections.singletonList(activeTemplate));
+        given(promptTemplateService.findAllTemplatesForDisplay()).willReturn(Collections.singletonList(activeTemplate));
         given(promptTemplateService.findActiveTemplate()).willReturn(java.util.Optional.of(activeTemplate));
         given(generationScheduleService.getOrCreateSchedule()).willReturn(
                 GenerationSchedule.builder()

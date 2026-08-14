@@ -1121,6 +1121,16 @@ body {
     color: #37435c;
 }
 
+.admin-table tr.active-row {
+    background: color-mix(in srgb, var(--admin-brand) 8%, #ffffff);
+    box-shadow: inset 3px 0 0 var(--admin-brand);
+}
+
+.admin-table tr.active-row td {
+    font-weight: 700;
+    color: var(--admin-brand-strong);
+}
+
 .admin-sort-th {
     cursor: pointer;
     user-select: none;

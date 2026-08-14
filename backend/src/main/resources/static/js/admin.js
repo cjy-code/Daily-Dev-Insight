@@ -1078,6 +1078,25 @@
                 const isConfirmed = window.confirm(message);
                 if (!isConfirmed) {
                     event.preventDefault();
+                    const checkbox = form.querySelector('.prompt-active-toggle');
+                    if (checkbox) {
+                        checkbox.checked = false;
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * @date 2026-08-14
+     * @desc 프롬프트 템플릿 목록의 활성화 토글 스위치를 클릭하면 즉시 폼을 제출합니다.
+     */
+    function bindPromptTemplateActiveToggle() {
+        document.querySelectorAll('.prompt-toggle-form .prompt-active-toggle').forEach((checkbox) => {
+            checkbox.addEventListener('change', () => {
+                const form = checkbox.closest('form');
+                if (form) {
+                    form.requestSubmit();
                 }
             });
         });
@@ -1159,7 +1178,8 @@
             });
         });
 
-        sortRows();
+        // 페이지 로드 시에는 서버가 내려준 순서(활성 템플릿 최상단 고정)를 그대로 유지하고,
+        // 사용자가 헤더를 클릭했을 때만 정렬한다.
     }
 
     /**
@@ -2080,6 +2100,7 @@
         bindGenerationActionGuard();
         bindPromptTemplateSaveLimitGuard();
         bindPromptTemplateToggleConfirm();
+        bindPromptTemplateActiveToggle();
         bindPromptTemplateSort();
         bindGenerationHistorySort();
         bindHistoryErrorModal();

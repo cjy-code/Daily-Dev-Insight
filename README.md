@@ -12,7 +12,7 @@ RSS로 개발자 뉴스를 수집하고, OpenAI API로 일일 지식과 일간 A
 
 개발 관련 뉴스를 매일 자동으로 수집하고, 그 뉴스를 근거로 AI가 오늘의 개발 트렌드와 학습 콘텐츠를 생성해 보여주는 서비스입니다. 빠르게 바뀌는 개발 생태계에서 "오늘 무슨 일이 있었고, 그래서 무엇을 배워야 하는지"를 하나의 흐름으로 연결하는 것이 핵심 목표입니다.
 
-기획(Plan) → 설계(Design) → 구현 → 검증까지 전 과정을 문서로 남기며 개발했고, 일부 기능은 Claude Code가 설계·검증을, Codex CLI가 구현을 맡는 교차검증 파이프라인으로 진행했습니다. 관련 워크플로우: [`docs/01-plan/features/codex-collab-workflow.md`](docs/01-plan/features/codex-collab-workflow.md)
+기획(Plan) → 설계(Design) → 구현(Implementation) → 검증(Verification)까지 전 과정을 문서로 남기며 개발했고, 일부 기능은 Claude Code가 설계·검증을, Codex CLI가 구현을 맡는 교차검증 파이프라인으로 진행했습니다. 관련 워크플로우: [`docs/01-plan/features/codex-collab-workflow.md`](docs/01-plan/features/codex-collab-workflow.md)
 
 ## 2. 주요 기능
 
