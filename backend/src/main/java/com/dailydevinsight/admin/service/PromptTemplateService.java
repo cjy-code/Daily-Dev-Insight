@@ -52,6 +52,15 @@ public class PromptTemplateService {
     }
 
     /**
+     * @date 2026-08-14
+     * @desc 관리자 목록 화면용 - 활성 템플릿을 최상단에 고정하고 나머지는 최근 수정순으로 정렬합니다.
+     */
+    @Transactional(readOnly = true)
+    public List<PromptTemplate> findAllTemplatesForDisplay() {
+        return promptTemplateRepository.findAllByDeletedFalseOrderByActiveDescUpdatedAtDesc();
+    }
+
+    /**
      * @date 2026-04-16
      * @desc Return active template or throw when absent.
      */

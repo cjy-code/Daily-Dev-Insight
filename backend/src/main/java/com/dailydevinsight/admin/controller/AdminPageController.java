@@ -172,7 +172,7 @@ public class AdminPageController {
         promptTemplateService.ensureDefaultTemplateExists();
 
         model.addAttribute("currentMenu", MENU_GENERATION);
-        model.addAttribute("templateList", promptTemplateService.findAllTemplates());
+        model.addAttribute("templateList", promptTemplateService.findAllTemplatesForDisplay());
         model.addAttribute("activeTemplate", promptTemplateService.findActiveTemplate().orElse(null));
         model.addAttribute("promptTemplateForm", new PromptTemplateForm());
         model.addAttribute("generationRequestForm", createDefaultGenerationRequestForm());
