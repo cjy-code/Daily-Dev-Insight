@@ -1,7 +1,6 @@
 <section xmlns:th="http://www.thymeleaf.org" class="top5-sidebar-card" th:fragment="sidebarTop5">
     <div class="top5-sidebar-head">
-        <h2>주간 TOP5</h2>
-        <p>사이드바</p>
+        <img class="top5-title-img" src="/images/weekly-top5-title.png" alt="주간 TOP5">
     </div>
     <ol class="top5-list" th:if="${!#lists.isEmpty(top5List)}">
         <li class="top5-item" th:each="item, stat : ${top5List}">
