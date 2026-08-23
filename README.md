@@ -206,8 +206,10 @@ docker compose up -d
 8. `docs/sql/2026-04-17_crawl_management_tables_oracle.sql`
 9. `docs/sql/2026-04-17_crawl_management_preset_extension_oracle.sql`
 10. `docs/sql/2026-04-23_generation_schedule_duplicate_policy_oracle.sql`
+11. (선택) `docs/sql/2026-08-23_daily_knowledge_portfolio_seed_oracle.sql` — 포트폴리오 소개 문서 스크린샷용 `daily_knowledge` 샘플 6건(카테고리별, 날짜 분산) 시드. 운영 배포에는 불필요.
 
 > ※ `weekly_ai_insight`, `daily_trend_insight` 등 일부 테이블/시퀀스는 별도 SQL 파일이 없습니다 — 애플리케이션 기동 시 `OracleSchemaMigrationRunner`가 자동 생성합니다.
+> ※ `crawl_condition_preset`의 `Default`/`AI 키워드 필터` 프리셋(Hacker News RSS, `https://hnrss.org/frontpage`)도 별도 SQL 실행 없이, 애플리케이션 기동 시 `OracleSchemaMigrationRunner`가 없으면 자동으로 시드합니다(`docs/sql/2026-08-23_crawl_condition_preset_default_seed_oracle.sql`은 참고 기록용).
 
 ### 9.3 애플리케이션 실행
 

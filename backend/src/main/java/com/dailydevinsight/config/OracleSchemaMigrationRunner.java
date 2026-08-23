@@ -48,6 +48,8 @@ public class OracleSchemaMigrationRunner {
     private static final String SEQUENCE_DAILY_TREND_INSIGHT = "SEQ_DAILY_TREND_INSIGHT";
     private static final String SEQUENCE_DAILY_TREND_GENERATION_HISTORY = "SEQ_DAILY_TREND_GEN_HISTORY";
     private static final String INDEX_TECH_NEWS_URL = "IDX_TECH_NEWS_URL";
+    private static final String DEFAULT_CRAWL_PRESET_NAME = "Default";
+    private static final String AI_KEYWORD_CRAWL_PRESET_NAME = "AI 키워드 필터";
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
@@ -79,6 +81,8 @@ public class OracleSchemaMigrationRunner {
         ensureCrawlConditionPresetTable();
         ensureCrawlConditionPresetColumns();
         ensureCrawlConditionPresetSequence();
+        ensureDefaultCrawlConditionPreset();
+        ensureAiKeywordCrawlConditionPreset();
         ensureWeeklyAiInsightTable();
         ensureWeeklyAiInsightSequence();
         ensureDailyTrendInsightTable();
@@ -406,6 +410,72 @@ public class OracleSchemaMigrationRunner {
         }
         jdbcTemplate.execute("CREATE SEQUENCE seq_crawl_condition_preset START WITH 1 INCREMENT BY 1 NOCACHE");
         log.info("Applied schema migration: created sequence {}", SEQUENCE_CRAWL_CONDITION_PRESET);
+    }
+
+    /**
+     * @date 2026-08-23
+     * @desc 새 환경에서도 크롤링 조건 프리셋이 비어 있지 않도록 'Default' 프리셋을 1회성으로 시드합니다.
+     */
+    private void ensureDefaultCrawlConditionPreset() {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM crawl_condition_preset WHERE preset_name = ?",
+                Integer.class,
+                DEFAULT_CRAWL_PRESET_NAME
+        );
+        if (count != null && count > 0) {
+            return;
+        }
+        jdbcTemplate.update(
+                "INSERT INTO crawl_condition_preset (" +
+                        "id, preset_name, source_name, source_url, max_articles, keyword_match_type, " +
+                        "connect_timeout_seconds, read_timeout_seconds, retry_count, is_active, created_at, updated_at" +
+                        ") VALUES (" +
+                        "seq_crawl_condition_preset.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, ?, 1, SYSTIMESTAMP, SYSTIMESTAMP)",
+                DEFAULT_CRAWL_PRESET_NAME,
+                "Hacker News",
+                "https://hnrss.org/frontpage",
+                20,
+                "OR",
+                5,
+                5,
+                1
+        );
+        log.info("Applied schema migration: seeded default crawl condition preset '{}'", DEFAULT_CRAWL_PRESET_NAME);
+    }
+
+    /**
+     * @date 2026-08-23
+     * @desc 키워드 필터가 적용된 예시 크롤링 조건 프리셋('AI 키워드 필터')을 1회성으로 시드합니다.
+     */
+    private void ensureAiKeywordCrawlConditionPreset() {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM crawl_condition_preset WHERE preset_name = ?",
+                Integer.class,
+                AI_KEYWORD_CRAWL_PRESET_NAME
+        );
+        if (count != null && count > 0) {
+            return;
+        }
+        jdbcTemplate.update(
+                "INSERT INTO crawl_condition_preset (" +
+                        "id, preset_name, source_name, source_url, max_articles, keyword_match_type, " +
+                        "include_keywords, include_keyword_operators, exclude_keywords, " +
+                        "connect_timeout_seconds, read_timeout_seconds, retry_count, is_active, created_at, updated_at" +
+                        ") VALUES (" +
+                        "seq_crawl_condition_preset.NEXTVAL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, SYSTIMESTAMP, SYSTIMESTAMP)",
+                AI_KEYWORD_CRAWL_PRESET_NAME,
+                "Hacker News",
+                "https://hnrss.org/frontpage",
+                20,
+                "OR",
+                "AI,Security,Database",
+                "OR,OR,OR",
+                "Hiring",
+                5,
+                5,
+                1
+        );
+        log.info("Applied schema migration: seeded crawl condition preset '{}'", AI_KEYWORD_CRAWL_PRESET_NAME);
     }
 
     /**

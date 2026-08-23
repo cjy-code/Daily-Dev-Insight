@@ -1944,6 +1944,7 @@
                 return;
             }
 
+            confirmButton.disabled = true;
             summaryElement.textContent = '미리보기 크롤링 요청을 시작합니다.';
             renderPreviewItems([]);
             openModal();
@@ -1971,17 +1972,21 @@
                 if (!payload.success) {
                     summaryElement.textContent = payload.message || '미리보기 생성에 실패했습니다.';
                     renderPreviewItems([]);
+                    confirmButton.disabled = true;
                     stopPreviewTimer();
                     return;
                 }
 
+                const previewItems = payload.previewItems || [];
                 summaryElement.textContent = '수집 ' + (payload.collectedCount || 0)
                     + '건/ 조건 일치 ' + (payload.filteredCount || 0) + '건/ 소요 ' + previewElapsedSeconds + '초';
-                renderPreviewItems(payload.previewItems || []);
+                renderPreviewItems(previewItems);
+                confirmButton.disabled = previewItems.length === 0;
                 stopPreviewTimer();
             } catch (error) {
                 summaryElement.textContent = '미리보기 조회 중 오류가 발생했습니다.';
                 renderPreviewItems([]);
+                confirmButton.disabled = true;
                 stopPreviewTimer();
             }
         }
