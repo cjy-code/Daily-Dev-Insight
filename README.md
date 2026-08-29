@@ -3,10 +3,24 @@
 RSS로 개발자 뉴스를 수집하고, OpenAI API로 일일 지식과 일간 AI 트렌드를 생성해
 관리자 CMS와 사용자 화면에 제공하는 Spring Boot + Thymeleaf 서비스입니다.
 
-- Portfolio: 공개 URL 준비 중
-- Live Demo: 준비 중
+- 포트폴리오: [Notion 요약](https://app.notion.com/p/DailyDevInsight-RSS-AI-3b8806eb2ec081d6be8fd464578b8f4e)
+- 시연 화면: [docs/portfolio/demo.md](docs/portfolio/demo.md)
+- 문제 해결 사례: [docs/portfolio/problem-solving.md](docs/portfolio/problem-solving.md)
+- 아키텍처 상세: [docs/portfolio/architecture.md](docs/portfolio/architecture.md)
+- 라이브 데모: 준비 중
 
 ---
+
+## 0. 포트폴리오 문서 안내
+
+Notion은 3~5분 안에 읽는 요약 페이지로 두고, 상세 설명과 시연 화면은 GitHub 문서로 분리했습니다.
+
+| 문서 | 역할 |
+|---|---|
+| [Notion 요약](https://app.notion.com/p/DailyDevInsight-RSS-AI-3b8806eb2ec081d6be8fd464578b8f4e) | 채용담당자/면접관이 빠르게 보는 포트폴리오 요약 |
+| [시연 화면](docs/portfolio/demo.md) | 기능별 화면, 캡처 의도, GIF 촬영 우선순위 |
+| [문제 해결 사례](docs/portfolio/problem-solving.md) | SSRF/XXE, 댓글 성능 판단, AI 콘텐츠 파이프라인 |
+| [아키텍처 상세](docs/portfolio/architecture.md) | 서비스 흐름, ERD, 운영상 한계 |
 
 ## 1. 프로젝트 소개
 
@@ -143,18 +157,17 @@ erDiagram
 - `content_type` + `content_id`는 `daily_knowledge` 또는 `tech_news`를 가리키는 **논리적 다형 참조**이며 물리 FK가 아닙니다(애플리케이션 레벨에서 타입 분기 처리).
 - `daily_trend_insight`는 다른 테이블과 직접적인 FK 관계가 없습니다. 생성 시점에 `tech_news`를 날짜 조건으로 조회해 참조할 뿐 저장된 연관관계는 없습니다.
 
-## 6. 화면
+## 6. 시연 화면
 
-### 메인 화면
-![메인 화면](docs/images/screen-main.jpg)
+기능별 시연 화면은 [docs/portfolio/demo.md](docs/portfolio/demo.md)에 분리했습니다.
 
-### 인사이트 상세 화면
-![인사이트 상세 화면](docs/images/screen-detail.jpg)
+- 홈 피드: 오늘의 지식, 기술 뉴스, 일일 개발 트렌드가 한 화면에 노출되는 흐름
+- 인사이트 상세: 상세 조회, 좋아요, 북마크, 댓글/대댓글 작성 흐름
+- 관리자 크롤링: 조건 프리셋 선택, 수동 크롤링 실행, 실행 이력 확인 흐름
+- AI 생성: 생성 결과 미리보기, 수정, 저장 흐름
+- 일일 트렌드 인사이트: RSS 뉴스 → 트렌드 → 일일 지식 생성 프롬프트 연결 흐름
 
-### 관리자 크롤링 관리 — 오늘의 개발 트렌드
-![관리자 크롤링 관리 - 오늘의 개발 트렌드](docs/images/screen-admin-crawling.jpg)
-
-> 위 3장은 로컬 개발용 테스트 계정(§11)으로 로그인해 실제 화면을 캡처한 것입니다. 초기 SVG 프리뷰는 `docs/images/`에 그대로 남아 있습니다. 남은 캡처 우선순위: GIF 1개(선택).
+현재 캡처 파일은 `docs/images/`에 보관하고, README에는 반복 노출하지 않습니다.
 
 ## 7. 주요 기술 개선 이력
 
@@ -255,6 +268,11 @@ cd backend
 
 ## 13. 문서
 
+- 포트폴리오 요약: [Notion 요약](https://app.notion.com/p/DailyDevInsight-RSS-AI-3b8806eb2ec081d6be8fd464578b8f4e)
+- 포트폴리오 상세:
+  - [시연 화면](docs/portfolio/demo.md)
+  - [문제 해결 사례](docs/portfolio/problem-solving.md)
+  - [아키텍처 상세](docs/portfolio/architecture.md)
 - API 명세: `docs/API_SPEC.md`는 초기 MVP 기준 계약입니다. 현재 전체 API 계약은 `docs/MVP_SCOPE.md`에 기록된 불일치(상세·좋아요·북마크·댓글 API 누락, 인증 요구사항 누락, 뉴스 조회 범위·응답 필드 불일치 등)를 반영해 최신화 예정입니다.
 - 구현 범위 문서 부채 현황: `docs/MVP_SCOPE.md` (2026-08-03 스캔 기준 — 일부 항목은 이후 커밋으로 이미 해결되어 최신 코드와 다를 수 있습니다. 예: 뉴스 조회 범위 서술, 비밀번호 인코더 관련 서술)
 - SQL 스크립트: `docs/sql/`

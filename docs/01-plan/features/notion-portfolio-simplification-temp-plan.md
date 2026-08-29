@@ -1,6 +1,6 @@
 # Notion Portfolio Simplification Temp Plan
 
-> Status: Temporary planning note. Delete this file after the Notion portfolio cleanup is completed.
+> Status: Notion 축약과 GitHub 포트폴리오 문서 분할을 로컬에서 완료. GIF 촬영과 원격 링크 검증이 끝날 때까지 이 파일을 유지한다.
 > Target: DailyDevInsight portfolio Notion page
 > Intent: Keep Notion concise and demo-focused, move detailed technical explanation to GitHub README/docs.
 
