@@ -25,10 +25,18 @@ public class PromptTemplateService {
             Tone: ${tone}
             Difficulty: ${difficulty}
 
+            Requirements:
+            - Focus on ONE specific, narrow concept — avoid broad overviews.
+            - Ground the explanation in a concrete scenario a working developer would actually hit (a specific tool/library/version, a real error message, or a common mistake).
+            - Include at least one working code example in a fenced code block.
+            - End with a 3-5 item practical checklist the reader can apply immediately.
+            - Match depth to difficulty: beginner = core concept + common pitfall, intermediate = trade-offs + when-to-use, advanced = internals/performance/edge cases.
+            - Avoid generic filler sentences ("this is important", "this is a modern trend") — every sentence must carry specific information.
+
             Respond in this structure:
-            TITLE: one clear title
+            TITLE: one clear, specific title (not generic)
             SUMMARY: concise summary within 3 lines
-            DETAIL: detailed explanation with practical example and checklist
+            DETAIL: detailed explanation following the requirements above
             """;
 
     private final PromptTemplateRepository promptTemplateRepository;
