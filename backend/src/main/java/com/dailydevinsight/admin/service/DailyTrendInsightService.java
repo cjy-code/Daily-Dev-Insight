@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +39,8 @@ public class DailyTrendInsightService {
     private final DailyTrendInsightRepository dailyTrendInsightRepository;
     private final DailyTrendGenerationHistoryRepository dailyTrendGenerationHistoryRepository;
     private final LlmGenerationClient llmGenerationClient;
+
+    private final Set<LocalDate> inProgressTrendDates = ConcurrentHashMap.newKeySet();
 
     /**
      * @date 2026-08-13
@@ -128,43 +132,50 @@ public class DailyTrendInsightService {
      */
     private DailyTrendInsightViewDTO generateDailyTrend(LocalDate referenceDate, String triggerType) {
         LocalDate targetDate = referenceDate == null ? LocalDate.now() : referenceDate;
-        List<TechNews> sourceNewsList = findSourceNews(targetDate);
+        if (!inProgressTrendDates.add(targetDate)) {
+            throw new IllegalStateException("기준일 " + targetDate + "의 트렌드 생성이 이미 진행 중입니다. 잠시 후 다시 시도해 주세요.");
+        }
 
         try {
-            if (sourceNewsList.isEmpty()) {
-                throw new IllegalStateException("분석할 테크 뉴스가 없습니다.");
+            List<TechNews> sourceNewsList = findSourceNews(targetDate);
+            try {
+                if (sourceNewsList.isEmpty()) {
+                    throw new IllegalStateException("분석할 테크 뉴스가 없습니다.");
+                }
+
+                GeneratedDailyTrendResult generatedResult = llmGenerationClient.generateDailyTrend(
+                        buildDailyTrendPrompt(sourceNewsList),
+                        targetDate
+                );
+                List<String> normalizedKeywords = normalizeKeywords(generatedResult.getKeywords());
+                String summary = validateSummary(generatedResult.getSummary());
+                DailyTrendInsight dailyTrendInsight = dailyTrendInsightRepository.findByTrendDate(targetDate)
+                        .orElseGet(() -> createDailyTrendInsight(targetDate, sourceNewsList.size()));
+
+                dailyTrendInsight.updateAnalysis(String.join(",", normalizedKeywords), summary, sourceNewsList.size());
+                DailyTrendInsight savedTrend = dailyTrendInsightRepository.save(dailyTrendInsight);
+                saveGenerationHistory(
+                        triggerType,
+                        targetDate,
+                        "SUCCESS",
+                        sourceNewsList.size(),
+                        savedTrend.getId(),
+                        null
+                );
+                return DailyTrendInsightViewDTO.from(savedTrend);
+            } catch (Exception exception) {
+                saveGenerationHistory(
+                        triggerType,
+                        targetDate,
+                        "FAILED",
+                        sourceNewsList.size(),
+                        null,
+                        exception.getMessage()
+                );
+                throw exception;
             }
-
-            GeneratedDailyTrendResult generatedResult = llmGenerationClient.generateDailyTrend(
-                    buildDailyTrendPrompt(sourceNewsList),
-                    targetDate
-            );
-            List<String> normalizedKeywords = normalizeKeywords(generatedResult.getKeywords());
-            String summary = validateSummary(generatedResult.getSummary());
-            DailyTrendInsight dailyTrendInsight = dailyTrendInsightRepository.findByTrendDate(targetDate)
-                    .orElseGet(() -> createDailyTrendInsight(targetDate, sourceNewsList.size()));
-
-            dailyTrendInsight.updateAnalysis(String.join(",", normalizedKeywords), summary, sourceNewsList.size());
-            DailyTrendInsight savedTrend = dailyTrendInsightRepository.save(dailyTrendInsight);
-            saveGenerationHistory(
-                    triggerType,
-                    targetDate,
-                    "SUCCESS",
-                    sourceNewsList.size(),
-                    savedTrend.getId(),
-                    null
-            );
-            return DailyTrendInsightViewDTO.from(savedTrend);
-        } catch (Exception exception) {
-            saveGenerationHistory(
-                    triggerType,
-                    targetDate,
-                    "FAILED",
-                    sourceNewsList.size(),
-                    null,
-                    exception.getMessage()
-            );
-            throw exception;
+        } finally {
+            inProgressTrendDates.remove(targetDate);
         }
     }
 

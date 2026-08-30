@@ -712,6 +712,30 @@
     }
 
     /**
+     * @date 2026-08-30
+     * @desc 오늘의 개발 트렌드 생성 폼의 중복 제출을 막기 위해 제출 시 버튼을 비활성화합니다.
+     */
+    function bindDailyTrendGenerateSubmitGuard() {
+        const form = document.querySelector('.daily-trend-generate-form');
+        if (!form) {
+            return;
+        }
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (!submitButton) {
+            return;
+        }
+        form.addEventListener('submit', (event) => {
+            if (form.dataset.submitting === 'true') {
+                event.preventDefault();
+                return;
+            }
+            form.dataset.submitting = 'true';
+            submitButton.disabled = true;
+            submitButton.textContent = '생성 중...';
+        });
+    }
+
+    /**
      * @date 2026-04-23
      * @desc 하단 우측에 토스트 메시지를 표시합니다.
      */
@@ -2103,6 +2127,7 @@
         bindCronScheduleBuilder('schedule');
         bindCronScheduleBuilder('crawlSchedule');
         bindGenerationActionGuard();
+        bindDailyTrendGenerateSubmitGuard();
         bindPromptTemplateSaveLimitGuard();
         bindPromptTemplateToggleConfirm();
         bindPromptTemplateActiveToggle();
