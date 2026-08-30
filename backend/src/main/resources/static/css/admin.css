@@ -744,6 +744,7 @@ body {
     color: #fff;
     font-weight: 700;
     cursor: pointer;
+    white-space: nowrap;
 }
 
 .admin-form button:hover,
@@ -1105,6 +1106,7 @@ body {
 
 .admin-table {
     width: 100%;
+    min-width: 760px;
     border-collapse: collapse;
 }
 
@@ -1165,6 +1167,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    min-width: 120px;
 }
 
 .thumbnail-cell {
